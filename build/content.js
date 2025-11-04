@@ -2036,7 +2036,7 @@ async function buildDblpInfoMap(scholarPubLinkElements, dblpPublications, mapToF
             if (titleSimilarity > 0.90) {
                 let yearMatch = false;
                 if (scholarPub.yearFromProfile && dblpPub.year) {
-                    if (Math.abs(scholarPub.yearFromProfile - parseInt(dblpPub.year, 10)) <= 1) {
+                    if (Math.abs(scholarPub.yearFromProfile - parseInt(dblpPub.year, 10)) <= 2) {
                         yearMatch = true;
                     }
                 }

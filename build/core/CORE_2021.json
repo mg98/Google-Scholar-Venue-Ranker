@@ -233,8 +233,8 @@
   {
     "46": 4612,
     "2172": 52,
-    "International Conference on Advanced Communications and Computation": "ACM International Conference on the Foundations of Software Engineering (was ESEC/FSE, changed 2024; duplicate previously listed as ESEC, removed from DB)",
-    "INFOCOMP": "FSE",
+    "International Conference on Advanced Communications and Computation": "ACM International Conference on the Foundations of Software Engineering",
+    "INFOCOMP": "ESEC/FSE",
     "CORE2021": "CORE2021",
     "Unranked": "A*",
     "Yes": "Yes",
