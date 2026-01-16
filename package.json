@@ -1,28 +1,19 @@
 {
-  "name": "scholar-ranker",
-  "version": "1.0.0",
-  "description": "Google-Scholar Conference Ranker – local dev build",
+  "name": "gsvr",
+  "version": "1.8.3",
+  "private": true,
   "type": "module",
-  "main": "index.js",
-  "scripts": {
-    "clean": "rimraf build",
-    "build": "npm run clean && tsc -p tsconfig.build.json && npm run copy-assets",
-    "copy-assets": "cpx \"manifest.json\" build && cpx \"{core/**/*,icons/**/*,images/**/*,sjr/**/*}\" build && cpx \"Images/**/*\" build/images",
-    "zip": "cd build && zip -r ../ranker.zip .",
-    "e2e": "npm run build && playwright test",
-    "test": "echo \"run: npm run e2e\""
+  "description": "Build tooling for the Google Scholar Venue Ranker (Chrome extension).",
+  "engines": {
+    "node": ">=18"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "scripts": {
+    "clean": "node scripts/clean.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "node GSVR/tests/run_tests.js",
+    "zip": "npm run build && node scripts/zip.mjs"
+  },
   "devDependencies": {
-    "@playwright/test": "^1.44.0",
-    "@types/chrome": "^0.0.322",
-    "@types/node": "^20.11.17",
-    "@xmldom/xmldom": "^0.9.8",
-    "copyfiles": "^2.4.1",
-    "cpx": "^1.5.0",
-    "rimraf": "^5.0.5",
-    "typescript": "^5.8.3"
+    "archiver": "^7.0.1"
   }
 }
