@@ -1,0 +1,144 @@
+/*
+ * inject.css
+ * Minimal styles for UI elements injected by content.js
+ */
+
+/* Neutral / "null" status for publications not found in the matched DBLP profile */
+.badge-missing-dblp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border: 1px solid #94a3b8; /* slate-400 */
+  background: #e2e8f0;       /* slate-200 */
+  color: #334155;            /* slate-700 */
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.85em;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+/* Manual venue search overlay */
+.search-utility-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483646; /* above Scholar UI */
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.search-utility-overlay.is-open {
+  display: flex;
+}
+
+.gsr-search-panel {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.2);
+  width: min(520px, calc(100vw - 32px));
+  padding: 14px;
+}
+
+.gsr-search-panel h3 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  color: #374151;
+}
+
+.gsr-search-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 8px 0;
+}
+
+.gsr-search-row input,
+.gsr-search-row select {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.gsr-search-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.gsr-search-actions button,
+.gsr-search-icon-btn {
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #f9fafb;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.gsr-search-actions button:hover,
+.gsr-search-icon-btn:hover {
+  background: #eef2ff;
+  border-color: #a5b4fc;
+}
+
+/* Make the footer search button more discoverable */
+.gsr-search-icon-btn {
+  white-space: nowrap;
+  gap: 6px;
+}
+
+/* Venue type (Conference vs Journal/Transaction) radio row */
+.gsr-search-type-row {
+  justify-content: flex-start;
+}
+
+.gsr-search-type-row .gsr-type-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #374151;
+  margin-right: 2px;
+}
+
+.gsr-search-type-row .gsr-radio-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.gsr-search-type-row .gsr-radio-wrap:hover {
+  background: #f3f4f6;
+}
+
+.gsr-search-type-row input[type="radio"] {
+  margin: 0;
+}
+
+.gsr-search-result {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fafafa;
+  font-size: 12px;
+  color: #374151;
+  line-height: 1.45;
+}
+
+.gsr-search-result .gsr-result-item {
+  margin: 6px 0;
+}
+
+.gsr-search-result .gsr-result-label {
+  font-weight: 700;
+  margin-right: 6px;
+}

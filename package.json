@@ -1,8 +1,8 @@
 {
   "name": "gsvr",
-  "version": "1.8.3",
+  "version": "1.8.5",
   "private": true,
-  "type": "module",
+  "type": "commonjs",
   "description": "Build tooling for the Google Scholar Venue Ranker (Chrome extension).",
   "engines": {
     "node": ">=18"
@@ -11,9 +11,6 @@
     "clean": "node scripts/clean.mjs",
     "build": "node scripts/build.mjs",
     "test": "node GSVR/tests/run_tests.js",
-    "zip": "npm run build && node scripts/zip.mjs"
-  },
-  "devDependencies": {
-    "archiver": "^7.0.1"
+	"zip": "npm run build && node scripts/zip.mjs"
   }
 }

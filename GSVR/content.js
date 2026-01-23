@@ -59,12 +59,19 @@ const ARXIV_NORMALIZED_VALUES = new Set([
 const INHERIT_PARENT_CONFERENCE_RANK_FOR_WORKSHOPS = false;
 const STATUS_ELEMENT_ID = 'scholar-ranker-status-progress';
 const SUMMARY_PANEL_ID = 'scholar-ranker-summary';
-// Cache schema bumped for v1.8.2 (adds reason tags per publication)
-const CACHE_VERSION = 3;
+// "Null" state for Scholar entries that cannot be verified against the matched DBLP profile.
+const DBLP_ENTRY_MISSING_LABEL = 'DBLP Entry Missing';
+const DBLP_ENTRY_MISSING_TOOLTIP = 'This paper is not indexed in the matched DBLP profile.';
+// Cache schema bumped for v1.8.4 (Strict DBLP-only; prevents old Scholar-fallback caches)
+const CACHE_VERSION = 4;
 const CACHE_PREFIX = `scholarRanker_profile_v${CACHE_VERSION}_`;
 const CACHE_DURATION_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 const DBLP_CACHE_DURATION_MS = Number.POSITIVE_INFINITY; // never expires
-console.log("Google Scholar Ranker: Content script loaded (v1.8.2).");
+console.log("Google Scholar Ranker: Content script loaded (v1.8.4 - Strict DBLP).");
+
+// --- Strict DBLP-only UI labels ---
+const DBLP_MISSING_BADGE_LABEL = 'DBLP Entry Missing';
+const DBLP_MISSING_BADGE_TOOLTIP = 'This paper is not indexed in the matched DBLP profile.';
 const coreDataCache = {};
 let isMainProcessing = false;
 let activeCachedPublicationRanks = null;
@@ -426,9 +433,13 @@ async function expandAllPublications(statusElement) {
     }
 }
 function getCoreDataFileForYear(pubYear) {
+    // Use the newest available CORE dataset when the year is unknown.
     if (pubYear === null) {
-        return 'core/CORE_2023.json';
-    } // Default for unknown
+        return 'core/CORE_2026.json';
+    }
+    // CORE 2026 is the latest dataset bundled with the extension.
+    if (pubYear >= 2026)
+        return 'core/CORE_2026.json';
     if (pubYear >= 2023)
         return 'core/CORE_2023.json';
     if (pubYear >= 2021)
@@ -441,8 +452,9 @@ function getCoreDataFileForYear(pubYear) {
         return 'core/CORE_2017.json';
     if (pubYear <= 2016) {
         return 'core/CORE_2014.json';
-    } // Or a specific older one if you have it
-    return 'core/CORE_2023.json'; // Fallback
+    }
+    // Fallback
+    return 'core/CORE_2026.json';
 }
 function generateAcronymFromTitle(title) {
     if (!title)
@@ -1413,6 +1425,21 @@ function createRankBadgeElement(rank, system, reason = null) {
         badge.style.borderColor = '#bdbdbd';
         badge.style.color = '#555';
     };
+
+    // Strict DBLP-only: show a neutral badge for papers missing from the matched DBLP profile.
+    if (system === 'DBLP' && rank === DBLP_ENTRY_MISSING_LABEL) {
+        badge.classList.add('badge-missing-dblp');
+        badge.setAttribute('title', DBLP_ENTRY_MISSING_TOOLTIP);
+        // Inline fallbacks (in case CSS fails to load)
+        badge.style.border = '1px solid #94a3b8';
+        badge.style.borderRadius = '10px';
+        badge.style.padding = '2px 8px';
+        badge.style.backgroundColor = '#e2e8f0';
+        badge.style.color = '#334155';
+        badge.style.fontSize = '0.85em';
+        badge.style.fontWeight = '700';
+        return badge;
+    }
     if (system === 'SJR' && SJR_QUARTILES.includes(rank)) {
         badge.style.border = '2px solid #ccc';
         badge.style.borderRadius = '50%';
@@ -1504,6 +1531,274 @@ function displayRankBadgeAfterTitle(rowElement, rank, system, reason = null) {
         titleLinkElement.insertAdjacentElement('afterend', badge);
     }
 }
+
+// --- START: Manual Rank/Quartile Search Utility (Phase 2) ---
+let gsrSearchOverlayEl = null;
+let gsrVenueDatalistPopulated = false;
+
+async function populateVenueDatalistIfNeeded() {
+    if (gsrVenueDatalistPopulated)
+        return;
+    gsrVenueDatalistPopulated = true;
+    try {
+        const datalistId = 'gsr-venue-datalist';
+        let datalist = document.getElementById(datalistId);
+        if (!datalist) {
+            datalist = document.createElement('datalist');
+            datalist.id = datalistId;
+            document.body.appendChild(datalist);
+        }
+        const coreData = await loadCoreDataForFile('core/CORE_2026.json');
+        const seen = new Set();
+        for (const entry of coreData) {
+            const candidates = [entry.acronym, entry.title].filter(Boolean);
+            for (const c of candidates) {
+                const val = String(c || '').trim();
+                if (!val)
+                    continue;
+                const key = val.toLowerCase();
+                if (seen.has(key))
+                    continue;
+                seen.add(key);
+                const opt = document.createElement('option');
+                opt.value = val;
+                datalist.appendChild(opt);
+            }
+        }
+    }
+    catch (err) {
+        console.warn('GSR: Failed to populate venue autocomplete list.', err);
+        // allow retry next time
+        gsrVenueDatalistPopulated = false;
+    }
+}
+
+function ensureSearchUtilityOverlay() {
+    if (gsrSearchOverlayEl && document.body.contains(gsrSearchOverlayEl)) {
+        return gsrSearchOverlayEl;
+    }
+    const overlay = document.createElement('div');
+    overlay.className = 'search-utility-overlay';
+    overlay.id = 'gsr-search-utility-overlay';
+
+    const panel = document.createElement('div');
+    panel.className = 'gsr-search-panel';
+
+    const title = document.createElement('h3');
+    title.textContent = 'Search Ranking (CORE / SJR)';
+    panel.appendChild(title);
+
+    const row1 = document.createElement('div');
+    row1.className = 'gsr-search-row';
+    const venueInput = document.createElement('input');
+    venueInput.type = 'text';
+    venueInput.placeholder = 'Venue name or acronym (e.g., SIGCOMM, TPAMI)';
+    venueInput.id = 'gsr-venue-search-input';
+    venueInput.setAttribute('list', 'gsr-venue-datalist');
+    row1.appendChild(venueInput);
+    panel.appendChild(row1);
+
+    const rowType = document.createElement('div');
+    rowType.className = 'gsr-search-row gsr-search-type-row';
+
+    const typeLabel = document.createElement('span');
+    typeLabel.className = 'gsr-type-label';
+    typeLabel.textContent = 'Type:';
+    rowType.appendChild(typeLabel);
+
+    const mkRadio = (id, value, labelText, checked) => {
+        const wrap = document.createElement('label');
+        wrap.className = 'gsr-radio-wrap';
+        const input = document.createElement('input');
+        input.type = 'radio';
+        input.name = 'gsr-venue-type';
+        input.id = id;
+        input.value = value;
+        input.checked = !!checked;
+        const txt = document.createElement('span');
+        txt.textContent = labelText;
+        wrap.appendChild(input);
+        wrap.appendChild(txt);
+        return wrap;
+    };
+
+    rowType.appendChild(mkRadio('gsr-type-conference', 'conference', 'Conference', true));
+    rowType.appendChild(mkRadio('gsr-type-journal', 'journal', 'Journal/Transaction', false));
+
+    panel.appendChild(rowType);
+
+    const row2 = document.createElement('div');
+    row2.className = 'gsr-search-row';
+    const yearSelect = document.createElement('select');
+    yearSelect.id = 'gsr-venue-search-year';
+    const yearAuto = document.createElement('option');
+    yearAuto.value = '';
+    yearAuto.textContent = 'Year (Auto)';
+    yearSelect.appendChild(yearAuto);
+    for (let y = 2026; y >= 2010; y--) {
+        const opt = document.createElement('option');
+        opt.value = String(y);
+        opt.textContent = String(y);
+        yearSelect.appendChild(opt);
+    }
+    row2.appendChild(yearSelect);
+    panel.appendChild(row2);
+
+    const result = document.createElement('div');
+    result.className = 'gsr-search-result';
+    result.id = 'gsr-venue-search-result';
+    result.textContent = 'Choose type, enter a venue and (optionally) a year, then press Search.';
+    panel.appendChild(result);
+
+    const actions = document.createElement('div');
+    actions.className = 'gsr-search-actions';
+    const backBtn = document.createElement('button');
+    backBtn.type = 'button';
+    backBtn.textContent = 'Back';
+    const clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.textContent = 'Clear';
+    const searchBtn = document.createElement('button');
+    searchBtn.type = 'button';
+    searchBtn.textContent = 'Search';
+    actions.appendChild(backBtn);
+    actions.appendChild(clearBtn);
+    actions.appendChild(searchBtn);
+    panel.appendChild(actions);
+
+    const closeOverlay = (clear = true) => {
+        overlay.classList.remove('is-open');
+        if (clear) {
+            venueInput.value = '';
+            yearSelect.value = '';
+            result.textContent = 'Choose type, enter a venue and (optionally) a year, then press Search.';
+        }
+    };
+
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+            closeOverlay(true);
+        }
+    });
+    backBtn.addEventListener('click', () => closeOverlay(true));
+    clearBtn.addEventListener('click', () => {
+        venueInput.value = '';
+        yearSelect.value = '';
+        result.textContent = 'Choose type, enter a venue and (optionally) a year, then press Search.';
+        venueInput.focus();
+    });
+
+    const doSearch = async () => {
+        const venueQuery = String(venueInput.value || '').trim();
+        if (!venueQuery) {
+            result.textContent = 'Please enter a venue name or acronym.';
+            return;
+        }
+        const yearVal = yearSelect.value ? parseInt(yearSelect.value, 10) : null;
+        const selectedType = (panel.querySelector('input[name="gsr-venue-type"]:checked')?.value) || 'conference';
+
+        result.textContent = 'Searching...';
+        try {
+            result.innerHTML = '';
+
+            const addItem = (label, value) => {
+                const line = document.createElement('div');
+                line.className = 'gsr-result-item';
+                const l = document.createElement('span');
+                l.className = 'gsr-result-label';
+                l.textContent = label;
+                const v = document.createElement('span');
+                v.textContent = value;
+                line.appendChild(l);
+                line.appendChild(v);
+                result.appendChild(line);
+            };
+
+            if (selectedType === 'conference') {
+                // CORE lookup (conferences)
+                const coreFile = getCoreDataFileForYear(yearVal);
+                const coreData = await loadCoreDataForFile(coreFile);
+                let coreRank = findRankForVenue(venueQuery, coreData, undefined);
+
+                // Try acronym hints if the direct query did not yield a valid CORE rank
+                if (!VALID_RANKS.includes(coreRank)) {
+                    for (const acro of getPossibleAcronymsFromVenue(venueQuery)) {
+                        const attempt = findRankForVenue(acro, coreData, undefined);
+                        if (VALID_RANKS.includes(attempt)) {
+                            coreRank = attempt;
+                            break;
+                        }
+                    }
+                }
+
+                const coreYear = coreFile.match(/CORE_(\d{4})/)?.[1] || '';
+                addItem(`Conference (CORE ${coreYear}):`, VALID_RANKS.includes(coreRank) ? coreRank : 'Not found');
+
+                if (!VALID_RANKS.includes(coreRank)) {
+                    const note = document.createElement('div');
+                    note.className = 'gsr-result-item';
+                    note.textContent = 'No match in the local CORE dataset for this query.';
+                    result.appendChild(note);
+                }
+            } else {
+                // SJR lookup (journals / transactions)
+                const sjr = await resolveSjrQuartile(venueQuery, yearVal);
+                const sjrQuartile = (sjr.status === 'success' && sjr.quartile) ? sjr.quartile : null;
+
+                addItem('Journal/Transaction (SJR):', (sjrQuartile && SJR_QUARTILES.includes(sjrQuartile)) ? sjrQuartile : 'Not found');
+
+                if (!(sjrQuartile && SJR_QUARTILES.includes(sjrQuartile))) {
+                    const note = document.createElement('div');
+                    note.className = 'gsr-result-item';
+                    note.textContent = 'No match in the local SJR dataset for this query.';
+                    result.appendChild(note);
+                }
+            }
+        }
+        catch (err) {
+            console.warn('GSR: Manual venue search failed.', err);
+            result.textContent = 'Search failed. Please try again.';
+        }
+    };
+
+    searchBtn.addEventListener('click', doSearch);
+    venueInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            doSearch();
+        }
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            closeOverlay(true);
+        }
+    });
+    yearSelect.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            closeOverlay(true);
+        }
+    });
+
+    panel.addEventListener('click', (e) => e.stopPropagation());
+    overlay.appendChild(panel);
+    document.body.appendChild(overlay);
+    gsrSearchOverlayEl = overlay;
+    return overlay;
+}
+
+function openSearchUtilityOverlay() {
+    const overlay = ensureSearchUtilityOverlay();
+    overlay.classList.add('is-open');
+    populateVenueDatalistIfNeeded();
+    setTimeout(() => {
+        const input = document.getElementById('gsr-venue-search-input');
+        if (input instanceof HTMLInputElement) {
+            input.focus();
+            input.select();
+        }
+    }, 0);
+}
+// --- END: Manual Rank/Quartile Search Utility (Phase 2) ---
 function createStatusElement(initialMessage = "Initializing...") {
     disconnectPublicationTableObserver();
     activeCachedPublicationRanks = null;
@@ -1804,8 +2099,23 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
     betaLabel.style.alignItems = 'center';
     betaLabel.style.marginRight = '10px';
     betaLabel.style.cursor = 'help';
-    betaLabel.setAttribute('title', "Developed by Naveed Anwar Bhatti.\nIt is free and open source.\nIt uses historical CORE rankings (2014-2023) and SCImago journal quartiles for reliability.\nHelp us spot inconsistencies!\nFor any issues, please click on “Report Bug”.");
+    betaLabel.setAttribute('title', "Developed by Naveed Anwar Bhatti.\nIt is free and open source.\nIt uses CORE rankings (2014-2026) and SCImago journal quartiles for reliability.\nHelp us spot inconsistencies!\nFor any issues, please click on “Report Bug”.");
     finalFooterDiv.appendChild(betaLabel);
+
+    // Manual venue verification (Phase 2): search icon immediately after the "BETA" badge.
+    const searchIconBtn = document.createElement('button');
+    searchIconBtn.type = 'button';
+    searchIconBtn.className = 'gsr-search-icon-btn';
+    searchIconBtn.textContent = '🔎 Search Ranking';
+    searchIconBtn.style.marginRight = '10px';
+    searchIconBtn.style.lineHeight = '1.4';
+    searchIconBtn.style.height = 'fit-content';
+    searchIconBtn.style.display = 'inline-flex';
+    searchIconBtn.style.alignItems = 'center';
+    searchIconBtn.style.justifyContent = 'center';
+    searchIconBtn.setAttribute('title', 'Search Ranking (local CORE/SJR datasets)');
+    searchIconBtn.addEventListener('click', () => openSearchUtilityOverlay());
+    finalFooterDiv.appendChild(searchIconBtn);
     const reportBugLink = document.createElement('a');
     reportBugLink.href = "https://forms.office.com/r/PbSzWaQmpJ";
     reportBugLink.target = "_blank";
@@ -2460,62 +2770,76 @@ async function main() {
     const scholarTitlesAlreadyRanked = new Set();
     const dblpKeysAlreadyUsedForRank = new Set();
     try {
-        if (currentUserId) {
-            const scholarAuthorName = getScholarAuthorName();
-            const sanitizedName = scholarAuthorName ? sanitizeAuthorName(scholarAuthorName) : null;
-            if (sanitizedName) {
-                const cachedUserData = await loadCachedData(currentUserId);
-                if (cachedUserData?.dblpAuthorPid && cachedUserData.dblpMatchTimestamp && (Date.now() - cachedUserData.dblpMatchTimestamp) < DBLP_CACHE_DURATION_MS) {
-                    cachedDblpPidForSave = cachedUserData.dblpAuthorPid;
-                    console.log("GSR INFO: Using valid cached DBLP PID:", cachedDblpPidForSave);
-                }
-                else {
-                    if (cachedUserData?.dblpAuthorPid)
-                        console.log("GSR INFO: Cached DBLP PID is stale or missing timestamp. Will attempt fresh DBLP author match.");
-                    else
-                        console.log("GSR INFO: No valid cached DBLP PID. Attempting fresh DBLP author match for:", sanitizedName);
-                    if (statusTextElement)
-                        statusTextElement.textContent = `DBLP: Searching for ${sanitizedName}...`;
-                    const scholarSamplePubs = getScholarSamplePublications(7);
-                    if (scholarSamplePubs.length >= DBLP_HEURISTIC_MIN_OVERLAP_COUNT) {
-                        cachedDblpPidForSave = await findBestDblpProfile(sanitizedName, scholarSamplePubs);
-                    }
-                    else {
-                        if (statusTextElement)
-                            statusTextElement.textContent = "DBLP: Not enough unique Scholar publications for match attempt.";
-                    }
-                }
-                if (cachedDblpPidForSave) {
-                    if (statusTextElement && dblpPubsForCurrentUser.length === 0)
-                        statusTextElement.textContent = `DBLP: Fetching publications for PID ${cachedDblpPidForSave}...`;
-                    dblpPubsForCurrentUser = await fetchPublicationsFromDblp(cachedDblpPidForSave, statusElement);
-                }
-                else {
-                    // --- START: MODIFIED BLOCK ---
-                    // This block now halts execution if no DBLP profile is found.
-                    if (statusTextElement && sanitizedName) {
-                        // 1. Update the status panel to reflect a final state.
-                        const title = statusElement.querySelector('div:first-child');
-                        if (title) {
-                            title.textContent = "DBLP Author Not Found";
-                        }
-                        const progressBar = statusElement.querySelector('.gsr-progress-bar-inner');
-                        if (progressBar && progressBar.parentElement) {
-                            progressBar.parentElement.style.display = 'none'; // Hide progress bar
-                        }
-                        // 2. Display the clear, user-friendly message.
-                        statusTextElement.innerHTML = `Apologies, we could not find a matching author profile on DBLP for "<b>${sanitizedName}</b>".`;
-                        statusTextElement.style.color = '#D2691E';
-                    }
-                    // 3. Halt all further processing. The 'finally' block will still execute.
-                    return;
-                    // --- END: MODIFIED BLOCK ---
-                }
+        // -----------------------
+        // Strict DBLP-only: PID is mandatory.
+        // -----------------------
+        const scholarAuthorName = getScholarAuthorName();
+        const sanitizedName = scholarAuthorName ? sanitizeAuthorName(scholarAuthorName) : null;
+        if (!sanitizedName) {
+            if (statusTextElement)
+                statusTextElement.textContent = "Could not determine Scholar author name from page.";
+            return;
+        }
+
+        const cachedUserData = currentUserId ? await loadCachedData(currentUserId) : null;
+        if (cachedUserData?.dblpAuthorPid && cachedUserData.dblpMatchTimestamp && (Date.now() - cachedUserData.dblpMatchTimestamp) < DBLP_CACHE_DURATION_MS) {
+            cachedDblpPidForSave = cachedUserData.dblpAuthorPid;
+            console.log("GSR INFO: Using cached DBLP PID:", cachedDblpPidForSave);
+        }
+        else {
+            if (cachedUserData?.dblpAuthorPid)
+                console.log("GSR INFO: Cached DBLP PID is stale or missing timestamp. Will attempt fresh DBLP author match.");
+            else
+                console.log("GSR INFO: No cached DBLP PID. Attempting DBLP author match for:", sanitizedName);
+
+            if (statusTextElement)
+                statusTextElement.textContent = `DBLP: Searching for ${sanitizedName}...`;
+
+            const scholarSamplePubs = getScholarSamplePublications(7);
+            if (scholarSamplePubs.length >= DBLP_HEURISTIC_MIN_OVERLAP_COUNT) {
+                cachedDblpPidForSave = await findBestDblpProfile(sanitizedName, scholarSamplePubs);
             }
             else {
-                if (statusTextElement)
-                    statusTextElement.textContent = "Could not determine Scholar author name from page.";
+                // Not enough data to do name+title overlap verification.
+                cachedDblpPidForSave = null;
             }
+        }
+
+        if (!cachedDblpPidForSave) {
+            // Termination clause: halt all execution when PID cannot be verified.
+            const title = statusElement.querySelector('div:first-child');
+            if (title)
+                title.textContent = "DBLP Author Not Found";
+            const progressBar = statusElement.querySelector('.gsr-progress-bar-inner');
+            if (progressBar && progressBar.parentElement) {
+                progressBar.parentElement.style.display = 'none';
+            }
+            if (statusTextElement) {
+                statusTextElement.textContent = "DBLP Author Not Found";
+                statusTextElement.setAttribute('title', `No verified DBLP PID for "${sanitizedName}".`);
+                statusTextElement.style.color = '#64748b';
+            }
+            return;
+        }
+
+        if (statusTextElement && dblpPubsForCurrentUser.length === 0)
+            statusTextElement.textContent = `DBLP: Fetching publications for PID ${cachedDblpPidForSave}...`;
+        dblpPubsForCurrentUser = await fetchPublicationsFromDblp(cachedDblpPidForSave, statusElement);
+
+        // Strict DBLP-only: if DBLP publications cannot be fetched, do not continue.
+        if (!dblpPubsForCurrentUser || dblpPubsForCurrentUser.length === 0) {
+            const title = statusElement.querySelector('div:first-child');
+            if (title)
+                title.textContent = "DBLP Publications Unavailable";
+            const progressBar = statusElement.querySelector('.gsr-progress-bar-inner');
+            if (progressBar && progressBar.parentElement) {
+                progressBar.parentElement.style.display = 'none';
+            }
+            if (statusTextElement) {
+                statusTextElement.textContent = "Could not fetch the matched DBLP publication list.";
+                statusTextElement.style.color = '#64748b';
+            }
+            return;
         }
         if (statusTextElement)
             statusTextElement.textContent = "Expanding publications list...";
@@ -2698,138 +3022,12 @@ async function main() {
                         }
                     }
                 } else {
-
-                    // Fallback: Scholar metadata parsing when DBLP is missing.
-                    const utils = (typeof window !== 'undefined' && window.GSVRUtils) ? window.GSVRUtils : null;
-                    const scholarMeta = await fetchVenueAndYear(pubInfo.url);
-                    const scholarVenue = scholarMeta.venueName;
-                    if (scholarVenue) {
-                        const venueLabel = (scholarMeta.venueLabel || '').toLowerCase();
-                        let publicationYear = scholarMeta.publicationYear ?? pubInfo.yearFromProfile;
-
-                        // Page count best-effort (preferred: PDF on scholar.googleusercontent.com).
-                        const pdfPageCount = await tryGetPdfPageCount(scholarMeta.pdfUrl);
-                        const pageCount = (pdfPageCount !== null && Number.isFinite(pdfPageCount)) ? pdfPageCount : null;
-
-                        const trackInfo = utils?.classifyVenueTrack
-                            ? utils.classifyVenueTrack({
-                                title: pubInfo.titleText,
-                                venue: null,
-                                venue_full: null,
-                                acronym: null,
-                                dblpKey: '',
-                                scholarVenue: scholarVenue,
-                                pageCount: pageCount
-                            })
-                            : { isWorkshop: false, isDemoPoster: false, isShortPaper: false, reason: null, resolvedVenue: null, parentVenue: null, seriesId: null, signals: [] };
-
-                        naReason = trackInfo.reason;
-
-                        // Demo/Poster tracks should be N/A and should not inherit parent conference rank.
-                        if (trackInfo.isDemoPoster) {
-                            rankingSystem = 'CORE';
-                            currentRank = 'N/A';
-                            naReason = naReason || 'Demo/Poster';
-                        } else {
-                            const looksLikeJournal = venueLabel === 'journal' ||
-                                /\b(journal|transactions)\b/i.test(scholarVenue) ||
-                                venueLabel === 'source';
-
-                            if (looksLikeJournal) {
-                                // Journal ranking via SJR (local dataset).
-                                const normalized = normalizeJournalName(scholarVenue);
-                                const padded = ` ${normalized} `;
-                                const arxivLike =
-                                    ARXIV_NORMALIZED_VALUES.has(normalized) ||
-                                    ARXIV_PLAIN_KEYWORDS.some(k => padded.includes(k));
-                                if (arxivLike) {
-                                    return defaultResult;
-                                }
-
-                                rankingSystem = 'SJR';
-                                const sjrResult = await resolveSjrQuartile(scholarVenue, publicationYear ?? null);
-                                if (sjrResult.status === 'success' && sjrResult.quartile && SJR_QUARTILES.includes(sjrResult.quartile)) {
-                                    currentRank = sjrResult.quartile;
-                                } else {
-                                    currentRank = 'N/A';
-                                    if (sjrResult.status === 'error' && sjrResult.transient) {
-                                        shouldPersist = false;
-                                    }
-                                }
-                            } else {
-                                // Conference/workshop ranking via CORE.
-                                rankingSystem = 'CORE';
-                                const coreDataFile = getCoreDataFileForYear(publicationYear);
-                                const yearSpecificCoreData = await loadCoreDataForFile(coreDataFile);
-
-                                if (yearSpecificCoreData.length > 0) {
-                                    const fullVenueTitleForRanking = null;
-                                    const rankingCandidates = [];
-                                    const pushCandidate = (candidate) => {
-                                        if (!candidate) return;
-                                        const trimmed = candidate.trim();
-                                        if (!trimmed) return;
-                                        const lower = trimmed.toLowerCase();
-                                        if (!rankingCandidates.some(existing => existing.toLowerCase() === lower)) {
-                                            rankingCandidates.push(trimmed);
-                                        }
-                                    };
-                                    const expandVenue = (candidate, opts) => {
-                                        if (!candidate) return;
-                                        const variants = utils?.expandVenueCandidates ? utils.expandVenueCandidates(candidate, opts) : [candidate];
-                                        for (const v of variants) pushCandidate(v);
-                                    };
-
-                                    const inheritWorkshopParentRank = INHERIT_PARENT_CONFERENCE_RANK_FOR_WORKSHOPS;
-
-                                    if (trackInfo.isWorkshop && !inheritWorkshopParentRank) {
-                                        if (trackInfo.resolvedVenue) expandVenue(trackInfo.resolvedVenue, { includeAtParent: false });
-                                        if (trackInfo.seriesId && (!trackInfo.resolvedVenue || trackInfo.seriesId.toLowerCase() === trackInfo.resolvedVenue.toLowerCase())) {
-                                            expandVenue(trackInfo.seriesId, { includeAtParent: false });
-                                        }
-                                        // Add the raw scholar venue only if it doesn't explicitly include "@Parent".
-                                        if (scholarVenue && !(trackInfo.parentVenue && scholarVenue.toLowerCase().includes(`@${trackInfo.parentVenue.toLowerCase()}`))) {
-                                            expandVenue(scholarVenue, { includeAtParent: false });
-                                        }
-                                    } else {
-                                        expandVenue(scholarVenue);
-                                        if (trackInfo.resolvedVenue) expandVenue(trackInfo.resolvedVenue);
-                                        if (inheritWorkshopParentRank && trackInfo.parentVenue) expandVenue(trackInfo.parentVenue);
-                                    }
-
-                                    // Add acronym candidates extracted from the Scholar venue string.
-                                    for (const acro of getPossibleAcronymsFromVenue(scholarVenue)) {
-                                        expandVenue(acro);
-                                    }
-
-                                    let resolvedRank = null;
-                                    for (const candidate of rankingCandidates) {
-                                        const attempt = findRankForVenue(candidate, yearSpecificCoreData, fullVenueTitleForRanking);
-                                        if (VALID_RANKS.includes(attempt)) {
-                                            resolvedRank = attempt;
-                                            break;
-                                        }
-                                        if (resolvedRank === null && attempt !== "N/A") {
-                                            resolvedRank = attempt;
-                                        }
-                                    }
-                                    currentRank = resolvedRank ?? "N/A";
-                                } else {
-                                    currentRank = 'N/A';
-                                }
-
-                                if (currentRank === 'N/A' && trackInfo.isWorkshop) {
-                                    naReason = naReason || 'Workshop';
-                                }
-
-                                // Page-length override (strictly < 6 pages) unless already classified as Demo/Poster or Workshop.
-                                if (pageCount !== null && pageCount < 6 && !trackInfo.isWorkshop && !trackInfo.isDemoPoster) {
-                                    currentRank = 'N/A';
-                                    naReason = 'Short-paper';
-                                }
-                            }
-                        }
-                    }
+                    // Strict DBLP-only: do not use Scholar metadata for ranking.
+                    // If a Scholar entry cannot be matched to the matched DBLP profile,
+                    // flag it as missing rather than attempting any Scholar-based inference.
+                    rankingSystem = 'DBLP';
+                    currentRank = DBLP_ENTRY_MISSING_LABEL;
+                    naReason = null;
                 }
             }
             catch (error) {

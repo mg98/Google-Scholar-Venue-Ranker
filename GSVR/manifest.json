@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Google Scholar Venue Ranker (GSVR)",
-  "description": "Adds CORE conference tiers and SJR journal quartiles to Google Scholar publications with DBLP-assisted venue matching.",
-  "version": "1.8.3",
+  "description": "Adds CORE conference tiers and SJR journal quartiles to Google Scholar publications using strict DBLP-only verification.",
+  "version": "1.8.5",
   "permissions": [
     "storage"
   ],
@@ -68,6 +68,9 @@
       "js": [
         "rank_core.js",
         "content.js"
+      ],
+      "css": [
+        "inject.css"
       ],
       "run_at": "document_idle"
     }
@@ -138,6 +141,7 @@
         "core/CORE_2020.json",
         "core/CORE_2021.json",
         "core/CORE_2023.json",
+        "core/CORE_2026.json",
         "sjr/*.csv"
       ],
       "matches": [
