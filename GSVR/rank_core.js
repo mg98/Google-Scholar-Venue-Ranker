@@ -52,6 +52,7 @@
       t
         .toLowerCase()
         .replace(/&/g, ' and ')
+        .replace(/\+/g, ' and ')
         .replace(/[\.,\/#!$%\^&\*;:{}=\_`~?"“”\(\)\[\]]/g, ' ')
         .replace(/\s-\s/g, ' ')
     );
@@ -196,6 +197,7 @@
   const WORKSHOP_RX = /(\bworkshop\b|\bws\b|\bworkshop\s+on\b|\bworkshop\s+proceedings\b|\bco\s*-?located\b|\bco\s*-?located\s+with\b|\bcolocated\b|\bsatellite\b|\bassociated\s+workshop\b|\baffiliated\s+workshop\b|\bworkshop\s+track\b|@|\bproceedings\s+of\s+the\s+[\s\S]*\bworkshop\b)/i;
 
   const DEMO_POSTER_RX = /(\bposter\b|\bposters\b|\bdemo\b|\bdemos\b|\bdemonstration\b|\bdemonstrations\b|\bcompanion\b|\badjunct\b|\bsupplement\b|\bshort\s+papers\b|\bshort\s+paper\b|\bextended\s+abstract\b|\bdoctoral\s+(consortium|symposium)\b|\bph\.?d\.?\s+forum\b|\bforum\s+abstract\b|\bstudent\s+research\b|\bwork\s*-?\s*in\s*-?\s*progress\b|\bwip\b|\bindustry\s+track\b|\btool\s+demonstration\b)/i;
+  const EXTENDED_ABSTRACT_RX = /\bextended\s+abstract\b/i;
 
   function classifyVenueTrack({ title, venue, venue_full, acronym, dblpKey, scholarVenue, pageCount, dblpType, crossref }) {
     const signals = [];
@@ -220,8 +222,19 @@
       signals.push('at_notation');
     }
 
-    const isDemoPoster = DEMO_POSTER_RX.test(haystack);
-    if (isDemoPoster) signals.push('demo_poster_keyword');
+    const isExtendedAbstract = EXTENDED_ABSTRACT_RX.test(haystack);
+    if (isExtendedAbstract) signals.push('extended_abstract');
+
+    const demoByKeyword = DEMO_POSTER_RX.test(haystack);
+    const demoByPages = typeof pageCount === 'number' && Number.isFinite(pageCount) && pageCount <= 3;
+    let isDemoPoster = demoByKeyword || demoByPages;
+    if (demoByKeyword) signals.push('demo_poster_keyword');
+    if (demoByPages) signals.push('demo_by_pages');
+
+    if (demoByKeyword && typeof pageCount === 'number' && Number.isFinite(pageCount) && pageCount > 4) {
+      isDemoPoster = false;
+      signals.push('demo_overridden_by_pages');
+    }
 
     const isWorkshop = WORKSHOP_RX.test(haystack);
     if (isWorkshop) signals.push('workshop_keyword');
@@ -269,15 +282,17 @@
     const isShortPaper = typeof pageCount === 'number' && Number.isFinite(pageCount) && pageCount < 6;
     if (isShortPaper) signals.push('short_by_pages');
 
-    // Reason precedence: Demo/Poster > Workshop > Short-paper
+    // Reason precedence: Extended Abstract > Demo/Poster > Workshop > Short-paper
     let reason = null;
-    if (isDemoPoster) reason = 'Demo/Poster';
+    if (isExtendedAbstract) reason = 'Extended Abstract';
+    else if (isDemoPoster) reason = 'Demo/Poster';
     else if (isWorkshop) reason = 'Workshop';
     else if (isShortPaper) reason = 'Short-paper';
 
     return {
       isWorkshop,
       isDemoPoster,
+      isExtendedAbstract,
       isShortPaper,
       reason,
       resolvedVenue: resolvedVenue ? String(resolvedVenue) : null,
@@ -306,7 +321,8 @@
 
       const dy = pub.year ? parseInt(pub.year, 10) : null;
       const yearDiff = (sy !== null && dy !== null && Number.isFinite(dy)) ? Math.abs(sy - dy) : 0;
-      if (sy !== null && dy !== null && yearDiff > maxYearDiff) continue;
+      const ignoreYearDiff = sim >= 0.96;
+      if (sy !== null && dy !== null && yearDiff > maxYearDiff && !ignoreYearDiff) continue;
 
       const key = String(pub.dblpKey);
       const hasPages = !!pub.pages;
@@ -332,7 +348,7 @@
       }
     }
 
-    return best ? best.pub : null;
+    return best ? { ...best.pub, matchConfidence: best.sim } : null;
   }
 
   return {
