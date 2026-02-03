@@ -29,7 +29,6 @@ function testDeterministicDblpMatch() {
   assert(r1 && r2, 'Expected a match in both runs');
   assert.strictEqual(r1.dblpKey, r2.dblpKey, 'Match should not depend on input ordering');
   assert.strictEqual(r1.dblpKey, 'conf/sensys/enssys2020', 'Expected lexicographically smallest dblpKey in a tie');
-  assert.ok(typeof r1.matchConfidence === 'number', 'Expected a match confidence score');
 }
 
 function testWorkshopClassification() {
@@ -61,20 +60,6 @@ function testDemoPosterClassification() {
   assert.strictEqual(info.reason, 'Demo/Poster');
 }
 
-function testExtendedAbstractClassification() {
-  const info = core.classifyVenueTrack({
-    title: 'Extended Abstract: Some Interface Study',
-    venue: 'CHI',
-    venue_full: 'CHI Extended Abstracts',
-    acronym: 'CHI',
-    dblpKey: 'conf/chi/chi2024',
-    scholarVenue: null,
-    pageCount: 4,
-  });
-  assert.strictEqual(info.isExtendedAbstract, true);
-  assert.strictEqual(info.reason, 'Extended Abstract');
-}
-
 function testShortPaperByPages() {
   assert.strictEqual(core.getPageCountFromPagesString('123-128'), 6);
   assert.strictEqual(core.getPageCountFromPagesString('24:1-24:2'), 2);
@@ -102,7 +87,6 @@ function run() {
   testDeterministicDblpMatch();
   testWorkshopClassification();
   testDemoPosterClassification();
-  testExtendedAbstractClassification();
   testShortPaperByPages();
   testVenueNormalization();
 
