@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Google Scholar Venue Ranker (GSVR)",
   "description": "Adds CORE conference tiers and SJR journal quartiles to Google Scholar publications using strict DBLP-only verification.",
-  "version": "1.8.5",
+  "version": "1.8.6",
   "permissions": [
     "storage"
   ],

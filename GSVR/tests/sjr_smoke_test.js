@@ -254,6 +254,8 @@ const examples = [
   'J. Netw. Comput. Appl.',
   'ACM Comput. Surv.',
   'Int. J. Wirel. Inf. Networks',
+  'Inf. Process. Manag.',
+  'Information Processing & Management',
 ];
 
 for (const name of examples) {

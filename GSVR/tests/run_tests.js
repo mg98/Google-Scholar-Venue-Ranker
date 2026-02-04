@@ -83,10 +83,72 @@ function testVenueNormalization() {
   assert.strictEqual(core.normalizeVenueCandidate('MobiQuitous 2'), 'mobiquitous');
 }
 
+
+function testDemoKeywordNotTrackWhenPagesHigh() {
+  // "demonstration" as part of a normal title should NOT force Demo/Poster.
+  const info = core.classifyVenueTrack({
+    title: 'MotionMA: motion modelling and analysis by demonstration',
+    venue: 'ICRA',
+    venue_full: 'Proceedings of the IEEE International Conference on Robotics and Automation',
+    acronym: 'ICRA',
+    dblpKey: 'conf/icra/icra2021',
+    scholarVenue: null,
+    pageCount: 8,
+  });
+  assert.strictEqual(info.isDemoPoster, false);
+  assert.strictEqual(info.reason, null);
+}
+
+function testDemoKeywordNotTrackEvenWithoutPages() {
+  // Even if pages are missing, "demonstration" inside the title should not be treated as a track label.
+  const info = core.classifyVenueTrack({
+    title: 'MotionMA: motion modelling and analysis by demonstration',
+    venue: 'ICRA',
+    venue_full: 'Proceedings of the IEEE International Conference on Robotics and Automation',
+    acronym: 'ICRA',
+    dblpKey: 'conf/icra/icra2021',
+    scholarVenue: null,
+    pageCount: null,
+  });
+  assert.strictEqual(info.isDemoPoster, false);
+  assert.strictEqual(info.reason, null);
+}
+
+function testExtendedAbstractClassification() {
+  const info = core.classifyVenueTrack({
+    title: 'Some CHI Paper Title',
+    venue: 'CHI',
+    venue_full: 'Extended Abstracts of the 2024 CHI Conference on Human Factors in Computing Systems',
+    acronym: 'CHI',
+    dblpKey: 'conf/chi/chi2024ea',
+    scholarVenue: null,
+    pageCount: 4,
+  });
+  assert.strictEqual(info.isExtendedAbstract, true);
+  assert.strictEqual(info.reason, 'Extended Abstract');
+}
+
+function testLetterPrefixPagesParsing() {
+  assert.strictEqual(core.getPageCountFromPagesString('S1-S8'), 8);
+  assert.strictEqual(core.getPageCountFromPagesString('e125-e130'), 6);
+  assert.strictEqual(core.getPageCountFromPagesString('A12-A18'), 7);
+}
+
+function testPlusNormalization() {
+  const a = core.normalizeForMatch('LEAF + AIO: Edge-Assisted Energy-Aware Object Detection for Mobile Augmented Reality');
+  const b = core.normalizeForMatch('LEAF+AIO Edge Assisted Energy Aware Object Detection for Mobile Augmented Reality');
+  assert.strictEqual(a, b);
+}
+
 function run() {
   testDeterministicDblpMatch();
   testWorkshopClassification();
   testDemoPosterClassification();
+  testDemoKeywordNotTrackWhenPagesHigh();
+  testDemoKeywordNotTrackEvenWithoutPages();
+  testExtendedAbstractClassification();
+  testLetterPrefixPagesParsing();
+  testPlusNormalization();
   testShortPaperByPages();
   testVenueNormalization();
 
