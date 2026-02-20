@@ -13,6 +13,70 @@ class DblpUnavailableError extends Error {
         this.name = 'DblpUnavailableError';
     }
 }
+
+// --- START: MV3 background fetch proxy to avoid CORS/opaque failures on DBLP/SPARQL ---
+/**
+ * Fetch wrapper that routes DBLP/SPARQL requests through the MV3 service worker (background.js)
+ * to avoid CORS/opaque failures from a Google Scholar page context.
+ */
+async function gsvrFetch(input, init) {
+    const url = typeof input === 'string' ? input : (input && typeof input.url === 'string' ? input.url : String(input));
+    const isDblp = /^https:\/\/(dblp\.org|sparql\.dblp\.org)\b/i.test(url);
+
+    // Non-DBLP requests behave exactly like normal fetch.
+    if (!isDblp) {
+        return globalThis.fetch(input, init);
+    }
+
+    // If runtime messaging isn't available, fall back to direct fetch.
+    if (!chrome?.runtime?.sendMessage) {
+        return globalThis.fetch(input, init);
+    }
+
+    // Serialize RequestInit safely for message passing.
+    const safeInit = init ? {
+        method: init.method,
+        headers: init.headers,
+        body: init.body,
+        credentials: init.credentials,
+        cache: init.cache,
+        redirect: init.redirect,
+        referrer: init.referrer,
+        referrerPolicy: init.referrerPolicy,
+        integrity: init.integrity,
+        keepalive: init.keepalive,
+        mode: init.mode,
+        priority: init.priority,
+        signal: undefined, // signals can't be cloned; service worker has its own timeout logic
+    } : undefined;
+
+    try {
+        const result = await chrome.runtime.sendMessage({
+            type: 'GSVR_FETCH',
+            url,
+            init: safeInit,
+        });
+
+        if (result && (typeof result.status === 'number')) {
+            const headers = new Headers(result.headers || {});
+            // Build a real Response so existing code can call .json()/.text() unchanged.
+            return new Response(result.bodyText ?? '', {
+                status: result.status,
+                statusText: result.statusText ?? '',
+                headers,
+            });
+        }
+
+        // If background failed unexpectedly, fall back to direct fetch once.
+        return globalThis.fetch(input, init);
+    }
+    catch (e) {
+        // Fall back to direct fetch; caller will handle the error.
+        return globalThis.fetch(input, init);
+    }
+}
+// --- END: MV3 background fetch proxy ---
+
 function createEmptyCoreRankCounts() {
     return { 'A*': 0, 'A': 0, 'B': 0, 'C': 0, 'N/A': 0 };
 }
@@ -83,7 +147,7 @@ const DBLP_ENTRY_MISSING_TOOLTIP = 'This paper is not indexed in the matched DBL
 // Cache schema bumped for v1.8.6 (CSRankings-style proceedings/journal remapping and canonicalization)
 const CACHE_VERSION = 7;
 const CACHE_PREFIX = `scholarRanker_profile_v${CACHE_VERSION}_`;
-const CACHE_DURATION_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
+const CACHE_DURATION_MS = 1000 * 60 * 60 * 24 * 30; // 7 days
 const DBLP_CACHE_DURATION_MS = Number.POSITIVE_INFINITY; // never expires
 console.log("Google Scholar Ranker: Content script loaded (v1.8.6 - Strict DBLP + CSRankings mapping).");
 
@@ -100,7 +164,7 @@ const DBLP_API_AUTHOR_SEARCH_URL = "https://dblp.org/search/author/api";
 const DBLP_API_PERSON_PUBS_URL_PREFIX = "https://dblp.org/pid/";
 const DBLP_SPARQL_ENDPOINT = "https://sparql.dblp.org/sparql";
 const DBLP_HEURISTIC_MIN_OVERLAP_COUNT = 2;
-const DBLP_MAX_HUB_VARIANTS_TO_CHECK = 150; // New constant
+const DBLP_MAX_HUB_VARIANTS_TO_CHECK = 275; // New constant
 const HEURISTIC_SCORE_THRESHOLD = 2.5;
 const HEURISTIC_MIN_NAME_SIMILARITY = 0.65;
 // ---
@@ -136,7 +200,7 @@ async function fetchDblpStreamMetadata(streamType, streamId) {
         streamMetaCache.set(cacheKey, (async () => {
             const streamXmlUrl = `https://dblp.org/streams/${streamType}/${streamId}.xml`;
             try {
-                const resp = await fetch(streamXmlUrl);
+                const resp = await gsvrFetch(streamXmlUrl);
                 if (resp.ok) {
                     const xml = await resp.text();
                     const doc = new DOMParser().parseFromString(xml, "application/xml");
@@ -172,7 +236,7 @@ async function fetchDblpStreamMetadata(streamType, streamId) {
             if (streamType === "journals") {
                 try {
                     const indexUrl = `https://dblp.org/db/journals/${streamId}/index.xml`;
-                    const indexResp = await fetch(indexUrl);
+                    const indexResp = await gsvrFetch(indexUrl);
                     if (indexResp.ok) {
                         const indexXml = await indexResp.text();
                         const indexDoc = new DOMParser().parseFromString(indexXml, "application/xml");
@@ -205,7 +269,7 @@ async function fetchDblpStreamMetadata(streamType, streamId) {
                         `https://dblp.org/db/journals/${streamId}/index.html`,
                     ];
                     for (const htmlUrl of htmlUrls) {
-                        const htmlResp = await fetch(htmlUrl);
+                        const htmlResp = await gsvrFetch(htmlUrl);
                         if (!htmlResp.ok)
                             continue;
                         const html = await htmlResp.text();
@@ -494,7 +558,7 @@ async function loadCoreDataForFile(coreDataFile) {
     }
     try {
         const url = chrome.runtime.getURL(coreDataFile);
-        const response = await fetch(url);
+        const response = await gsvrFetch(url);
         if (!response.ok)
             throw new Error(`Failed to fetch ${coreDataFile}: ${response.statusText} (URL: ${url})`);
         const jsonData = await response.json();
@@ -555,7 +619,7 @@ async function loadCoreDataForFile(coreDataFile) {
 async function fetchVenueAndYear(publicationUrl) {
     let venueName = null, publicationYear = null, venueLabel = null, pdfUrl = null, doi = null;
     try {
-        const response = await fetch(publicationUrl);
+        const response = await gsvrFetch(publicationUrl);
         if (!response.ok) {
             return { venueName, publicationYear, venueLabel, pdfUrl, doi };
         }
@@ -673,7 +737,7 @@ async function tryGetPdfPageCount(pdfUrl) {
 
     try {
         // Range request keeps this lightweight (not all servers honor Range; that's ok).
-        const resp = await fetch(pdfUrl, {
+        const resp = await gsvrFetch(pdfUrl, {
             headers: { 'Range': 'bytes=0-2000000' },
             signal: controller.signal
         });
@@ -862,7 +926,7 @@ async function loadSjrDataset() {
         const datasetPath = `sjr/scimagojr ${year}.csv`;
         try {
             const url = chrome.runtime.getURL(datasetPath);
-            const response = await fetch(url);
+            const response = await gsvrFetch(url);
             if (!response.ok) {
                 console.error(`Failed to fetch ${datasetPath}: ${response.status} ${response.statusText}`);
                 continue;
@@ -2491,7 +2555,7 @@ async function searchDblpForCandidates(authorName) {
     url.searchParams.set('format', 'json');
     url.searchParams.set('h', '500'); // Fetch more results for better hub detection
     try {
-        const resp = await fetch(url.toString());
+        const resp = await gsvrFetch(url.toString());
         if (resp.status === 429) {
             throw new DblpRateLimitError("DBLP API rate limit hit during author search.");
         }
@@ -2557,7 +2621,7 @@ async function fetchDblpPubsForCheck(pid) {
     const query = `PREFIX dblp: <https://dblp.org/rdf/schema#> SELECT ?title ?year WHERE { ?paper dblp:authoredBy <${authorUri}> . ?paper dblp:title ?title . OPTIONAL { ?paper dblp:yearOfPublication ?year . } } LIMIT 200`;
     const url = `${DBLP_SPARQL_ENDPOINT}?query=${encodeURIComponent(query)}&output=json`;
     try {
-        const response = await fetch(url, { headers: { 'Accept': 'application/sparql-results+json' } });
+        const response = await gsvrFetch(url, { headers: { 'Accept': 'application/sparql-results+json' } });
         if (response.status === 429) {
             throw new DblpRateLimitError("DBLP SPARQL endpoint rate limit hit.");
         }
@@ -2600,7 +2664,7 @@ async function fetchDblpPublicationsViaSparql(pid) {
         ORDER BY DESC(?year)`;
     const url = `${DBLP_SPARQL_ENDPOINT}?query=${encodeURIComponent(query)}&output=json`;
     try {
-        const response = await fetch(url, { headers: { 'Accept': 'application/sparql-results+json' } });
+        const response = await gsvrFetch(url, { headers: { 'Accept': 'application/sparql-results+json' } });
         if (response.status === 429) {
             throw new DblpRateLimitError("DBLP SPARQL endpoint rate limit hit.");
         }
@@ -2679,13 +2743,22 @@ async function findBestDblpProfile(scholarName, scholarSamplePubs) {
 }
 async function fetchPublicationsFromDblp(authorPidPath, statusElement) {
     const statusTextEl = statusElement?.querySelector(".gsr-status-text");
-    if (statusTextEl) {
-        statusTextEl.textContent = `DBLP: Fetching publications for PID ${authorPidPath}…`;
-    }
+    const progressBarInner = statusElement?.querySelector(".gsr-progress-bar-inner");
+    const clamp01 = (x) => Math.max(0, Math.min(1, x));
+    const setProgress = (fraction, message) => {
+        if (progressBarInner) {
+            const pct = (clamp01(fraction) * 100).toFixed(1);
+            progressBarInner.style.width = `${pct}%`;
+        }
+        if (statusTextEl && message) {
+            statusTextEl.textContent = message;
+        }
+    };
+    setProgress(0, `DBLP: Fetching publications for PID ${authorPidPath} (downloading XML)…`);
     const xmlUrl = `${DBLP_API_PERSON_PUBS_URL_PREFIX}${authorPidPath}.xml`;
     const publications = [];
     try {
-        const response = await fetch(xmlUrl);
+        const response = await gsvrFetch(xmlUrl);
         if (response.status === 429) {
             throw new DblpRateLimitError(`DBLP XML download rate limit hit for PID ${authorPidPath}.`);
         }
@@ -2702,6 +2775,7 @@ async function fetchPublicationsFromDblp(authorPidPath, statusElement) {
             return [];
         }
         const xmlText = await response.text();
+        setProgress(0.05, `DBLP: Downloaded XML for PID ${authorPidPath}. Parsing publications…`);
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(xmlText, "application/xml");
         if (xmlDoc.querySelector("parsererror")) {
@@ -2711,7 +2785,22 @@ async function fetchPublicationsFromDblp(authorPidPath, statusElement) {
             return [];
         }
         const items = Array.from(xmlDoc.querySelectorAll("dblpperson > r > *"));
-        for (const item of items) {
+        const totalItems = items.length || 0;
+        const streamKeysSeen = new Set();
+        let streamFetchCount = 0;
+        let lastUiUpdateMs = 0;
+        const uiNow = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
+        const maybeUpdateUi = (processed, extra = "") => {
+            const now = uiNow();
+            if (processed === 0 || processed === totalItems || now - lastUiUpdateMs > 450) {
+                const frac = totalItems > 0 ? (processed / totalItems) : 0;
+                setProgress(0.05 + 0.95 * frac, `DBLP: Processing ${processed} / ${totalItems} publications — resolving venue metadata (streams fetched: ${streamFetchCount})${extra}…`);
+                lastUiUpdateMs = now;
+            }
+        };
+        maybeUpdateUi(0);
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
             const dblpKey = item.getAttribute("key") || "";
             if (!dblpKey)
                 continue;
@@ -2783,6 +2872,15 @@ async function fetchPublicationsFromDblp(authorPidPath, statusElement) {
 
             let streamMeta = null;
             for (const candidate of streamCandidates) {
+                const cacheKey = (candidate.key || `${candidate.streamType}:${candidate.streamId}`).toLowerCase();
+                if (!streamKeysSeen.has(cacheKey)) {
+                    streamKeysSeen.add(cacheKey);
+                    if (typeof streamMetaCache !== "undefined" && !streamMetaCache.has(cacheKey)) {
+                        streamFetchCount++;
+                        // update UI before a potentially long await for stream metadata
+                        maybeUpdateUi(i, ` (fetching ${cacheKey})`);
+                    }
+                }
                 if (candidate.streamType === "conf") {
                     streamMeta = await resolveDblpStreamMetadata("conf", candidate.streamId, { year: numericYear });
                 } else {
@@ -2806,10 +2904,9 @@ async function fetchPublicationsFromDblp(authorPidPath, statusElement) {
                 acronym = number;
             }
             publications.push({ dblpKey, title, venue: rawVenue, year, pages, venue_full, acronym, volume, number, crossref, dblpType });
+            maybeUpdateUi(i + 1);
         }
-        if (statusTextEl) {
-            statusTextEl.textContent = `DBLP: Fetched ${publications.length} publications.`;
-        }
+        setProgress(1, `DBLP: Fetched ${publications.length} publications.`);
     }
     catch (err) {
         if (err instanceof DblpRateLimitError || err instanceof DblpUnavailableError)
