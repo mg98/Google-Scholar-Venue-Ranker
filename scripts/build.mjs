@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { generateSjrIndex } from './generate_sjr_index.mjs';
 
 const root = process.cwd();
 const srcDir = path.join(root, 'GSVR');
@@ -53,10 +54,12 @@ if (!(await exists(manifestPath))) {
   throw new Error(`manifest.json not found at: ${manifestPath}`);
 }
 
+const sjrResult = await generateSjrIndex({ root });
 await fs.rm(distDir, { recursive: true, force: true });
 await copyDir(srcDir, distDir);
 
 console.log('Build complete.');
 console.log(`  Source: ${srcDir}`);
 console.log(`  Output: ${distDir}`);
+console.log(`  SJR index: ${sjrResult.outPath} (${sjrResult.count} entries)`);
 console.log('Load the extension from ./dist via chrome://extensions → Load unpacked.');

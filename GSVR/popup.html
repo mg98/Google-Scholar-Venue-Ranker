@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Google Scholar Venue Ranker</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body class="gsr-popup">
+    <main class="gsr-popup__card">
+      <header class="gsr-popup__header">
+        <div>
+          <p class="gsr-popup__eyebrow">Google Scholar Venue Ranker</p>
+          <h1 class="gsr-popup__title">Scholar-Native Controls</h1>
+        </div>
+        <span class="gsr-popup__badge">v1.9</span>
+      </header>
+
+      <p class="gsr-popup__copy">
+        Tune how rankings appear on Scholar without leaving your current page.
+      </p>
+
+      <section class="gsr-popup__section" aria-labelledby="popup-quick-settings">
+        <h2 id="popup-quick-settings" class="gsr-popup__section-title">Quick Settings</h2>
+
+        <label class="gsr-popup__toggle">
+          <span>
+            <strong>Run Automatically</strong>
+            <small>Start analysis when a Scholar profile loads.</small>
+          </span>
+          <input id="autoRun" type="checkbox">
+        </label>
+
+        <label class="gsr-popup__toggle">
+          <span>
+            <strong>Compact Mode</strong>
+            <small>Use a denser summary card and tighter inline badges.</small>
+          </span>
+          <input id="compactMode" type="checkbox">
+        </label>
+
+        <label class="gsr-popup__toggle">
+          <span>
+            <strong>Show Unranked</strong>
+            <small>Keep `N/A` and `DBLP Missing` badges visible inline.</small>
+          </span>
+          <input id="showUnranked" type="checkbox">
+        </label>
+      </section>
+
+      <section class="gsr-popup__section" aria-labelledby="popup-visual-mode">
+        <h2 id="popup-visual-mode" class="gsr-popup__section-title">Default Highlight</h2>
+        <label class="gsr-popup__field">
+          <span class="gsr-popup__field-label">Profile emphasis mode</span>
+          <select id="defaultHighlightMode" class="gsr-popup__select">
+            <option value="none">None</option>
+            <option value="ranked-only">Ranked only</option>
+            <option value="needs-review">Needs review</option>
+          </select>
+        </label>
+      </section>
+
+      <footer class="gsr-popup__footer">
+        <button id="openOptions" class="gsr-popup__button gsr-popup__button--secondary" type="button">Open Full Settings</button>
+        <button id="openScholar" class="gsr-popup__button" type="button">Open Scholar</button>
+      </footer>
+
+      <p id="popupStatus" class="gsr-popup__status" aria-live="polite"></p>
+    </main>
+
+    <script src="settings.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

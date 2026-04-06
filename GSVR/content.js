@@ -86,7 +86,7 @@ function createEmptySjrRankCounts() {
 /** array → map */
 function packRanks(arr) {
     const obj = {};
-    for (const { url, rank, system, reason, matchConfidence, matchedVenue, venueMatchConfidence, dblpVenue } of arr) {
+    for (const { url, rank, system, reason, matchConfidence, matchedVenue, venueMatchConfidence, dblpVenue, sourceYear, sourceYearFallback, decisionVersion, decisionStatus, confidence, matchedKey, matchedSourceId, decisionEvidence } of arr) {
         obj[url] = {
             rank,
             system,
@@ -94,7 +94,15 @@ function packRanks(arr) {
             matchConfidence: (typeof matchConfidence === 'number' ? matchConfidence : null),
             matchedVenue: matchedVenue ?? null,
             venueMatchConfidence: (typeof venueMatchConfidence === 'number' ? venueMatchConfidence : null),
-            dblpVenue: dblpVenue ?? null
+            dblpVenue: dblpVenue ?? null,
+            sourceYear: (typeof sourceYear === 'number' ? sourceYear : null),
+            sourceYearFallback: sourceYearFallback === true,
+            decisionVersion: (typeof decisionVersion === 'number' ? decisionVersion : null),
+            decisionStatus: decisionStatus ?? null,
+            confidence: (typeof confidence === 'number' ? confidence : null),
+            matchedKey: matchedKey ?? null,
+            matchedSourceId: matchedSourceId ?? null,
+            decisionEvidence: Array.isArray(decisionEvidence) ? decisionEvidence.slice(0, 12) : null
         };
     }
     return obj;
@@ -110,6 +118,14 @@ function unpackRanks(map) {
         matchedVenue: entry.matchedVenue ?? null,
         venueMatchConfidence: (typeof entry.venueMatchConfidence === 'number' ? entry.venueMatchConfidence : null),
         dblpVenue: entry.dblpVenue ?? null,
+        sourceYear: (typeof entry.sourceYear === 'number' ? entry.sourceYear : null),
+        sourceYearFallback: entry.sourceYearFallback === true,
+        decisionVersion: (typeof entry.decisionVersion === 'number' ? entry.decisionVersion : null),
+        decisionStatus: entry.decisionStatus ?? null,
+        confidence: (typeof entry.confidence === 'number' ? entry.confidence : null),
+        matchedKey: entry.matchedKey ?? null,
+        matchedSourceId: entry.matchedSourceId ?? null,
+        decisionEvidence: Array.isArray(entry.decisionEvidence) ? entry.decisionEvidence : null,
         titleText: ""
     }));
 }
@@ -141,43 +157,117 @@ const ARXIV_NORMALIZED_VALUES = new Set([
 const INHERIT_PARENT_CONFERENCE_RANK_FOR_WORKSHOPS = false;
 const STATUS_ELEMENT_ID = 'scholar-ranker-status-progress';
 const SUMMARY_PANEL_ID = 'scholar-ranker-summary';
+const BADGE_POPOVER_ID = 'gsr-badge-popover';
 // "Null" state for Scholar entries that cannot be verified against the matched DBLP profile.
 const DBLP_ENTRY_MISSING_LABEL = 'DBLP Entry Missing';
 const DBLP_ENTRY_MISSING_TOOLTIP = 'This paper is not indexed in the matched DBLP profile.';
-// Cache schema bumped for v1.8.6 (CSRankings-style proceedings/journal remapping and canonicalization)
-const CACHE_VERSION = 7;
+const RANKING_UTILS = (typeof window !== 'undefined' && window.GSVRUtils) ? window.GSVRUtils : null;
+const RANKING_CONFIG = RANKING_UTILS?.RANKING_CONFIG ?? {
+    profileNameSimilarityThreshold: 0.72,
+    profileMinOverlapCount: 2,
+    profileMatchScoreThreshold: 3.6,
+    profileStrongScoreThreshold: 5.4,
+    profileAmbiguityGap: 0.45,
+    publicationSimilarityThreshold: 0.88,
+    publicationStrongSimilarityThreshold: 0.94,
+    publicationMaxYearDiff: 2,
+    publicationStrongYearDiff: 4,
+    publicationAmbiguityGap: 0.018,
+    coreFuzzyThreshold: 0.92,
+    coreAmbiguityGap: 0.02,
+    sjrFuzzyThreshold: 0.92,
+    sjrAmbiguityGap: 0.015
+};
+const DECISION_VERSION = RANKING_UTILS?.DECISION_VERSION ?? 2;
+const DECISION_STATUS = RANKING_UTILS?.DECISION_STATUS ?? {
+    MATCHED: 'matched',
+    UNRANKED: 'unranked',
+    AMBIGUOUS: 'ambiguous',
+    MISSING: 'missing'
+};
+// Cache schema bumped for v1.9.0 (ranking decision pipeline metadata).
+const CACHE_VERSION = 9;
 const CACHE_PREFIX = `scholarRanker_profile_v${CACHE_VERSION}_`;
 const CACHE_DURATION_MS = 1000 * 60 * 60 * 24 * 30; // 7 days
 const DBLP_CACHE_DURATION_MS = Number.POSITIVE_INFINITY; // never expires
-console.log("Google Scholar Ranker: Content script loaded (v1.8.6 - Strict DBLP + CSRankings mapping).");
+console.log("Google Scholar Ranker: Content script loaded (v1.9.0 - precision ranking pipeline).");
 
 // --- Strict DBLP-only UI labels ---
 const DBLP_MISSING_BADGE_LABEL = 'DBLP Entry Missing';
 const DBLP_MISSING_BADGE_TOOLTIP = 'This paper is not indexed in the matched DBLP profile.';
+const SETTINGS_API = (typeof window !== 'undefined' && window.GSVRSettings) ? window.GSVRSettings : null;
+const DEFAULT_SETTINGS = SETTINGS_API?.DEFAULT_SETTINGS ?? {
+    autoRun: true,
+    compactMode: false,
+    showUnranked: true,
+    defaultHighlightMode: 'none',
+    showDebugDetails: true
+};
 const coreDataCache = {};
 let isMainProcessing = false;
 let activeCachedPublicationRanks = null;
 let publicationTableObserver = null;
 let rankMapForObserver = null; // Maps URL to rank & system
+let currentSettings = { ...DEFAULT_SETTINGS };
+let activeSummaryFilter = null;
+let previewSummaryFilter = null;
+let gsrBadgePopoverEl = null;
+let gsrBadgePopoverHideTimeout = null;
+let gsrSearchOverlayEl = null;
+let gsrAboutOverlayEl = null;
+let gsrVenueDatalistPopulated = false;
+let gsrDialogLastFocusedEl = null;
 // --- START: DBLP Constants & Globals (UPDATED with new logic) ---
 const DBLP_API_AUTHOR_SEARCH_URL = "https://dblp.org/search/author/api";
 const DBLP_API_PERSON_PUBS_URL_PREFIX = "https://dblp.org/pid/";
 const DBLP_SPARQL_ENDPOINT = "https://sparql.dblp.org/sparql";
-const DBLP_HEURISTIC_MIN_OVERLAP_COUNT = 2;
+const DBLP_HEURISTIC_MIN_OVERLAP_COUNT = RANKING_CONFIG.profileMinOverlapCount;
 const DBLP_MAX_HUB_VARIANTS_TO_CHECK = 275; // New constant
-const HEURISTIC_SCORE_THRESHOLD = 2.5;
-const HEURISTIC_MIN_NAME_SIMILARITY = 0.65;
+const HEURISTIC_SCORE_THRESHOLD = RANKING_CONFIG.profileMatchScoreThreshold;
+const HEURISTIC_MIN_NAME_SIMILARITY = RANKING_CONFIG.profileNameSimilarityThreshold;
 // ---
 let dblpPubsForCurrentUser = [];
 let scholarUrlToDblpVenueMap = new Map();
 let scholarUrlToDblpInfoMap = new Map();
 /** --------  STREAM-XML memo cache  -------- */
 const streamMetaCache = new Map();
+const coreAliasIndexCache = {};
 function parseYearFromText(value) {
     if (!value)
         return null;
     const match = value.match(/\b(19|20)\d{2}\b/);
     return match ? parseInt(match[0], 10) : null;
+}
+function normalizeIssnValue(value) {
+    return String(value || '').replace(/[^0-9Xx]/g, '').toUpperCase() || null;
+}
+function normalizeIssnList(values) {
+    const list = Array.isArray(values) ? values : String(values || '').split(/[;,]/);
+    const out = [];
+    const seen = new Set();
+    for (const value of list) {
+        const normalized = normalizeIssnValue(value);
+        if (!normalized || seen.has(normalized))
+            continue;
+        seen.add(normalized);
+        out.push(normalized);
+    }
+    return out;
+}
+function createDecisionMeta(base = {}) {
+    return {
+        decisionVersion: DECISION_VERSION,
+        decisionStatus: base.decisionStatus ?? DECISION_STATUS.MISSING,
+        confidence: (typeof base.confidence === 'number' ? base.confidence : null),
+        matchedKey: base.matchedKey ?? null,
+        matchedSourceId: base.matchedSourceId ?? null,
+        sourceYearFallback: base.sourceYearFallback === true,
+        decisionEvidence: Array.isArray(base.decisionEvidence) ? base.decisionEvidence : null
+    };
+}
+function mergeDecisionMeta(target, patch) {
+    const next = createDecisionMeta({ ...target, ...patch });
+    return next;
 }
 function extractStreamRef(node) {
     const rawId = node.getAttribute("id")?.trim();
@@ -212,16 +302,22 @@ async function fetchDblpStreamMetadata(streamType, streamId) {
                             const title = rawTitle ? rawTitle.replace(/\s+/g, " ").trim() : null;
                             const acronymNodeName = streamType === "conf" ? "acronym" : "short";
                             const acronym = node.querySelector(acronymNodeName)?.textContent?.trim() ?? null;
+                            const shortTitle = streamType === "journals"
+                                ? node.querySelector("short")?.textContent?.trim() ?? null
+                                : null;
+                            const issns = normalizeIssnList(Array.from(node.querySelectorAll("issn")).map(n => n.textContent || ""));
                             const discontinuedYear = parseYearFromText(node.querySelector("disc")?.textContent?.trim());
                             const successorRefs = Array.from(node.querySelectorAll("successor"))
                                 .map(extractStreamRef)
                                 .filter((ref) => Boolean(ref));
-                            if (title || acronym || successorRefs.length || discontinuedYear !== null) {
+                            if (title || acronym || shortTitle || issns.length || successorRefs.length || discontinuedYear !== null) {
                                 return {
                                     streamType,
                                     streamId,
                                     acronym,
                                     title,
+                                    shortTitle,
+                                    issns,
                                     discontinuedYear,
                                     successorRefs,
                                 };
@@ -244,12 +340,16 @@ async function fetchDblpStreamMetadata(streamType, streamId) {
                             const titleAttr = indexDoc.querySelector("bht")?.getAttribute("title")?.trim();
                             const h1Title = indexDoc.querySelector("h1")?.textContent?.replace(/\s+/g, " ").trim();
                             const title = titleAttr || h1Title || null;
+                            const shortTitle = indexDoc.querySelector("short")?.textContent?.trim() || null;
+                            const issns = normalizeIssnList(Array.from(indexDoc.querySelectorAll("issn")).map(n => n.textContent || ""));
                             if (title) {
                                 return {
                                     streamType,
                                     streamId,
                                     acronym: null,
                                     title,
+                                    shortTitle,
+                                    issns,
                                     discontinuedYear: null,
                                     successorRefs: [],
                                 };
@@ -277,12 +377,18 @@ async function fetchDblpStreamMetadata(streamType, streamId) {
                         const h1 = htmlDoc.querySelector('h1')?.textContent?.replace(/\s+/g, ' ').trim();
                         const bht = htmlDoc.querySelector('.bht')?.getAttribute('title')?.trim();
                         const title = bht || h1 || null;
+                        const issnText = Array.from(htmlDoc.querySelectorAll('body, .body, #main'))
+                            .map(node => node.textContent || '')
+                            .find(text => /\bISSN\b/i.test(text || '')) || '';
+                        const issns = normalizeIssnList(issnText.match(/\b\d{4}-?\d{3}[\dXx]\b/g) || []);
                         if (title) {
                             return {
                                 streamType,
                                 streamId,
                                 acronym: null,
                                 title,
+                                shortTitle: null,
+                                issns,
                                 discontinuedYear: null,
                                 successorRefs: [],
                             };
@@ -427,14 +533,15 @@ async function saveCachedData(userId, coreRankCounts, sjrRankCounts, publication
     }
 }
 async function clearCachedData(userId) {
+    const cacheKey = getCacheKey(userId);
     try {
-        await chrome.storage.local.clear();
+        await chrome.storage.local.remove(cacheKey);
         activeCachedPublicationRanks = null;
         rankMapForObserver = null;
         disconnectPublicationTableObserver();
         dblpPubsForCurrentUser = [];
         scholarUrlToDblpVenueMap.clear();
-        console.log("GSR INFO: Cleared all cached data from chrome.storage.local for", userId);
+        console.log("GSR INFO: Cleared cached ranking data for", userId);
         if (chrome.runtime.lastError) {
             //console.error("DEBUG: clearCachedData - chrome.runtime.lastError:", chrome.runtime.lastError.message);
         }
@@ -442,6 +549,55 @@ async function clearCachedData(userId) {
     catch (error) {
         //console.error("DEBUG: clearCachedData - Error:", error);
     }
+}
+function getSettingsRootElement() {
+    return document.body || document.documentElement;
+}
+function syncSettingsClasses() {
+    const root = getSettingsRootElement();
+    if (!root?.classList)
+        return;
+    root.classList.toggle('gsr-compact-mode', currentSettings.compactMode);
+    root.classList.toggle('gsr-hide-unranked', currentSettings.showUnranked === false);
+    root.classList.toggle('gsr-debug-off', currentSettings.showDebugDetails === false);
+}
+async function loadSettingsIntoState() {
+    if (SETTINGS_API?.loadSettings) {
+        currentSettings = await SETTINGS_API.loadSettings();
+    }
+    else {
+        currentSettings = { ...DEFAULT_SETTINGS };
+    }
+    syncSettingsClasses();
+    return currentSettings;
+}
+function isRankedResultInfo(info) {
+    return (info?.system === 'CORE' && VALID_RANKS.includes(info.rank))
+        || (info?.system === 'SJR' && SJR_QUARTILES.includes(info.rank));
+}
+function getRowStatusKind(info) {
+    if (info?.system === 'DBLP' && info?.rank === DBLP_ENTRY_MISSING_LABEL) {
+        return 'dblp-missing';
+    }
+    if (isRankedResultInfo(info)) {
+        return 'ranked';
+    }
+    return 'unranked';
+}
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+function normalizeRankKey(value) {
+    return String(value ?? 'na')
+        .toLowerCase()
+        .replace(/\*/g, 'star')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
 }
 
 // Wait until the Scholar publication table's row count stays stable for a short window.
@@ -538,6 +694,167 @@ function getCoreDataFileForYear(pubYear) {
     // Fallback
     return 'core/CORE_2026.json';
 }
+const ORDERED_CORE_DATA_FILES = [
+    'core/CORE_2026.json',
+    'core/CORE_2023.json',
+    'core/CORE_2021.json',
+    'core/CORE_2020.json',
+    'core/CORE_2018.json',
+    'core/CORE_2017.json',
+    'core/CORE_2014.json',
+];
+function getCoreDatasetYear(coreDataFile) {
+    const match = String(coreDataFile || '').match(/CORE_(\d{4})/i);
+    return match ? parseInt(match[1], 10) : null;
+}
+function formatCoreStatusLabel(rawRankLabel) {
+    const value = String(rawRankLabel || '').trim();
+    if (!value)
+        return null;
+    return value.charAt(0).toUpperCase() + value.slice(1);
+}
+function buildConferenceSearchCandidates(venueQuery) {
+    const query = String(venueQuery || '').trim();
+    if (!query)
+        return [];
+    const candidates = [];
+    const seen = new Set();
+    const pushCandidate = (value) => {
+        const trimmed = String(value || '').replace(/\s+/g, ' ').trim();
+        if (!trimmed)
+            return;
+        const key = trimmed.toLowerCase();
+        if (seen.has(key))
+            return;
+        seen.add(key);
+        candidates.push(trimmed);
+    };
+    const addExpandedVariants = (value) => {
+        pushCandidate(value);
+        if (RANKING_UTILS?.canonicalizeCsrankingsVenueName) {
+            pushCandidate(RANKING_UTILS.canonicalizeCsrankingsVenueName(value));
+        }
+        if (RANKING_UTILS?.expandVenueCandidates) {
+            for (const variant of RANKING_UTILS.expandVenueCandidates(value)) {
+                pushCandidate(variant);
+            }
+        }
+        for (const acronym of getPossibleAcronymsFromVenue(value)) {
+            pushCandidate(acronym);
+        }
+    };
+    addExpandedVariants(query);
+    const queryWithoutYear = query.replace(/\b(19|20)\d{2}\b/g, ' ').replace(/\s+/g, ' ').trim();
+    if (queryWithoutYear && queryWithoutYear !== query) {
+        addExpandedVariants(queryWithoutYear);
+    }
+    return candidates;
+}
+function getConferenceSearchStatusPriority(status) {
+    switch (status) {
+        case DECISION_STATUS.MATCHED:
+            return 4;
+        case DECISION_STATUS.UNRANKED:
+            return 3;
+        case DECISION_STATUS.AMBIGUOUS:
+            return 2;
+        default:
+            return 1;
+    }
+}
+function getConferenceSearchMatchPriority(matchType) {
+    switch (matchType) {
+        case 'acronym_exact':
+        case 'alias_exact':
+            return 4;
+        case 'acronym_disambiguated':
+        case 'alias_disambiguated':
+            return 3;
+        case 'fuzzy':
+            return 2;
+        default:
+            return 1;
+    }
+}
+function pickBetterConferenceSearchOutcome(currentBest, nextCandidate) {
+    if (!currentBest)
+        return nextCandidate;
+    const statusDelta = getConferenceSearchStatusPriority(nextCandidate.status) - getConferenceSearchStatusPriority(currentBest.status);
+    if (statusDelta !== 0)
+        return statusDelta > 0 ? nextCandidate : currentBest;
+    const matchDelta = getConferenceSearchMatchPriority(nextCandidate.matchType) - getConferenceSearchMatchPriority(currentBest.matchType);
+    if (matchDelta !== 0)
+        return matchDelta > 0 ? nextCandidate : currentBest;
+    const nextConfidence = typeof nextCandidate.confidence === 'number' ? nextCandidate.confidence : -1;
+    const currentConfidence = typeof currentBest.confidence === 'number' ? currentBest.confidence : -1;
+    if (nextConfidence !== currentConfidence)
+        return nextConfidence > currentConfidence ? nextCandidate : currentBest;
+    const nextMatchedVenue = String(nextCandidate.matchedVenue || '');
+    const currentMatchedVenue = String(currentBest.matchedVenue || '');
+    if (nextMatchedVenue.length !== currentMatchedVenue.length)
+        return nextMatchedVenue.length > currentMatchedVenue.length ? nextCandidate : currentBest;
+    return currentBest;
+}
+async function searchConferenceInCoreFile(venueQuery, coreDataFile) {
+    const coreData = await loadCoreDataForFile(coreDataFile);
+    const datasetYear = getCoreDatasetYear(coreDataFile);
+    const originalQuery = String(venueQuery || '').trim();
+    let best = null;
+    for (const candidate of buildConferenceSearchCandidates(originalQuery)) {
+        const details = {};
+        const resolvedRank = findRankForVenue(candidate, coreData, originalQuery, details);
+        const outcome = {
+            query: originalQuery,
+            searchedCandidate: candidate,
+            coreDataFile,
+            sourceYear: datasetYear,
+            rank: VALID_RANKS.includes(resolvedRank) ? resolvedRank : 'N/A',
+            status: details.decisionStatus
+                || (VALID_RANKS.includes(resolvedRank)
+                    ? DECISION_STATUS.MATCHED
+                    : (details.matchedVenue ? DECISION_STATUS.UNRANKED : DECISION_STATUS.MISSING)),
+            matchedVenue: details.matchedVenue ?? null,
+            confidence: (typeof details.venueMatchConfidence === 'number' ? details.venueMatchConfidence : null),
+            matchedKey: details.matchedKey ?? null,
+            matchType: details.matchType ?? null,
+            rawRankLabel: details.rawRankLabel ?? null,
+            decisionEvidence: details.decisionEvidence ?? null
+        };
+        best = pickBetterConferenceSearchOutcome(best, outcome);
+        if (best?.status === DECISION_STATUS.MATCHED && best.matchType && best.matchType !== 'fuzzy') {
+            break;
+        }
+    }
+    return best || {
+        query: originalQuery,
+        coreDataFile,
+        sourceYear: datasetYear,
+        rank: 'N/A',
+        status: DECISION_STATUS.MISSING,
+        matchedVenue: null,
+        confidence: null,
+        matchedKey: null,
+        matchType: null,
+        rawRankLabel: null,
+        decisionEvidence: ['no_core_match']
+    };
+}
+async function resolveConferenceSearchQuery(venueQuery, yearVal) {
+    const inferredYear = Number.isFinite(yearVal) ? yearVal : parseYearFromText(venueQuery);
+    const primaryFile = getCoreDataFileForYear(inferredYear ?? null);
+    const primary = await searchConferenceInCoreFile(venueQuery, primaryFile);
+    let latestRankedSnapshot = null;
+    const primaryYear = getCoreDatasetYear(primaryFile) ?? Number.POSITIVE_INFINITY;
+    const fallbackFiles = ORDERED_CORE_DATA_FILES.filter((file) => file !== primaryFile && ((getCoreDatasetYear(file) ?? 0) < primaryYear));
+    for (const fallbackFile of fallbackFiles) {
+        const outcome = await searchConferenceInCoreFile(venueQuery, fallbackFile);
+        if (outcome.status === DECISION_STATUS.MATCHED && VALID_RANKS.includes(outcome.rank)) {
+            latestRankedSnapshot = outcome;
+            break;
+        }
+    }
+    return { primary, latestRankedSnapshot };
+}
 function generateAcronymFromTitle(title) {
     if (!title)
         return "";
@@ -552,8 +869,24 @@ function generateAcronymFromTitle(title) {
     }
     return acronym.toUpperCase();
 }
+function normalizeCoreRawRankLabel(value) {
+    const text = String(value || '').trim();
+    if (!text)
+        return null;
+    const upper = text.toUpperCase();
+    if (VALID_RANKS.includes(upper)) {
+        return upper;
+    }
+    if (/\b(unranked|merged|journal|inactive|discontinued|ceased|not\s+ranked|removed|withdrawn|retired|suspended)\b/i.test(text)) {
+        return text;
+    }
+    return null;
+}
 async function loadCoreDataForFile(coreDataFile) {
     if (coreDataCache[coreDataFile]) {
+        if (!coreAliasIndexCache[coreDataFile] && RANKING_UTILS?.createCoreAliasIndex) {
+            coreAliasIndexCache[coreDataFile] = RANKING_UTILS.createCoreAliasIndex(coreDataCache[coreDataFile]);
+        }
         return coreDataCache[coreDataFile];
     }
     try {
@@ -567,7 +900,7 @@ async function loadCoreDataForFile(coreDataFile) {
             return [];
         }
         const parsedData = jsonData.map((rawEntry) => {
-            const entry = { title: "", acronym: "", rank: "N/A" };
+            const entry = { title: "", acronym: "", rank: "N/A", rawRank: null };
             let pTitleKey = "International Conference on Advanced Communications and Computation", pAcroKey = "INFOCOMP"; // Default keys that might vary
             if (coreDataFile.includes('2018') || coreDataFile.includes('2017') || coreDataFile.includes('2014')) {
                 pTitleKey = "Information Retrieval Facility Conference";
@@ -595,7 +928,9 @@ async function loadCoreDataForFile(coreDataFile) {
             else if (typeof rawEntry.Rating === 'string')
                 fRank = rawEntry.Rating; // For some 2018
             if (fRank) {
-                const uRank = fRank.toUpperCase().trim();
+                const cleanedRank = normalizeCoreRawRankLabel(fRank);
+                entry.rawRank = cleanedRank || null;
+                const uRank = String(cleanedRank || '').toUpperCase();
                 if (VALID_RANKS.includes(uRank))
                     entry.rank = uRank;
             }
@@ -609,6 +944,9 @@ async function loadCoreDataForFile(coreDataFile) {
             return (entry.title || entry.acronym) ? entry : null;
         }).filter(entry => entry !== null);
         coreDataCache[coreDataFile] = parsedData;
+        if (RANKING_UTILS?.createCoreAliasIndex) {
+            coreAliasIndexCache[coreDataFile] = RANKING_UTILS.createCoreAliasIndex(parsedData);
+        }
         return parsedData;
     }
     catch (error) {
@@ -908,6 +1246,19 @@ function createTokenSet(normalizedTitle) {
         .filter(token => token.length >= 3 && !STOP_WORDS.has(token));
     return new Set(tokens);
 }
+function createSjrTokenIndex(entries) {
+    const tokenToIndexes = new Map();
+    const tokenFrequency = new Map();
+    entries.forEach((entry, index) => {
+        for (const token of entry.tokenSet || []) {
+            if (!tokenToIndexes.has(token))
+                tokenToIndexes.set(token, new Set());
+            tokenToIndexes.get(token).add(index);
+            tokenFrequency.set(token, (tokenFrequency.get(token) || 0) + 1);
+        }
+    });
+    return { tokenToIndexes, tokenFrequency };
+}
 function chooseBetterQuartile(existing, nextValue) {
     if (!nextValue)
         return existing;
@@ -919,8 +1270,63 @@ function chooseBetterQuartile(existing, nextValue) {
     };
     return parse(nextValue) < parse(existing) ? nextValue : existing;
 }
+function createSjrEntry(normalizedTitle, title, quartilesByYear, extra = {}) {
+    return {
+        normalizedTitle,
+        resolvedTitle: title,
+        quartilesByYear,
+        tokenSet: new Set(Array.isArray(extra.tokens) ? extra.tokens : createTokenSet(normalizedTitle)),
+        issns: normalizeIssnList(extra.issns),
+        sourceId: extra.sourceId ?? null,
+        coverage: extra.coverage ?? null
+    };
+}
 async function loadSjrDataset() {
+    try {
+        const indexUrl = chrome.runtime.getURL('data/sjr-index.json');
+        const response = await gsvrFetch(indexUrl);
+        if (response.ok) {
+            const payload = await response.json();
+            if (payload && Array.isArray(payload.entries)) {
+                const byNormalized = new Map();
+                const byIssn = new Map();
+                const entries = [];
+                for (const item of payload.entries) {
+                    if (!item?.n || !item?.t || !item?.q)
+                        continue;
+                    const entry = createSjrEntry(item.n, item.t, item.q, {
+                        tokens: item.k,
+                        issns: item.i,
+                        sourceId: item.s,
+                        coverage: item.c
+                    });
+                    byNormalized.set(entry.normalizedTitle, entry);
+                    entries.push(entry);
+                    for (const issn of entry.issns) {
+                        if (!byIssn.has(issn))
+                            byIssn.set(issn, []);
+                        byIssn.get(issn).push(entry);
+                    }
+                }
+                if (entries.length > 0) {
+                    return {
+                        version: payload.version ?? 1,
+                        startYear: payload.startYear ?? SJR_DATASET_START_YEAR,
+                        endYear: payload.endYear ?? SJR_DATASET_END_YEAR,
+                        byNormalized,
+                        byIssn,
+                        entries,
+                        tokenIndex: createSjrTokenIndex(entries)
+                    };
+                }
+            }
+        }
+    }
+    catch (error) {
+        console.warn('Falling back to raw SJR CSV data because the compact index could not be loaded.', error);
+    }
     const byNormalized = new Map();
+    const byIssn = new Map();
     const entries = [];
     for (let year = SJR_DATASET_START_YEAR; year <= SJR_DATASET_END_YEAR; year++) {
         const datasetPath = `sjr/scimagojr ${year}.csv`;
@@ -936,9 +1342,12 @@ async function loadSjrDataset() {
             if (rows.length === 0)
                 continue;
             const header = rows[0].map(cell => cell.trim().toLowerCase());
+            const sourceIdIndex = header.findIndex(cell => cell === 'sourceid');
             const titleIndex = header.findIndex(cell => cell === 'title');
             const quartileIndex = header.findIndex(cell => cell === 'sjr best quartile');
             const typeIndex = header.findIndex(cell => cell === 'type');
+            const issnIndex = header.findIndex(cell => cell === 'issn');
+            const coverageIndex = header.findIndex(cell => cell === 'coverage');
             if (titleIndex === -1 || quartileIndex === -1) {
                 console.warn(`Skipping ${datasetPath} because header columns were not found.`);
                 continue;
@@ -952,6 +1361,9 @@ async function loadSjrDataset() {
                     continue;
                 const title = row[titleIndex]?.trim();
                 const quartileRaw = row[quartileIndex]?.trim().toUpperCase();
+                const sourceId = sourceIdIndex >= 0 ? row[sourceIdIndex]?.trim() || null : null;
+                const issns = issnIndex >= 0 ? normalizeIssnList(row[issnIndex]) : [];
+                const coverage = coverageIndex >= 0 ? row[coverageIndex]?.trim() || null : null;
                 if (!title)
                     continue;
                 const normalizedTitle = normalizeJournalName(title);
@@ -960,17 +1372,26 @@ async function loadSjrDataset() {
                 const quartile = quartileRaw && /^Q[1-4]$/i.test(quartileRaw) ? quartileRaw.toUpperCase() : undefined;
                 let entry = byNormalized.get(normalizedTitle);
                 if (!entry) {
-                    entry = {
-                        normalizedTitle,
-                        resolvedTitle: title,
-                        quartilesByYear: {},
-                        tokenSet: createTokenSet(normalizedTitle)
-                    };
+                    entry = createSjrEntry(normalizedTitle, title, {}, {
+                        issns,
+                        sourceId,
+                        coverage
+                    });
                     byNormalized.set(normalizedTitle, entry);
                     entries.push(entry);
                 }
                 else if (title.length > entry.resolvedTitle.length) {
                     entry.resolvedTitle = title;
+                }
+                if (!entry.sourceId && sourceId) {
+                    entry.sourceId = sourceId;
+                }
+                if (!entry.coverage && coverage) {
+                    entry.coverage = coverage;
+                }
+                for (const issn of issns) {
+                    if (!entry.issns.includes(issn))
+                        entry.issns.push(issn);
                 }
                 if (quartile) {
                     const current = entry.quartilesByYear[year];
@@ -985,7 +1406,22 @@ async function loadSjrDataset() {
             console.error(`Error loading SJR dataset for ${year}:`, error);
         }
     }
-    return { byNormalized, entries };
+    for (const entry of entries) {
+        for (const issn of entry.issns) {
+            if (!byIssn.has(issn))
+                byIssn.set(issn, []);
+            byIssn.get(issn).push(entry);
+        }
+    }
+    return {
+        version: 1,
+        startYear: SJR_DATASET_START_YEAR,
+        endYear: SJR_DATASET_END_YEAR,
+        byNormalized,
+        byIssn,
+        entries,
+        tokenIndex: createSjrTokenIndex(entries)
+    };
 }
 function ensureSjrDataset() {
     if (!sjrDatasetPromise) {
@@ -1005,57 +1441,103 @@ function selectQuartileForYear(data, publicationYear) {
         const targetYear = Math.max(SJR_DATASET_START_YEAR, publicationYear);
         const matchingYear = entries.find(entry => entry.year === targetYear);
         if (matchingYear) {
-            return { quartile: matchingYear.quartile, year: matchingYear.year };
+            return { quartile: matchingYear.quartile, year: matchingYear.year, sourceYearFallback: false };
         }
         const previousYear = entries.find(entry => entry.year < targetYear);
         if (previousYear) {
-            return { quartile: previousYear.quartile, year: previousYear.year };
+            return {
+                quartile: previousYear.quartile,
+                year: previousYear.year,
+                sourceYearFallback: true
+            };
         }
     }
     const latestEntry = entries[0];
-    return { quartile: latestEntry.quartile, year: latestEntry.year };
+    return { quartile: latestEntry.quartile, year: latestEntry.year, sourceYearFallback: true };
 }
-function findBestSjrMatch(normalizedQuery, dataset) {
+function selectSjrCandidateIndexes(queryTokens, dataset) {
+    if (!queryTokens.length || !dataset?.tokenIndex)
+        return null;
+    const ranked = queryTokens
+        .map(token => ({ token, count: dataset.tokenIndex.tokenFrequency.get(token) || Number.POSITIVE_INFINITY }))
+        .filter(entry => Number.isFinite(entry.count))
+        .sort((a, b) => a.count - b.count || a.token.localeCompare(b.token));
+    if (!ranked.length)
+        return null;
+    let candidateSet = null;
+    for (const entry of ranked.slice(0, 3)) {
+        const indexes = dataset.tokenIndex.tokenToIndexes.get(entry.token);
+        if (!indexes?.size)
+            continue;
+        candidateSet = candidateSet ? new Set([...candidateSet].filter(index => indexes.has(index))) : new Set(indexes);
+        if (candidateSet.size > 0 && candidateSet.size <= 48) {
+            break;
+        }
+    }
+    if (candidateSet?.size) {
+        return candidateSet;
+    }
+    return dataset.tokenIndex.tokenToIndexes.get(ranked[0].token) || null;
+}
+function findBestSjrMatch({ normalizedQuery, queryIssns, dataset }) {
+    const exactIssnMatches = [];
+    for (const issn of normalizeIssnList(queryIssns)) {
+        const matches = dataset.byIssn?.get(issn) || [];
+        for (const match of matches) {
+            if (!exactIssnMatches.includes(match))
+                exactIssnMatches.push(match);
+        }
+    }
+    if (exactIssnMatches.length === 1) {
+        return { status: DECISION_STATUS.MATCHED, entry: exactIssnMatches[0], score: 1.0, matchedBy: 'issn' };
+    }
+    if (exactIssnMatches.length > 1) {
+        return { status: DECISION_STATUS.AMBIGUOUS, score: 1.0, matchedBy: 'issn' };
+    }
     const directMatch = dataset.byNormalized.get(normalizedQuery);
     if (directMatch) {
-        return { entry: directMatch, score: 1.0 };
+        return { status: DECISION_STATUS.MATCHED, entry: directMatch, score: 1.0, matchedBy: 'title_exact' };
     }
     const queryTokens = normalizedQuery
         .split(' ')
         .map(token => token.trim())
         .filter(token => token.length >= 3);
-    const queryTokenSet = new Set(queryTokens);
+    const candidateIndexes = selectSjrCandidateIndexes(queryTokens, dataset) || new Set(dataset.entries.map((_, index) => index));
     let best = null;
-    for (const entry of dataset.entries) {
-        let sharesToken = queryTokens.length === 0;
-        if (!sharesToken) {
-            for (const token of queryTokenSet) {
-                if (entry.tokenSet.has(token)) {
-                    sharesToken = true;
-                    break;
-                }
-            }
-        }
-        if (!sharesToken) {
+    let second = null;
+    for (const index of candidateIndexes) {
+        const entry = dataset.entries[index];
+        if (!entry)
+            continue;
+        const score = RANKING_UTILS?.hybridSimilarity
+            ? RANKING_UTILS.hybridSimilarity(normalizedQuery, entry.normalizedTitle)
+            : (0.72 * jaroWinkler(normalizedQuery, entry.normalizedTitle));
+        if (score < RANKING_CONFIG.sjrFuzzyThreshold) {
             continue;
         }
-        const score = jaroWinkler(normalizedQuery, entry.normalizedTitle);
-        if (score >= 0.98) {
-            return { entry, score };
-        }
+        const candidate = { entry, score };
         if (!best || score > best.score) {
-            best = { entry, score };
+            second = best;
+            best = candidate;
+        }
+        else if (!second || score > second.score) {
+            second = candidate;
         }
     }
-    if (!best || best.score < FUZZY_THRESHOLD) {
-        return null;
+    if (!best) {
+        return { status: DECISION_STATUS.MISSING };
     }
-    return best;
+    const gap = second ? best.score - second.score : Number.POSITIVE_INFINITY;
+    if (second && best.score < 0.97 && gap < RANKING_CONFIG.sjrAmbiguityGap) {
+        return { status: DECISION_STATUS.AMBIGUOUS, score: best.score, gap, matchedBy: 'title_fuzzy' };
+    }
+    return { status: DECISION_STATUS.MATCHED, entry: best.entry, score: best.score, matchedBy: 'title_fuzzy' };
 }
-async function resolveSjrQuartile(journalName, publicationYear) {
+async function resolveSjrQuartile(journalName, publicationYear, journalMeta = {}) {
     const variants = generateJournalNormalizationVariants(journalName);
     if (!variants.length)
         return { status: 'not_found' };
+    const queryIssns = normalizeIssnList(journalMeta.issns);
 
     // Try cache first across variants.
     let sawNotFound = false;
@@ -1068,27 +1550,35 @@ async function resolveSjrQuartile(journalName, publicationYear) {
             continue;
         }
         if (cachedEntry?.kind === 'success') {
-            const { quartile, year } = selectQuartileForYear(cachedEntry.data, publicationYear ?? null);
+            const { quartile, year, sourceYearFallback } = selectQuartileForYear(cachedEntry.data, publicationYear ?? null);
             return {
                 status: 'success',
                 quartile,
                 year,
                 resolvedTitle: cachedEntry.data.resolvedTitle,
                 matchScore: cachedEntry.matchScore ?? null,
-                matchedNormalizedTitle: cachedEntry.matchedNormalizedTitle ?? null
+                matchedNormalizedTitle: cachedEntry.matchedNormalizedTitle ?? null,
+                matchedSourceId: cachedEntry.data.sourceId ?? null,
+                sourceYearFallback
             };
         }
     }
     try {
         const dataset = await ensureSjrDataset();
+        let sawAmbiguous = false;
         for (const normalizedQuery of variants) {
-            const match = findBestSjrMatch(normalizedQuery, dataset);
-            if (!match)
+            const match = findBestSjrMatch({ normalizedQuery, queryIssns, dataset });
+            if (!match || match.status === DECISION_STATUS.MISSING)
                 continue;
+            if (match.status === DECISION_STATUS.AMBIGUOUS) {
+                sawAmbiguous = true;
+                continue;
+            }
             const entry = match.entry;
             const data = {
                 resolvedTitle: entry.resolvedTitle,
-                quartilesByYear: { ...entry.quartilesByYear }
+                quartilesByYear: { ...entry.quartilesByYear },
+                sourceId: entry.sourceId ?? null
             };
             // Cache the successful match for all variants to avoid repeated fuzzy scans.
             for (const v of variants) {
@@ -1099,15 +1589,20 @@ async function resolveSjrQuartile(journalName, publicationYear) {
                     matchedNormalizedTitle: entry.normalizedTitle
                 });
             }
-            const { quartile, year } = selectQuartileForYear(data, publicationYear ?? null);
+            const { quartile, year, sourceYearFallback } = selectQuartileForYear(data, publicationYear ?? null);
             return {
                 status: 'success',
                 quartile,
                 year,
                 resolvedTitle: data.resolvedTitle,
                 matchScore: match.score,
-                matchedNormalizedTitle: entry.normalizedTitle
+                matchedNormalizedTitle: entry.normalizedTitle,
+                matchedSourceId: entry.sourceId ?? null,
+                sourceYearFallback
             };
+        }
+        if (sawAmbiguous) {
+            return { status: 'ambiguous' };
         }
 
         // Not found: cache negative result for all variants.
@@ -1299,162 +1794,33 @@ function generateCoreTitleVariants(coreTitle) {
     return Array.from(variants);
 }
 function findRankForVenue(venueKey, coreData, fullVenueTitle = undefined, detailsOut = null) {
-    const trimmedVenueKey = venueKey?.trim();
-    const keyLower = trimmedVenueKey ? trimmedVenueKey.toLowerCase() : "";
-    const isAcronymLike = (cleaned) => {
-        if (!cleaned)
-            return false;
-        const s = String(cleaned);
-        if (s.includes(' '))
-            return false;
-        // Keep this conservative: short single-token venues are almost always acronyms.
-        return s.length >= 2 && s.length <= 10 && /^[a-z0-9\-]+$/i.test(s);
-    };
-    const setDetails = (d) => {
+    const setDetails = (details) => {
         if (!detailsOut || typeof detailsOut !== 'object')
             return;
-        for (const [k, v] of Object.entries(d || {})) {
-            detailsOut[k] = v;
+        for (const [key, value] of Object.entries(details || {})) {
+            detailsOut[key] = value;
         }
     };
-
-    /* ---------- 1. exact-acronym match ---------- */
-    if (trimmedVenueKey) {
-        const acronymMatches = coreData.filter(e => e.acronym && e.acronym.toLowerCase() === keyLower);
-        /* 1-a  single hit → done */
-        if (acronymMatches.length === 1) {
-            const rank = acronymMatches[0].rank;
+    const resolver = RANKING_UTILS?.resolveCoreVenue;
+    const aliasIndex = Object.values(coreAliasIndexCache).find((entry) => entry?.entries === coreData) || null;
+    if (resolver) {
+        const result = resolver({
+            venueKey,
+            fullVenueTitle,
+            coreData,
+            aliasIndex
+        });
+        if (result) {
             setDetails({
-                matchType: 'acronym_exact',
-                matchedVenue: acronymMatches[0].title ?? trimmedVenueKey,
-                venueMatchConfidence: 1
+                matchType: result.matchType ?? result.status ?? null,
+                matchedVenue: result.matchedVenue ?? venueKey ?? null,
+                venueMatchConfidence: (typeof result.confidence === 'number' ? result.confidence : null),
+                decisionStatus: result.status ?? null,
+                matchedKey: result.matchedKey ?? null,
+                rawRankLabel: result.rawRankLabel ?? null,
+                decisionEvidence: result.reason ? [result.reason] : null
             });
-            return VALID_RANKS.includes(rank) ? rank : "N/A";
-        }
-        /* 1-b  ambiguous acronym → log & try title disambiguation */
-        if (acronymMatches.length > 1) {
-            console.log(`[Rank] Acronym '${venueKey}' matched ${acronymMatches.length} CORE rows.`, acronymMatches.map(e => ({ title: e.title, rank: e.rank })));
-            if (fullVenueTitle) {
-                const cleanedFull = cleanTextForComparison(fullVenueTitle, false);
-                let bestScore = 0;
-                let bestEntry = null;
-                for (const entry of acronymMatches) {
-                    if (!entry.title)
-                        continue;
-                    const score = jaroWinkler(cleanedFull, cleanTextForComparison(entry.title, false));
-                    console.log(`  ↳ JW score vs "${entry.title}": ${score.toFixed(3)}`);
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestEntry = entry;
-                    }
-                    if (score === 1)
-                        break; // perfect match
-                }
-                if (bestEntry &&
-                    bestScore >= 0.85 &&
-                    VALID_RANKS.includes(bestEntry.rank)) {
-                    console.log(`[Rank]   ► Disambiguated by title → "${bestEntry.title}" (${bestEntry.rank})`);
-                    setDetails({
-                        matchType: 'acronym_ambiguous_title',
-                        matchedVenue: bestEntry.title ?? trimmedVenueKey,
-                        venueMatchConfidence: bestScore
-                    });
-                    return bestEntry.rank;
-                }
-                console.log(`[Rank]   ► Title disambiguation failed (best score ${bestScore.toFixed(3)}). Returning N/A.`);
-            }
-            else {
-                console.log(`[Rank]   ► No fullVenueTitle provided – cannot disambiguate. Returning N/A.`);
-            }
-            return "N/A"; // ← new behaviour
-        }
-    }
-    const candidates = [];
-    if (trimmedVenueKey) {
-        candidates.push({ raw: keyLower, isScholar: true });
-    }
-    if (fullVenueTitle && fullVenueTitle.trim().length > 0) {
-        candidates.push({ raw: fullVenueTitle.toLowerCase(), isScholar: false });
-    }
-    if (candidates.length === 0) {
-        return "N/A";
-    }
-    const trySubstringMatch = (gsCleaned) => {
-        // Avoid substring matching for short acronyms and track strings (e.g., ENSsys@SenSys).
-        if (isAcronymLike(gsCleaned) || gsCleaned.includes('@'))
-            return null;
-        let bestSubRank = null;
-        let bestTitle = null;
-        let longestLen = 0;
-        for (const entry of coreData) {
-            if (!entry.title)
-                continue;
-            const cleanedTitle = stripOrgPrefixes(cleanTextForComparison(entry.title, false));
-            const titleVariants = generateCoreTitleVariants(cleanedTitle);
-            if (titleVariants.length === 0)
-                continue;
-            for (const variant of titleVariants) {
-                if (!variant)
-                    continue;
-                if (gsCleaned.includes(variant) && variant.length > longestLen) {
-                    longestLen = variant.length;
-                    bestSubRank = VALID_RANKS.includes(entry.rank) ? entry.rank : null;
-                    bestTitle = entry.title;
-                }
-            }
-        }
-        if (!bestSubRank)
-            return null;
-        // Conservative confidence: how much of the candidate string was covered.
-        const score = gsCleaned.length > 0 ? Math.min(1, Math.max(0.5, longestLen / gsCleaned.length)) : 0.5;
-        return { rank: bestSubRank, matchedTitle: bestTitle, score };
-    };
-    const tryFuzzyMatch = (gsCleaned) => {
-        // Avoid fuzzy matching for short acronyms and track strings (high false-positive risk).
-        if (isAcronymLike(gsCleaned) || gsCleaned.includes('@'))
-            return null;
-        let bestFuzzy = 0;
-        let fuzzyRank = null;
-        let bestTitle = null;
-        for (const entry of coreData) {
-            if (!entry.title)
-                continue;
-            const cleanedTitle = stripOrgPrefixes(cleanTextForComparison(entry.title, false));
-            const titleVariants = generateCoreTitleVariants(cleanedTitle);
-            if (titleVariants.length === 0)
-                continue;
-            for (const variant of titleVariants) {
-                if (!variant || variant.length < 6 || gsCleaned.length < 6)
-                    continue;
-                const score = jaroWinkler(gsCleaned, variant);
-                if (score >= FUZZY_THRESHOLD && score > bestFuzzy) {
-                    bestFuzzy = score;
-                    fuzzyRank = VALID_RANKS.includes(entry.rank) ? entry.rank : null;
-                    bestTitle = entry.title;
-                    if (score === 1)
-                        break;
-                }
-            }
-            if (bestFuzzy === 1)
-                break;
-        }
-        return fuzzyRank ? { rank: fuzzyRank, matchedTitle: bestTitle, score: bestFuzzy } : null;
-    };
-    const seenCleaned = new Set();
-    for (const candidate of candidates) {
-        const cleaned = cleanTextForComparison(candidate.raw, candidate.isScholar);
-        if (!cleaned || seenCleaned.has(cleaned))
-            continue;
-        seenCleaned.add(cleaned);
-        const sub = trySubstringMatch(cleaned);
-        if (sub && sub.rank) {
-            setDetails({ matchType: 'substring', matchedVenue: sub.matchedTitle ?? trimmedVenueKey, venueMatchConfidence: sub.score });
-            return sub.rank;
-        }
-        const fuzzy = tryFuzzyMatch(cleaned);
-        if (fuzzy && fuzzy.rank) {
-            setDetails({ matchType: 'fuzzy', matchedVenue: fuzzy.matchedTitle ?? trimmedVenueKey, venueMatchConfidence: fuzzy.score });
-            return fuzzy.rank;
+            return VALID_RANKS.includes(result.rank) ? result.rank : "N/A";
         }
     }
     return "N/A";
@@ -1543,12 +1909,230 @@ function getPossibleAcronymsFromVenue(venueText) {
         return [];
     }
 }
+function buildBadgeDetailItems(rank, system, reason = null, meta = null) {
+    const items = [];
+    items.push({ label: 'Source', value: system });
+    items.push({ label: 'Rank', value: rank });
+    if (reason) {
+        items.push({ label: 'Reason', value: reason });
+    }
+    if (meta && typeof meta === 'object' && currentSettings.showDebugDetails !== false) {
+        const pct = (value) => (typeof value === 'number' ? `${Math.round(value * 100)}%` : null);
+        if (meta.sourceYear) {
+            items.push({ label: 'Dataset Year', value: String(meta.sourceYear) });
+        }
+        if (meta.sourceYearFallback) {
+            items.push({ label: 'Year Mode', value: 'Latest available fallback' });
+        }
+        if (meta.matchedVenue && (system === 'CORE' || system === 'SJR')) {
+            items.push({ label: 'Matched Venue', value: meta.matchedVenue });
+        }
+        if (meta.matchedSourceId && system === 'SJR') {
+            items.push({ label: 'SJR Source ID', value: String(meta.matchedSourceId) });
+        }
+        if (pct(meta.venueMatchConfidence) && (system === 'CORE' || system === 'SJR')) {
+            items.push({ label: 'Venue Confidence', value: pct(meta.venueMatchConfidence) });
+        }
+        if (meta.dblpVenue) {
+            items.push({ label: 'DBLP Venue', value: meta.dblpVenue });
+        }
+        if (pct(meta.matchConfidence)) {
+            items.push({ label: 'DBLP Title Match', value: pct(meta.matchConfidence) });
+        }
+        if (meta.decisionStatus) {
+            items.push({ label: 'Decision', value: String(meta.decisionStatus) });
+        }
+        if (pct(meta.confidence) && !pct(meta.venueMatchConfidence) && !pct(meta.matchConfidence)) {
+            items.push({ label: 'Confidence', value: pct(meta.confidence) });
+        }
+    }
+    return items.filter(item => item.value);
+}
+function ensureBadgePopover() {
+    if (gsrBadgePopoverEl && document.body.contains(gsrBadgePopoverEl)) {
+        return gsrBadgePopoverEl;
+    }
+    const popover = document.createElement('div');
+    popover.id = BADGE_POPOVER_ID;
+    popover.className = 'gsr-badge-popover';
+    popover.setAttribute('role', 'tooltip');
+    popover.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(popover);
+    gsrBadgePopoverEl = popover;
+    return popover;
+}
+function hideBadgePopover(immediate = false) {
+    if (gsrBadgePopoverHideTimeout) {
+        clearTimeout(gsrBadgePopoverHideTimeout);
+        gsrBadgePopoverHideTimeout = null;
+    }
+    const applyHide = () => {
+        const popover = ensureBadgePopover();
+        popover.classList.remove('is-visible');
+        popover.innerHTML = '';
+        popover.setAttribute('aria-hidden', 'true');
+    };
+    if (immediate) {
+        applyHide();
+        return;
+    }
+    gsrBadgePopoverHideTimeout = window.setTimeout(applyHide, 120);
+}
+function showBadgePopover(anchor, items) {
+    if (!anchor || !items.length) {
+        hideBadgePopover(true);
+        return;
+    }
+    if (gsrBadgePopoverHideTimeout) {
+        clearTimeout(gsrBadgePopoverHideTimeout);
+        gsrBadgePopoverHideTimeout = null;
+    }
+    const popover = ensureBadgePopover();
+    popover.innerHTML = items
+        .map(item => `<div class="gsr-badge-popover__row"><span class="gsr-badge-popover__label">${escapeHtml(item.label)}</span><span class="gsr-badge-popover__value">${escapeHtml(item.value)}</span></div>`)
+        .join('');
+    popover.classList.add('is-visible');
+    popover.setAttribute('aria-hidden', 'false');
+    const rect = anchor.getBoundingClientRect();
+    const popoverRect = popover.getBoundingClientRect();
+    let left = rect.left + (rect.width / 2) - (popoverRect.width / 2);
+    let top = rect.bottom + 10;
+    const maxLeft = window.innerWidth - popoverRect.width - 12;
+    left = Math.max(12, Math.min(left, maxLeft));
+    if (top + popoverRect.height > window.innerHeight - 12) {
+        top = rect.top - popoverRect.height - 10;
+    }
+    popover.style.left = `${Math.max(12, left)}px`;
+    popover.style.top = `${Math.max(12, top)}px`;
+}
+function attachBadgeDetailBehavior(badge, rank, system, reason = null, meta = null) {
+    const items = buildBadgeDetailItems(rank, system, reason, meta);
+    if (!items.length) {
+        return;
+    }
+    badge.setAttribute('title', items.map(item => `${item.label}: ${item.value}`).join('\n'));
+    badge.setAttribute('aria-describedby', BADGE_POPOVER_ID);
+    const show = () => showBadgePopover(badge, items);
+    badge.addEventListener('mouseenter', show);
+    badge.addEventListener('focus', show);
+    badge.addEventListener('mouseleave', () => hideBadgePopover(false));
+    badge.addEventListener('blur', () => hideBadgePopover(false));
+}
+function setRowRankingMetadata(rowElement, info) {
+    if (!rowElement || !info)
+        return;
+    const statusKind = getRowStatusKind(info);
+    rowElement.dataset.gsrSystem = String(info.system || 'UNKNOWN').toLowerCase();
+    rowElement.dataset.gsrRank = normalizeRankKey(info.rank || 'N/A');
+    rowElement.dataset.gsrStatus = statusKind;
+    rowElement.classList.toggle('gsr-row--needs-review', statusKind !== 'ranked');
+    rowElement.classList.toggle('gsr-row--ranked', statusKind === 'ranked');
+}
+function isSameSummaryFilter(a, b) {
+    return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+}
+function getEffectiveSummaryFilter() {
+    return previewSummaryFilter ?? activeSummaryFilter;
+}
+function matchesSummaryFilter(rowElement, filter) {
+    if (!filter || !rowElement)
+        return true;
+    const status = rowElement.dataset.gsrStatus || '';
+    const system = rowElement.dataset.gsrSystem || '';
+    const rank = rowElement.dataset.gsrRank || '';
+    if (filter.type === 'preset') {
+        if (filter.mode === 'ranked-only') {
+            return status === 'ranked';
+        }
+        if (filter.mode === 'needs-review') {
+            return status === 'dblp-missing' || status === 'unranked';
+        }
+        return true;
+    }
+    if (filter.type === 'status') {
+        return status === filter.status;
+    }
+    return system === filter.system && rank === filter.rank;
+}
+function syncSummaryFilterButtons() {
+    const panel = document.getElementById(SUMMARY_PANEL_ID);
+    if (!panel)
+        return;
+    panel.classList.toggle('gsr-summary-card--has-active-filter', !!activeSummaryFilter);
+    panel.classList.toggle('gsr-summary-card--has-rank-selection', activeSummaryFilter?.type === 'rank' || activeSummaryFilter?.type === 'status');
+    panel.querySelectorAll('[data-gsr-filter-type]').forEach((button) => {
+        let isActive = false;
+        let isPreviewed = false;
+        const type = button.getAttribute('data-gsr-filter-type');
+        if (type === 'reset') {
+            isActive = !activeSummaryFilter;
+        }
+        else if (type === 'rank' && activeSummaryFilter?.type === 'rank') {
+            isActive = activeSummaryFilter.system === button.getAttribute('data-gsr-system')
+                && activeSummaryFilter.rank === button.getAttribute('data-gsr-rank');
+        }
+        else if (type === 'status' && activeSummaryFilter?.type === 'status') {
+            isActive = activeSummaryFilter.status === button.getAttribute('data-gsr-status');
+        }
+        else if (type === 'preset' && activeSummaryFilter?.type === 'preset') {
+            isActive = activeSummaryFilter.mode === button.getAttribute('data-gsr-mode');
+        }
+        if (type === 'rank' && previewSummaryFilter?.type === 'rank') {
+            isPreviewed = previewSummaryFilter.system === button.getAttribute('data-gsr-system')
+                && previewSummaryFilter.rank === button.getAttribute('data-gsr-rank');
+        }
+        else if (type === 'status' && previewSummaryFilter?.type === 'status') {
+            isPreviewed = previewSummaryFilter.status === button.getAttribute('data-gsr-status');
+        }
+        else if (type === 'preset' && previewSummaryFilter?.type === 'preset') {
+            isPreviewed = previewSummaryFilter.mode === button.getAttribute('data-gsr-mode');
+        }
+        button.classList.toggle('is-active', isActive);
+        button.classList.toggle('is-previewed', !isActive && isPreviewed);
+        button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
+}
+function applyActiveSummaryFilter() {
+    const effectiveFilter = getEffectiveSummaryFilter();
+    const hasPreview = !!previewSummaryFilter;
+    const hasActiveSelection = !!activeSummaryFilter && !hasPreview;
+    document.querySelectorAll('tr.gsc_a_tr').forEach((row) => {
+        const matches = matchesSummaryFilter(row, effectiveFilter);
+        row.classList.toggle('gsr-row--dimmed', !!effectiveFilter && !matches);
+        row.classList.toggle('gsr-row--highlighted', !!effectiveFilter && matches);
+        row.classList.toggle('gsr-row--selected', hasActiveSelection);
+        row.classList.toggle('gsr-row--preview', hasPreview);
+        row.classList.toggle('gsr-row--dimmed-strong', hasActiveSelection && !matches);
+        row.classList.toggle('gsr-row--highlighted-strong', hasActiveSelection && matches);
+    });
+    syncSummaryFilterButtons();
+}
+function toggleSummaryFilter(nextFilter) {
+    const sameFilter = isSameSummaryFilter(activeSummaryFilter, nextFilter);
+    activeSummaryFilter = sameFilter ? null : nextFilter;
+    previewSummaryFilter = null;
+    applyActiveSummaryFilter();
+}
+function setSummaryFilterPreview(nextFilter) {
+    if (isSameSummaryFilter(previewSummaryFilter, nextFilter)) {
+        return;
+    }
+    previewSummaryFilter = nextFilter;
+    applyActiveSummaryFilter();
+}
+function clearSummaryFilterPreview(nextFilter) {
+    if (!isSameSummaryFilter(previewSummaryFilter, nextFilter)) {
+        return;
+    }
+    previewSummaryFilter = null;
+    applyActiveSummaryFilter();
+}
 
 function createRankBadgeElement(rank, system, reason = null, meta = null) {
     const badge = document.createElement('span');
-    // Badge text (keep compact and consistent)
+    badge.classList.add('gsr-rank-badge');
+    badge.dataset.gsrSystem = String(system || 'unknown').toLowerCase();
     if (rank === 'N/A' && reason) {
-        // Issue 5: explicit Extended Abstract badge
         if (String(reason).toLowerCase() === 'extended abstract') {
             badge.textContent = 'N/A: Extended Abstract';
         }
@@ -1562,127 +2146,34 @@ function createRankBadgeElement(rank, system, reason = null, meta = null) {
     else {
         badge.textContent = rank;
     }
-    badge.style.display = 'inline-flex';
-    badge.style.alignItems = 'center';
-    badge.style.justifyContent = 'center';
-    badge.style.marginLeft = '10px';
-    badge.style.fontSize = '0.9em';
-    badge.style.fontWeight = 'bold';
-    badge.style.color = '#000000';
-    badge.style.verticalAlign = 'middle';
-    const applyNeutralStyle = () => {
-        badge.style.backgroundColor = '#f0f0f0';
-        badge.style.borderColor = '#bdbdbd';
-        badge.style.color = '#555';
-    };
+    badge.setAttribute('tabindex', '0');
+    badge.setAttribute('aria-label', `${system} ${badge.textContent}`);
+    const usePill = system === 'CORE' && !!reason;
 
-    // Issue 6: Tooltip includes confidence + matched venue (CORE/SJR).
-    try {
-        const lines = [];
-        if (reason)
-            lines.push(`Reason: ${reason}`);
-        if (meta && typeof meta === 'object') {
-            const pct = (x) => (typeof x === 'number' ? `${Math.round(x * 100)}%` : null);
-            if (meta.matchedVenue && (system === 'CORE' || system === 'SJR')) {
-                lines.push(`Matched venue (${system}): ${meta.matchedVenue}`);
-            }
-            if (pct(meta.venueMatchConfidence) && (system === 'CORE' || system === 'SJR')) {
-                lines.push(`Venue match confidence: ${pct(meta.venueMatchConfidence)}`);
-            }
-            if (meta.dblpVenue) {
-                lines.push(`DBLP venue: ${meta.dblpVenue}`);
-            }
-            if (pct(meta.matchConfidence)) {
-                lines.push(`DBLP title match confidence: ${pct(meta.matchConfidence)}`);
-            }
-        }
-        if (lines.length > 0) {
-            badge.setAttribute('title', lines.join('\n'));
-        }
-    }
-    catch (e) {
-        // no-op
-    }
-
-    // Strict DBLP-only: show a neutral badge for papers missing from the matched DBLP profile.
     if (system === 'DBLP' && rank === DBLP_ENTRY_MISSING_LABEL) {
-        badge.classList.add('badge-missing-dblp');
+        badge.classList.add('badge-missing-dblp', 'gsr-rank-badge--pill', 'gsr-rank-badge--neutral');
+        badge.dataset.gsrKind = 'dblp-missing';
         badge.setAttribute('title', DBLP_ENTRY_MISSING_TOOLTIP);
-        // Inline fallbacks (in case CSS fails to load)
-        badge.style.border = '1px solid #94a3b8';
-        badge.style.borderRadius = '10px';
-        badge.style.padding = '2px 8px';
-        badge.style.backgroundColor = '#e2e8f0';
-        badge.style.color = '#334155';
-        badge.style.fontSize = '0.85em';
-        badge.style.fontWeight = '700';
+        attachBadgeDetailBehavior(badge, rank, system, reason, meta);
         return badge;
     }
     if (system === 'SJR' && SJR_QUARTILES.includes(rank)) {
-        badge.style.border = '2px solid #ccc';
-        badge.style.borderRadius = '50%';
-        badge.style.minWidth = '24px';
-        badge.style.height = '24px';
-        badge.style.fontSize = '0.8em';
-        switch (rank) {
-            case 'Q1':
-                badge.style.backgroundColor = '#FFD700';
-                badge.style.borderColor = '#B8860B';
-                break;
-            case 'Q2':
-                badge.style.backgroundColor = '#90EE90';
-                badge.style.borderColor = '#3CB371';
-                break;
-            case 'Q3':
-                badge.style.backgroundColor = '#ADFF2F';
-                badge.style.borderColor = '#7FFF00';
-                break;
-            case 'Q4':
-                badge.style.backgroundColor = '#FFA07A';
-                badge.style.borderColor = '#FA8072';
-                break;
-        }
+        badge.classList.add('gsr-rank-badge--sjr', 'gsr-rank-badge--circular', `gsr-rank-badge--${rank.toLowerCase()}`);
+        badge.dataset.gsrKind = 'ranked';
+        attachBadgeDetailBehavior(badge, rank, system, reason, meta);
         return badge;
     }
     if (system === 'CORE' && VALID_RANKS.includes(rank)) {
-        badge.style.border = '1px solid #ccc';
-        badge.style.borderRadius = '3px';
-        badge.style.padding = '2px 6px';
-        badge.style.minWidth = '30px';
-        badge.style.textAlign = 'center';
-        switch (rank) {
-            case "A*":
-                badge.style.backgroundColor = '#FFD700';
-                badge.style.borderColor = '#B8860B';
-                break;
-            case "A":
-                badge.style.backgroundColor = '#90EE90';
-                badge.style.borderColor = '#3CB371';
-                break;
-            case "B":
-                badge.style.backgroundColor = '#ADFF2F';
-                badge.style.borderColor = '#7FFF00';
-                break;
-            case "C":
-                badge.style.backgroundColor = '#FFA07A';
-                badge.style.borderColor = '#FA8072';
-                break;
-        }
+        badge.classList.add('gsr-rank-badge--core', 'gsr-rank-badge--pill', `gsr-rank-badge--${normalizeRankKey(rank)}`);
+        badge.dataset.gsrKind = 'ranked';
+        attachBadgeDetailBehavior(badge, rank, system, reason, meta);
         return badge;
     }
     if (rank === 'N/A') {
-        badge.style.border = system === 'SJR' ? '2px solid #ccc' : '1px solid #ccc';
-        // If we have a reason tag, keep it as a pill (not a tiny square/circle) for readability.
-        const usePill = system === 'CORE' && !!reason;
-        badge.style.borderRadius = (system === 'SJR' && !usePill) ? '50%' : '10px';
-        badge.style.padding = system === 'SJR' ? '0' : '2px 6px';
-        badge.style.minWidth = system === 'SJR' ? '24px' : (usePill ? 'auto' : '30px');
-        badge.style.height = system === 'SJR' ? '24px' : '';
-        if (system === 'SJR') {
-            badge.style.fontSize = '0.8em';
-        }
-        badge.style.textAlign = system === 'SJR' ? 'center' : 'center';
-        applyNeutralStyle();
+        badge.classList.add('gsr-rank-badge--neutral');
+        badge.classList.add((system === 'SJR' && !usePill) ? 'gsr-rank-badge--circular' : 'gsr-rank-badge--pill');
+        badge.dataset.gsrKind = 'unranked';
+        attachBadgeDetailBehavior(badge, rank, system, reason, meta);
         return badge;
     }
     return null;
@@ -1705,15 +2196,15 @@ function displayRankBadgeAfterTitle(rowElement, rank, system, reason = null, met
     const badge = createRankBadgeElement(rank, system, reason, meta); // Can return N/A badge or null
     if (badge) {
         badge.classList.add('gsr-rank-badge-inline');
-        badge.style.marginLeft = '8px';
         titleLinkElement.insertAdjacentElement('afterend', badge);
+    }
+    setRowRankingMetadata(rowElement, { rank, system, reason, ...(meta || {}) });
+    if (activeSummaryFilter || previewSummaryFilter) {
+        applyActiveSummaryFilter();
     }
 }
 
 // --- START: Manual Rank/Quartile Search Utility (Phase 2) ---
-let gsrSearchOverlayEl = null;
-let gsrVenueDatalistPopulated = false;
-
 async function populateVenueDatalistIfNeeded() {
     if (gsrVenueDatalistPopulated)
         return;
@@ -1758,32 +2249,55 @@ function ensureSearchUtilityOverlay() {
     const overlay = document.createElement('div');
     overlay.className = 'search-utility-overlay';
     overlay.id = 'gsr-search-utility-overlay';
-
     const panel = document.createElement('div');
     panel.className = 'gsr-search-panel';
-
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-modal', 'true');
+    panel.setAttribute('aria-labelledby', 'gsr-search-panel-title');
+    panel.setAttribute('aria-describedby', 'gsr-search-panel-description');
+    const header = document.createElement('div');
+    header.className = 'gsr-search-panel__header';
+    const titleGroup = document.createElement('div');
     const title = document.createElement('h3');
+    title.id = 'gsr-search-panel-title';
     title.textContent = 'Search Ranking (CORE / SJR)';
-    panel.appendChild(title);
-
+    titleGroup.appendChild(title);
+    const description = document.createElement('p');
+    description.id = 'gsr-search-panel-description';
+    description.className = 'gsr-search-panel__description';
+    description.textContent = 'Search the local CORE and SJR datasets without leaving Google Scholar.';
+    titleGroup.appendChild(description);
+    header.appendChild(titleGroup);
+    const closeButton = document.createElement('button');
+    closeButton.type = 'button';
+    closeButton.className = 'gsr-icon-button';
+    closeButton.setAttribute('aria-label', 'Close ranking search');
+    closeButton.textContent = '×';
+    header.appendChild(closeButton);
+    panel.appendChild(header);
     const row1 = document.createElement('div');
     row1.className = 'gsr-search-row';
+    const venueLabel = document.createElement('label');
+    venueLabel.className = 'gsr-search-label';
+    venueLabel.htmlFor = 'gsr-venue-search-input';
+    venueLabel.textContent = 'Venue Name or Acronym';
+    panel.appendChild(venueLabel);
     const venueInput = document.createElement('input');
     venueInput.type = 'text';
     venueInput.placeholder = 'Venue name or acronym (e.g., SIGCOMM, TPAMI)';
     venueInput.id = 'gsr-venue-search-input';
+    venueInput.name = 'venue';
+    venueInput.autocomplete = 'off';
     venueInput.setAttribute('list', 'gsr-venue-datalist');
     row1.appendChild(venueInput);
     panel.appendChild(row1);
-
     const rowType = document.createElement('div');
     rowType.className = 'gsr-search-row gsr-search-type-row';
-
     const typeLabel = document.createElement('span');
     typeLabel.className = 'gsr-type-label';
     typeLabel.textContent = 'Type:';
+    typeLabel.id = 'gsr-venue-type-label';
     rowType.appendChild(typeLabel);
-
     const mkRadio = (id, value, labelText, checked) => {
         const wrap = document.createElement('label');
         wrap.className = 'gsr-radio-wrap';
@@ -1793,6 +2307,7 @@ function ensureSearchUtilityOverlay() {
         input.id = id;
         input.value = value;
         input.checked = !!checked;
+        input.setAttribute('aria-labelledby', 'gsr-venue-type-label');
         const txt = document.createElement('span');
         txt.textContent = labelText;
         wrap.appendChild(input);
@@ -1802,13 +2317,17 @@ function ensureSearchUtilityOverlay() {
 
     rowType.appendChild(mkRadio('gsr-type-conference', 'conference', 'Conference', true));
     rowType.appendChild(mkRadio('gsr-type-journal', 'journal', 'Journal/Transaction', false));
-
     panel.appendChild(rowType);
-
     const row2 = document.createElement('div');
     row2.className = 'gsr-search-row';
+    const yearLabel = document.createElement('label');
+    yearLabel.className = 'gsr-search-label';
+    yearLabel.htmlFor = 'gsr-venue-search-year';
+    yearLabel.textContent = 'Publication Year';
+    panel.appendChild(yearLabel);
     const yearSelect = document.createElement('select');
     yearSelect.id = 'gsr-venue-search-year';
+    yearSelect.name = 'year';
     const yearAuto = document.createElement('option');
     yearAuto.value = '';
     yearAuto.textContent = 'Year (Auto)';
@@ -1821,64 +2340,66 @@ function ensureSearchUtilityOverlay() {
     }
     row2.appendChild(yearSelect);
     panel.appendChild(row2);
-
     const result = document.createElement('div');
     result.className = 'gsr-search-result';
     result.id = 'gsr-venue-search-result';
+    result.setAttribute('role', 'status');
+    result.setAttribute('aria-live', 'polite');
     result.textContent = 'Choose type, enter a venue and (optionally) a year, then press Search.';
     panel.appendChild(result);
-
     const actions = document.createElement('div');
     actions.className = 'gsr-search-actions';
-    const backBtn = document.createElement('button');
-    backBtn.type = 'button';
-    backBtn.textContent = 'Back';
     const clearBtn = document.createElement('button');
     clearBtn.type = 'button';
     clearBtn.textContent = 'Clear';
     const searchBtn = document.createElement('button');
     searchBtn.type = 'button';
     searchBtn.textContent = 'Search';
-    actions.appendChild(backBtn);
+    searchBtn.className = 'gsr-button gsr-button--primary';
+    clearBtn.className = 'gsr-button gsr-button--ghost';
+    closeButton.classList.add('gsr-icon-button');
     actions.appendChild(clearBtn);
     actions.appendChild(searchBtn);
     panel.appendChild(actions);
-
+    const getFocusableElements = () => Array.from(panel.querySelectorAll('button, input, select, a[href], [tabindex]:not([tabindex="-1"])'))
+        .filter(el => !el.hasAttribute('disabled') && !el.getAttribute('aria-hidden'));
     const closeOverlay = (clear = true) => {
         overlay.classList.remove('is-open');
+        panel.setAttribute('aria-hidden', 'true');
+        hideBadgePopover(true);
         if (clear) {
             venueInput.value = '';
             yearSelect.value = '';
             result.textContent = 'Choose type, enter a venue and (optionally) a year, then press Search.';
         }
+        if (gsrDialogLastFocusedEl instanceof HTMLElement) {
+            gsrDialogLastFocusedEl.focus();
+        }
     };
-
     overlay.addEventListener('click', (e) => {
         if (e.target === overlay) {
             closeOverlay(true);
         }
     });
-    backBtn.addEventListener('click', () => closeOverlay(true));
+    closeButton.addEventListener('click', () => closeOverlay(true));
     clearBtn.addEventListener('click', () => {
         venueInput.value = '';
         yearSelect.value = '';
         result.textContent = 'Choose type, enter a venue and (optionally) a year, then press Search.';
         venueInput.focus();
     });
-
     const doSearch = async () => {
         const venueQuery = String(venueInput.value || '').trim();
         if (!venueQuery) {
             result.textContent = 'Please enter a venue name or acronym.';
+            venueInput.focus();
             return;
         }
         const yearVal = yearSelect.value ? parseInt(yearSelect.value, 10) : null;
         const selectedType = (panel.querySelector('input[name="gsr-venue-type"]:checked')?.value) || 'conference';
-
-        result.textContent = 'Searching...';
+        result.textContent = 'Searching…';
         try {
             result.innerHTML = '';
-
             const addItem = (label, value) => {
                 const line = document.createElement('div');
                 line.className = 'gsr-result-item';
@@ -1891,40 +2412,62 @@ function ensureSearchUtilityOverlay() {
                 line.appendChild(v);
                 result.appendChild(line);
             };
-
             if (selectedType === 'conference') {
-                // CORE lookup (conferences)
-                const coreFile = getCoreDataFileForYear(yearVal);
-                const coreData = await loadCoreDataForFile(coreFile);
-                let coreRank = findRankForVenue(venueQuery, coreData, undefined);
-
-                // Try acronym hints if the direct query did not yield a valid CORE rank
-                if (!VALID_RANKS.includes(coreRank)) {
-                    for (const acro of getPossibleAcronymsFromVenue(venueQuery)) {
-                        const attempt = findRankForVenue(acro, coreData, undefined);
-                        if (VALID_RANKS.includes(attempt)) {
-                            coreRank = attempt;
-                            break;
-                        }
-                    }
+                const conferenceSearch = await resolveConferenceSearchQuery(venueQuery, yearVal);
+                const primary = conferenceSearch.primary;
+                const primaryYear = primary?.sourceYear ?? getCoreDatasetYear(getCoreDataFileForYear(yearVal));
+                let primaryValue = 'Not found';
+                if (primary.status === DECISION_STATUS.MATCHED && VALID_RANKS.includes(primary.rank)) {
+                    primaryValue = primary.rank;
                 }
-
-                const coreYear = coreFile.match(/CORE_(\d{4})/)?.[1] || '';
-                addItem(`Conference (CORE ${coreYear}):`, VALID_RANKS.includes(coreRank) ? coreRank : 'Not found');
-
-                if (!VALID_RANKS.includes(coreRank)) {
+                else if (primary.status === DECISION_STATUS.UNRANKED) {
+                    primaryValue = 'Unranked';
+                }
+                else if (primary.status === DECISION_STATUS.AMBIGUOUS) {
+                    primaryValue = 'Ambiguous';
+                }
+                addItem(`Conference (CORE ${primaryYear || ''}):`, primaryValue);
+                if (primary.matchedVenue) {
+                    addItem('Matched Venue:', primary.matchedVenue);
+                }
+                if (primary.status === DECISION_STATUS.UNRANKED && primary.rawRankLabel) {
+                    addItem('Current CORE status:', formatCoreStatusLabel(primary.rawRankLabel));
+                }
+                if (conferenceSearch.latestRankedSnapshot
+                    && conferenceSearch.latestRankedSnapshot.sourceYear
+                    && conferenceSearch.latestRankedSnapshot.sourceYear !== primary.sourceYear) {
+                    addItem('Latest ranked snapshot:', `CORE ${conferenceSearch.latestRankedSnapshot.sourceYear} · ${conferenceSearch.latestRankedSnapshot.rank}`);
+                }
+                if (primary.status === DECISION_STATUS.AMBIGUOUS) {
                     const note = document.createElement('div');
                     note.className = 'gsr-result-item';
-                    note.textContent = 'No match in the local CORE dataset for this query.';
+                    note.textContent = 'Multiple CORE venues matched this query too closely. Please use a more specific venue title.';
                     result.appendChild(note);
                 }
-            } else {
-                // SJR lookup (journals / transactions)
+                else if (primary.status === DECISION_STATUS.UNRANKED) {
+                    const note = document.createElement('div');
+                    note.className = 'gsr-result-item';
+                    note.textContent = conferenceSearch.latestRankedSnapshot
+                        ? 'This venue exists in the current CORE snapshot but is not currently ranked there. The latest ranked snapshot is shown above.'
+                        : 'This venue exists in the current CORE snapshot but is currently unranked there.';
+                    result.appendChild(note);
+                }
+                else if (primary.status !== DECISION_STATUS.MATCHED) {
+                    const note = document.createElement('div');
+                    note.className = 'gsr-result-item';
+                    note.textContent = conferenceSearch.latestRankedSnapshot
+                        ? 'No ranked result was found in the selected CORE snapshot. The latest ranked snapshot is shown above.'
+                        : 'No match was found in the bundled CORE snapshots for this query.';
+                    result.appendChild(note);
+                }
+            }
+            else {
                 const sjr = await resolveSjrQuartile(venueQuery, yearVal);
                 const sjrQuartile = (sjr.status === 'success' && sjr.quartile) ? sjr.quartile : null;
-
                 addItem('Journal/Transaction (SJR):', (sjrQuartile && SJR_QUARTILES.includes(sjrQuartile)) ? sjrQuartile : 'Not found');
-
+                if (sjr.status === 'success' && sjr.resolvedTitle) {
+                    addItem('Matched Journal:', sjr.resolvedTitle);
+                }
                 if (!(sjrQuartile && SJR_QUARTILES.includes(sjrQuartile))) {
                     const note = document.createElement('div');
                     note.className = 'gsr-result-item';
@@ -1938,7 +2481,6 @@ function ensureSearchUtilityOverlay() {
             result.textContent = 'Search failed. Please try again.';
         }
     };
-
     searchBtn.addEventListener('click', doSearch);
     venueInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
@@ -1956,6 +2498,28 @@ function ensureSearchUtilityOverlay() {
             closeOverlay(true);
         }
     });
+    panel.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            closeOverlay(true);
+            return;
+        }
+        if (e.key === 'Tab') {
+            const focusable = getFocusableElements();
+            if (focusable.length === 0)
+                return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+            }
+            else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+            }
+        }
+    });
 
     panel.addEventListener('click', (e) => e.stopPropagation());
     overlay.appendChild(panel);
@@ -1966,7 +2530,9 @@ function ensureSearchUtilityOverlay() {
 
 function openSearchUtilityOverlay() {
     const overlay = ensureSearchUtilityOverlay();
+    gsrDialogLastFocusedEl = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     overlay.classList.add('is-open');
+    overlay.querySelector('.gsr-search-panel')?.setAttribute('aria-hidden', 'false');
     populateVenueDatalistIfNeeded();
     setTimeout(() => {
         const input = document.getElementById('gsr-venue-search-input');
@@ -1976,46 +2542,237 @@ function openSearchUtilityOverlay() {
         }
     }, 0);
 }
+
+function createAboutSection(titleText, bodyNodes) {
+    const section = document.createElement('section');
+    section.className = 'gsr-about-panel__section';
+    const title = document.createElement('h4');
+    title.className = 'gsr-about-panel__section-title';
+    title.textContent = titleText;
+    section.appendChild(title);
+    bodyNodes.forEach((node) => section.appendChild(node));
+    return section;
+}
+
+function createAboutParagraph(text) {
+    const paragraph = document.createElement('p');
+    paragraph.className = 'gsr-about-panel__text';
+    paragraph.textContent = text;
+    return paragraph;
+}
+
+function createAboutList(items) {
+    const list = document.createElement('ul');
+    list.className = 'gsr-about-panel__list';
+    items.forEach((item) => {
+        const entry = document.createElement('li');
+        entry.className = 'gsr-about-panel__list-item';
+        if (typeof item === 'string') {
+            entry.textContent = item;
+        }
+        else {
+            if (item.title) {
+                const strong = document.createElement('strong');
+                strong.textContent = item.title;
+                entry.appendChild(strong);
+            }
+            if (item.body) {
+                entry.appendChild(document.createTextNode(item.title ? ` ${item.body}` : item.body));
+            }
+            if (Array.isArray(item.extraNodes)) {
+                item.extraNodes.forEach((node) => entry.appendChild(node));
+            }
+        }
+        list.appendChild(entry);
+    });
+    return list;
+}
+
+function ensureAboutOverlay() {
+    if (gsrAboutOverlayEl && document.body.contains(gsrAboutOverlayEl)) {
+        return gsrAboutOverlayEl;
+    }
+    const overlay = document.createElement('div');
+    overlay.className = 'search-utility-overlay';
+    overlay.id = 'gsr-about-overlay';
+    const panel = document.createElement('div');
+    panel.className = 'gsr-search-panel gsr-about-panel';
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-modal', 'true');
+    panel.setAttribute('aria-labelledby', 'gsr-about-panel-title');
+    panel.setAttribute('aria-describedby', 'gsr-about-panel-description');
+    const header = document.createElement('div');
+    header.className = 'gsr-search-panel__header';
+    const titleGroup = document.createElement('div');
+    const title = document.createElement('h3');
+    title.id = 'gsr-about-panel-title';
+    title.textContent = 'About Google Scholar Venue Ranker';
+    titleGroup.appendChild(title);
+    const description = document.createElement('p');
+    description.id = 'gsr-about-panel-description';
+    description.className = 'gsr-search-panel__description';
+    description.textContent = 'Open-source ranking logic, data sources, and editorial rules used by the extension.';
+    titleGroup.appendChild(description);
+    header.appendChild(titleGroup);
+    const closeButton = document.createElement('button');
+    closeButton.type = 'button';
+    closeButton.className = 'gsr-icon-button';
+    closeButton.setAttribute('aria-label', 'Close about panel');
+    closeButton.textContent = '×';
+    header.appendChild(closeButton);
+    panel.appendChild(header);
+    const content = document.createElement('div');
+    content.className = 'gsr-about-panel__content';
+    const intro = document.createElement('p');
+    intro.className = 'gsr-about-panel__lede';
+    intro.textContent = 'This is an open-source extension developed by ';
+    const authorLink = document.createElement('a');
+    authorLink.href = 'https://naveedanwarbhatti.github.io/';
+    authorLink.target = '_blank';
+    authorLink.rel = 'noopener noreferrer';
+    authorLink.textContent = 'Naveed Bhatti';
+    intro.appendChild(authorLink);
+    intro.appendChild(document.createTextNode('. It aims to make Google Scholar publication lists more trustworthy by resolving venues against curated bibliographic sources instead of relying on profile text alone.'));
+    content.appendChild(intro);
+    content.appendChild(createAboutSection('Why We Trust DBLP for Venue Extraction', [
+        createAboutParagraph('Google Scholar profiles are useful for discovery, but profile entries can be added or edited by users and sometimes contain noisy or incomplete venue text. When a paper can be matched to DBLP, the extension treats DBLP as the authoritative source for venue extraction because it is curated bibliographic metadata, not free-form profile text.')
+    ]));
+    content.appendChild(createAboutSection('Why We Use CORE and SJR', [
+        createAboutList([
+            {
+                title: 'CORE for conferences.',
+                body: 'CORE provides the conference ranking source used by the extension, so conference venues are normalized against CORE labels such as A*, A, B, and C.'
+            },
+            {
+                title: 'SJR for journals.',
+                body: 'SCImago Journal Rank data is used for journal quartiles, so journals and transactions are resolved to Q1, Q2, Q3, or Q4 when a trusted match exists.'
+            },
+            {
+                title: 'Precision before guessing.',
+                body: 'If a venue match is ambiguous or unsupported, the extension prefers to abstain and show review-needed or unranked states rather than assign a risky label.'
+            }
+        ])
+    ]));
+    content.appendChild(createAboutSection('Editorial Rules and Heuristics', [
+        createAboutList([
+            {
+                title: 'Short papers are excluded.',
+                body: 'Publications with fewer than 6 pages are treated as short papers and are not counted toward ranking. This follows the same general CSRankings-style heuristic used to avoid inflating venue quality with short-format track entries.'
+            },
+            {
+                title: 'Workshop, demo, poster, and extended-abstract tracks are filtered.',
+                body: 'The ranker uses title, venue, DBLP metadata, crossref hints, and page-count signals to identify non-main-track publications and keep them out of the ranked totals.'
+            },
+            {
+                title: 'Conference proceedings published in journals can still map back to the conference.',
+                body: 'Special venue overrides are used for cases such as proceedings-style journals so the extension can preserve conference intent when the bibliographic record is published through a journal series.'
+            },
+            {
+                title: 'Scholar text is supporting evidence, not final authority.',
+                body: 'Scholar snippets are still used to help with matching and display, but final venue decisions come from the DBLP plus CORE/SJR pipeline whenever a verified match is available.'
+            }
+        ])
+    ]));
+    content.appendChild(createAboutSection('What the Extension Optimizes For', [
+        createAboutList([
+            'Reduce false positives by rejecting weak or ambiguous venue matches.',
+            'Reduce false negatives by canonicalizing acronyms, aliases, and proceedings variants before giving up.',
+            'Show review-needed states when the data is incomplete instead of silently hiding uncertainty.'
+        ])
+    ]));
+    panel.appendChild(content);
+    const actions = document.createElement('div');
+    actions.className = 'gsr-search-actions';
+    const closeAction = document.createElement('button');
+    closeAction.type = 'button';
+    closeAction.className = 'gsr-button gsr-button--primary';
+    closeAction.textContent = 'Close';
+    actions.appendChild(closeAction);
+    panel.appendChild(actions);
+    const getFocusableElements = () => Array.from(panel.querySelectorAll('button, input, select, a[href], [tabindex]:not([tabindex="-1"])'))
+        .filter(el => !el.hasAttribute('disabled') && !el.getAttribute('aria-hidden'));
+    const closeOverlay = () => {
+        overlay.classList.remove('is-open');
+        panel.setAttribute('aria-hidden', 'true');
+        if (gsrDialogLastFocusedEl instanceof HTMLElement) {
+            gsrDialogLastFocusedEl.focus();
+        }
+    };
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+            closeOverlay();
+        }
+    });
+    closeButton.addEventListener('click', closeOverlay);
+    closeAction.addEventListener('click', closeOverlay);
+    panel.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            closeOverlay();
+            return;
+        }
+        if (e.key === 'Tab') {
+            const focusable = getFocusableElements();
+            if (focusable.length === 0)
+                return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+            }
+            else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+            }
+        }
+    });
+    panel.addEventListener('click', (e) => e.stopPropagation());
+    overlay.appendChild(panel);
+    document.body.appendChild(overlay);
+    gsrAboutOverlayEl = overlay;
+    return overlay;
+}
+
+function openAboutOverlay() {
+    const overlay = ensureAboutOverlay();
+    gsrDialogLastFocusedEl = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    overlay.classList.add('is-open');
+    overlay.querySelector('.gsr-about-panel')?.setAttribute('aria-hidden', 'false');
+    setTimeout(() => {
+        const closeButton = overlay.querySelector('.gsr-button--primary');
+        if (closeButton instanceof HTMLButtonElement) {
+            closeButton.focus();
+        }
+    }, 0);
+}
 // --- END: Manual Rank/Quartile Search Utility (Phase 2) ---
 function createStatusElement(initialMessage = "Initializing...") {
     disconnectPublicationTableObserver();
     activeCachedPublicationRanks = null;
     rankMapForObserver = null;
+    activeSummaryFilter = null;
+    previewSummaryFilter = null;
     document.getElementById(SUMMARY_PANEL_ID)?.remove();
     document.getElementById(STATUS_ELEMENT_ID)?.remove();
     const container = document.createElement('div');
     container.id = STATUS_ELEMENT_ID;
-    container.classList.add('gsc_rsb_s', 'gsc_prf_pnl');
-    container.style.padding = '10px';
-    container.style.marginBottom = '15px';
+    container.className = 'gsc_rsb_s gsc_prf_pnl gsr-card gsr-status-card';
     const title = document.createElement('div');
+    title.className = 'gsr-card__title';
     title.textContent = "Rank Processing";
-    title.style.fontSize = '14px';
-    title.style.fontWeight = 'bold';
-    title.style.color = '#777';
-    title.style.marginBottom = '8px';
     container.appendChild(title);
     const progressBarOuter = document.createElement('div');
-    progressBarOuter.style.width = '100%';
-    progressBarOuter.style.backgroundColor = '#e0e0e0';
-    progressBarOuter.style.borderRadius = '4px';
-    progressBarOuter.style.height = '10px';
-    progressBarOuter.style.overflow = 'hidden';
+    progressBarOuter.className = 'gsr-progress';
     container.appendChild(progressBarOuter);
     const progressBarInner = document.createElement('div');
     progressBarInner.classList.add('gsr-progress-bar-inner');
     progressBarInner.style.width = '0%';
-    progressBarInner.style.height = '100%';
-    progressBarInner.style.backgroundColor = '#76C7C0';
-    progressBarInner.style.transition = 'width 0.2s ease-out';
     progressBarOuter.appendChild(progressBarInner);
     const statusText = document.createElement('div');
     statusText.classList.add('gsr-status-text');
+    statusText.setAttribute('aria-live', 'polite');
     statusText.textContent = initialMessage;
-    statusText.style.marginTop = '5px';
-    statusText.style.fontSize = '12px';
-    statusText.style.color = '#555';
-    statusText.style.textAlign = 'center';
     container.appendChild(statusText);
     const gsBdy = document.getElementById('gs_bdy');
     if (!gsBdy) {
@@ -2055,254 +2812,342 @@ function updateStatusElement(statusContainer, processed, total, messagePrefix) {
         progressBarInner.style.width = `${percentage}%`;
     const prefix = messagePrefix ? messagePrefix + ": " : "";
     if (statusText)
-        statusText.textContent = `${prefix}Processing ${processed} / ${total}...`;
+        statusText.textContent = `${prefix}Processing ${processed} of ${total} publications…`;
+}
+function displayDormantStatus() {
+    const statusElement = createStatusElement("Auto-run is off for this Scholar profile.");
+    statusElement.querySelector('.gsr-progress')?.remove();
+    const statusText = statusElement.querySelector('.gsr-status-text');
+    if (statusText) {
+        statusText.textContent = 'Turn on auto-run in the extension popup or start analysis manually here.';
+    }
+    const actions = document.createElement('div');
+    actions.className = 'gsr-card__actions gsr-card__actions--stack';
+    const runButton = document.createElement('button');
+    runButton.type = 'button';
+    runButton.className = 'gsr-button gsr-button--primary';
+    runButton.textContent = 'Run Analysis';
+    runButton.addEventListener('click', () => {
+        document.getElementById(STATUS_ELEMENT_ID)?.remove();
+        main().catch(error => console.error('GSR: Error while manually starting analysis.', error));
+    });
+    actions.appendChild(runButton);
+    const searchButton = document.createElement('button');
+    searchButton.type = 'button';
+    searchButton.className = 'gsr-button gsr-button--ghost';
+    searchButton.textContent = 'Open Search Utility';
+    searchButton.addEventListener('click', () => openSearchUtilityOverlay());
+    actions.appendChild(searchButton);
+    statusElement.appendChild(actions);
+    return statusElement;
 }
 function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initialCachedPubRanks, cacheTimestamp, dblpAuthorPid // New parameter for DBLP PID
 ) {
     document.getElementById(STATUS_ELEMENT_ID)?.remove();
     document.getElementById(SUMMARY_PANEL_ID)?.remove();
     disconnectPublicationTableObserver();
+    hideBadgePopover(true);
+    const statusCounts = { 'DBLP Entry Missing': 0, 'Unranked': 0 };
+    for (const item of initialCachedPubRanks || []) {
+        if (!item || item.system === 'UNKNOWN') {
+            continue;
+        }
+        const kind = getRowStatusKind(item);
+        if (kind === 'dblp-missing') {
+            statusCounts['DBLP Entry Missing'] += 1;
+        }
+        else if (kind === 'unranked') {
+            statusCounts['Unranked'] += 1;
+        }
+    }
+    const sumCounts = (counts) => Object.values(counts || {}).reduce((total, value) => total + (Number(value) || 0), 0);
+    const totalConferencePapers = sumCounts(coreRankCounts);
+    const totalJournalPapers = sumCounts(sjrRankCounts);
+    const totalReviewPapers = sumCounts(statusCounts);
+    const totalTrackedPapers = totalConferencePapers + totalJournalPapers + totalReviewPapers;
     const panel = document.createElement('div');
     panel.id = SUMMARY_PANEL_ID;
-    panel.classList.add('gsc_rsb_s', 'gsc_prf_pnl');
-    panel.style.padding = '10px';
-    panel.style.marginBottom = '15px';
+    panel.className = 'gsc_rsb_s gsc_prf_pnl gsr-card gsr-summary-card';
     const headerDiv = document.createElement('div');
-    headerDiv.style.display = 'flex';
-    headerDiv.style.alignItems = 'center';
-    headerDiv.style.justifyContent = 'space-between';
-    headerDiv.style.fontSize = '14px';
-    headerDiv.style.fontWeight = 'bold';
-    headerDiv.style.color = '#777';
-    headerDiv.style.marginBottom = '10px';
-    headerDiv.style.paddingBottom = '5px';
-    headerDiv.style.borderBottom = '1px solid #e0e0e0';
+    headerDiv.className = 'gsr-card__header';
+    const titleGroup = document.createElement('div');
+    titleGroup.className = 'gsr-card__title-group';
+    const titleLine = document.createElement('div');
+    titleLine.className = 'gsr-card__title-line';
     const summaryTitle = document.createElement('span');
-    summaryTitle.textContent = 'Ranking Summary';
-    headerDiv.appendChild(summaryTitle);
+    summaryTitle.className = 'gsr-card__title';
+    summaryTitle.textContent = 'Venue Ranks';
+    titleLine.appendChild(summaryTitle);
+    const summaryCount = document.createElement('span');
+    summaryCount.className = 'gsr-pill gsr-pill--accent gsr-summary-total';
+    summaryCount.textContent = `${totalTrackedPapers} paper${totalTrackedPapers === 1 ? '' : 's'}`;
+    titleLine.appendChild(summaryCount);
+    titleGroup.appendChild(titleLine);
+    const summarySubtitle = document.createElement('span');
+    summarySubtitle.className = 'gsr-card__subtitle';
+    summarySubtitle.textContent = totalReviewPapers > 0
+        ? `${totalConferencePapers + totalJournalPapers} ranked | ${totalReviewPapers} review`
+        : `${totalConferencePapers + totalJournalPapers} ranked`;
+    titleGroup.appendChild(summarySubtitle);
+    headerDiv.appendChild(titleGroup);
     if (currentUserId) {
+        const headerActions = document.createElement('div');
+        headerActions.className = 'gsr-summary-header__actions';
         const refreshButton = document.createElement('button');
-        refreshButton.textContent = 'Refresh Ranks';
-        refreshButton.style.marginLeft = 'auto';
-        refreshButton.style.padding = '2px 8px';
-        refreshButton.style.fontSize = '0.7em';
-        refreshButton.style.fontWeight = '600';
-        refreshButton.style.color = '#006400';
-        refreshButton.style.backgroundColor = '#90EE90';
-        refreshButton.style.border = '1px solid #77dd77';
-        refreshButton.style.borderRadius = '10px';
-        refreshButton.style.lineHeight = '1.4';
-        refreshButton.style.height = 'fit-content';
-        refreshButton.style.display = 'inline-flex';
-        refreshButton.style.alignItems = 'center';
-        refreshButton.style.cursor = 'pointer';
-        refreshButton.setAttribute('title', 'Recalculate rankings');
-        refreshButton.onmouseenter = () => { refreshButton.style.backgroundColor = '#7CFC00'; refreshButton.style.borderColor = '#006400'; };
-        refreshButton.onmouseleave = () => { refreshButton.style.backgroundColor = '#90EE90'; refreshButton.style.borderColor = '#77dd77'; };
+        refreshButton.type = 'button';
+        refreshButton.className = 'gsr-summary-refresh';
+        refreshButton.setAttribute('title', 'Recalculate rankings for this Scholar profile');
+        refreshButton.setAttribute('aria-label', 'Refresh rankings');
+        const refreshIcon = document.createElement('span');
+        refreshIcon.className = 'gsr-summary-refresh__icon';
+        refreshIcon.setAttribute('aria-hidden', 'true');
+        refreshIcon.textContent = '↻';
+        const refreshLabel = document.createElement('span');
+        refreshLabel.className = 'gsr-summary-refresh__label';
+        refreshLabel.textContent = 'Refresh';
+        refreshButton.appendChild(refreshIcon);
+        refreshButton.appendChild(refreshLabel);
         refreshButton.onclick = async () => {
             if (isMainProcessing)
                 return;
-            // Clear existing UI elements or states immediately
             disconnectPublicationTableObserver();
             activeCachedPublicationRanks = null;
             rankMapForObserver = null;
-            // Remove status/summary panels to prepare for fresh UI from main()
+            activeSummaryFilter = null;
+            previewSummaryFilter = null;
             document.getElementById(STATUS_ELEMENT_ID)?.remove();
             document.getElementById(SUMMARY_PANEL_ID)?.remove();
-            console.log("GSR: Refresh Ranks clicked. Clearing cached data for user:", currentUserId);
-            if (currentUserId) { // Ensure currentUserId is still valid before clearing
-                await clearCachedData(currentUserId); // Clear Chrome storage for this user
-                console.log("GSR: Cached data cleared for user:", currentUserId);
+            if (currentUserId) {
+                await clearCachedData(currentUserId);
             }
-            else {
-                console.warn("GSR: currentUserId not available, cannot clear cached data specifically.");
-            }
-            console.log("GSR: Proceeding to run main() for fresh ranking.");
             main().catch(error => {
-                console.error("DEBUG: Error during refresh after cache clear:", error);
-                // createStatusElement will be called by main(), but if main itself fails early,
-                // we might need a fallback or ensure createStatusElement is robust.
-                // For now, main()'s error handling should create the error UI.
-                // If main() fails very early (before it can create its own status element), this might be needed:
+                console.error('DEBUG: Error during refresh after cache clear:', error);
                 const statusElemCheck = document.getElementById(STATUS_ELEMENT_ID);
                 if (!statusElemCheck) {
-                    const statusElem = createStatusElement("Error during refresh. Check console.");
-                    if (statusElem.querySelector('.gsr-progress-bar-inner'))
-                        statusElem.querySelector('.gsr-progress-bar-inner').style.backgroundColor = 'red';
+                    const statusElem = createStatusElement('Error during refresh. Check console.');
+                    const progress = statusElem.querySelector('.gsr-progress-bar-inner');
+                    if (progress) {
+                        progress.style.backgroundColor = 'red';
+                    }
                 }
             });
         };
-        // --- END OF MODIFIED onClick HANDLER ---
-        headerDiv.appendChild(refreshButton);
+        headerActions.appendChild(refreshButton);
+        headerDiv.appendChild(headerActions);
     }
     panel.appendChild(headerDiv);
+    const attachSummaryFilterInteractions = (element, filter, { preview = true } = {}) => {
+        element.addEventListener('click', () => toggleSummaryFilter(filter));
+        if (!preview) {
+            return;
+        }
+        element.addEventListener('mouseenter', () => setSummaryFilterPreview(filter));
+        element.addEventListener('focus', () => setSummaryFilterPreview(filter));
+        element.addEventListener('mouseleave', () => clearSummaryFilterPreview(filter));
+        element.addEventListener('blur', () => clearSummaryFilterPreview(filter));
+    };
     const summarySectionsContainer = document.createElement('div');
-    summarySectionsContainer.style.display = 'flex';
-    summarySectionsContainer.style.flexDirection = 'column';
-    summarySectionsContainer.style.gap = '16px';
-    summarySectionsContainer.style.marginTop = '8px';
-    const createSummarySection = (titleText, counts, orderedRanks, system) => {
+    summarySectionsContainer.className = 'gsr-summary-sections';
+    const createSummaryBadge = (rank, system, chipText = null) => {
+        if (chipText) {
+            const chip = document.createElement('span');
+            chip.className = 'gsr-rank-badge gsr-rank-badge--pill gsr-rank-badge--neutral gsr-summary-row__badge gsr-summary-row__status-chip';
+            chip.dataset.gsrStatusChip = normalizeRankKey(rank);
+            chip.textContent = chipText;
+            return chip;
+        }
+        const badge = createRankBadgeElement(rank, system, null, null);
+        if (!badge) {
+            const fallback = document.createElement('span');
+            fallback.className = 'gsr-rank-badge gsr-rank-badge--pill gsr-rank-badge--neutral gsr-summary-row__badge';
+            fallback.textContent = rank;
+            return fallback;
+        }
+        badge.classList.add('gsr-summary-row__badge');
+        badge.removeAttribute('tabindex');
+        badge.removeAttribute('aria-describedby');
+        return badge;
+    };
+    const createSummarySection = ({ titleText, metaText = '', counts, orderedRanks, system, getFilter, getLabel, getInlineLabel = () => '', getChipText = () => null }) => {
         const sectionWrapper = document.createElement('div');
+        sectionWrapper.className = 'gsr-summary-section';
+        const sectionHeader = document.createElement('div');
+        sectionHeader.className = 'gsr-summary-section__header';
         const sectionTitle = document.createElement('div');
+        sectionTitle.className = 'gsr-summary-section__title';
         sectionTitle.textContent = titleText;
-        sectionTitle.style.fontSize = '13px';
-        sectionTitle.style.fontWeight = '600';
-        sectionTitle.style.color = '#555';
-        sectionTitle.style.marginBottom = '6px';
-        sectionWrapper.appendChild(sectionTitle);
-        const list = document.createElement('ul');
-        list.style.listStyle = 'none';
-        list.style.padding = '0';
-        list.style.margin = '0';
-        const displayRanks = orderedRanks.filter(rank => rank !== 'N/A');
-        let maxCountForScale = Math.max(10, ...displayRanks.map(rank => counts[rank] || 0));
+        sectionHeader.appendChild(sectionTitle);
+        const sectionMeta = document.createElement('span');
+        sectionMeta.className = 'gsr-summary-section__meta';
+        const sectionTotal = orderedRanks.reduce((total, rank) => total + (counts[rank] || 0), 0);
+        sectionMeta.textContent = metaText ? `${metaText} ${sectionTotal}` : `${sectionTotal}`;
+        sectionHeader.appendChild(sectionMeta);
+        sectionWrapper.appendChild(sectionHeader);
+        const list = document.createElement('div');
+        list.className = 'gsr-summary-section__list';
+        const displayRanks = orderedRanks.slice();
+        let maxCountForScale = Math.max(1, ...displayRanks.map(rank => counts[rank] || 0));
         if (!Number.isFinite(maxCountForScale) || maxCountForScale <= 0)
-            maxCountForScale = 10;
+            maxCountForScale = 1;
         for (const rank of displayRanks) {
             const count = counts[rank] || 0;
-            const listItem = document.createElement('li');
-            listItem.style.display = 'flex';
-            listItem.style.alignItems = 'center';
-            listItem.style.fontSize = '13px';
-            listItem.style.marginBottom = '6px';
-            const badge = createRankBadgeElement(rank, system);
-            if (badge) {
-                badge.style.marginLeft = '0';
-                badge.style.marginRight = '8px';
-                badge.style.fontSize = '0.85em';
-                listItem.appendChild(badge);
+            const itemButton = document.createElement('button');
+            itemButton.type = 'button';
+            itemButton.className = 'gsr-summary-row';
+            const filter = getFilter(rank);
+            if (filter.type === 'rank') {
+                itemButton.setAttribute('data-gsr-filter-type', 'rank');
+                itemButton.setAttribute('data-gsr-system', filter.system);
+                itemButton.setAttribute('data-gsr-rank', filter.rank);
             }
-            else {
-                const rankLabel = document.createElement('span');
-                rankLabel.textContent = `${rank}:`;
-                rankLabel.style.fontWeight = 'bold';
-                rankLabel.style.marginRight = '8px';
-                listItem.appendChild(rankLabel);
+            else if (filter.type === 'status') {
+                itemButton.setAttribute('data-gsr-filter-type', 'status');
+                itemButton.setAttribute('data-gsr-status', filter.status);
+            }
+            attachSummaryFilterInteractions(itemButton, filter);
+            itemButton.setAttribute('aria-label', `${titleText} ${getLabel(rank)} ${count} paper${count === 1 ? '' : 's'}`);
+            itemButton.appendChild(createSummaryBadge(rank, system, getChipText(rank)));
+            const mainContent = document.createElement('div');
+            mainContent.className = 'gsr-summary-row__main';
+            const inlineLabelText = getInlineLabel(rank);
+            if (inlineLabelText) {
+                const textLabel = document.createElement('span');
+                textLabel.className = 'gsr-summary-row__label';
+                textLabel.textContent = inlineLabelText;
+                mainContent.appendChild(textLabel);
             }
             const barContainer = document.createElement('div');
-            barContainer.style.flexGrow = '1';
-            barContainer.style.backgroundColor = '#f0f0f0';
-            barContainer.style.height = '16px';
-            barContainer.style.borderRadius = '2px';
-            barContainer.style.marginRight = '8px';
+            barContainer.className = 'gsr-summary-row__bar';
             const barFill = document.createElement('div');
-            const badgeColor = badge?.style.backgroundColor || (system === 'SJR' ? '#9d8df1' : '#76C7C0');
             const percentageWidth = maxCountForScale > 0 ? (count / maxCountForScale) * 100 : 0;
+            barFill.className = 'gsr-summary-row__bar-fill';
             barFill.style.width = `${Math.min(percentageWidth, 100)}%`;
-            barFill.style.height = '100%';
-            barFill.style.backgroundColor = badgeColor;
-            barFill.style.borderRadius = '2px';
-            barFill.style.transition = 'width 0.5s ease-out';
+            if (rank) {
+                barFill.dataset.gsrRank = normalizeRankKey(rank);
+            }
             barContainer.appendChild(barFill);
-            listItem.appendChild(barContainer);
+            mainContent.appendChild(barContainer);
+            mainContent.classList.toggle('is-bar-only', !inlineLabelText);
+            itemButton.appendChild(mainContent);
             const countTextSpan = document.createElement('span');
-            countTextSpan.textContent = `${count} paper${count === 1 ? '' : 's'}`;
-            countTextSpan.style.minWidth = '60px';
-            countTextSpan.style.textAlign = 'right';
-            listItem.appendChild(countTextSpan);
-            list.appendChild(listItem);
+            countTextSpan.className = 'gsr-summary-row__count';
+            countTextSpan.textContent = `${count}`;
+            countTextSpan.setAttribute('aria-label', `${count} paper${count === 1 ? '' : 's'}`);
+            countTextSpan.setAttribute('title', `${count} paper${count === 1 ? '' : 's'}`);
+            itemButton.appendChild(countTextSpan);
+            list.appendChild(itemButton);
         }
         sectionWrapper.appendChild(list);
         return sectionWrapper;
     };
-    summarySectionsContainer.appendChild(createSummarySection('Conference Ranking (CORE)', coreRankCounts, ['A*', 'A', 'B', 'C', 'N/A'], 'CORE'));
-    summarySectionsContainer.appendChild(createSummarySection('Journal Ranking (SJR)', sjrRankCounts, ['Q1', 'Q2', 'Q3', 'Q4', 'N/A'], 'SJR'));
+    summarySectionsContainer.appendChild(createSummarySection({
+        titleText: 'Conference',
+        metaText: 'CORE',
+        counts: coreRankCounts,
+        orderedRanks: ['A*', 'A', 'B', 'C'],
+        system: 'CORE',
+        getFilter: (rank) => ({ type: 'rank', system: 'core', rank: normalizeRankKey(rank) }),
+        getLabel: (rank) => rank
+    }));
+    summarySectionsContainer.appendChild(createSummarySection({
+        titleText: 'Journal',
+        metaText: 'SJR',
+        counts: sjrRankCounts,
+        orderedRanks: ['Q1', 'Q2', 'Q3', 'Q4'],
+        system: 'SJR',
+        getFilter: (rank) => ({ type: 'rank', system: 'sjr', rank: normalizeRankKey(rank) }),
+        getLabel: (rank) => rank
+    }));
+    summarySectionsContainer.appendChild(createSummarySection({
+        titleText: 'Review',
+        counts: statusCounts,
+        orderedRanks: ['DBLP Entry Missing', 'Unranked'],
+        system: 'CORE',
+        getFilter: (rank) => ({
+            type: 'status',
+            status: rank === 'DBLP Entry Missing' ? 'dblp-missing' : 'unranked'
+        }),
+        getLabel: (rank) => rank,
+        getInlineLabel: (rank) => rank === 'DBLP Entry Missing' ? 'Missing' : 'Unranked',
+        getChipText: (rank) => rank === 'DBLP Entry Missing' ? 'DBLP' : 'N/A'
+    }));
     panel.appendChild(summarySectionsContainer);
-    // --- START: DBLP Link and Timestamp section ---
-    if (dblpAuthorPid || cacheTimestamp) {
-        const middleBarContainer = document.createElement('div');
-        const greyLineTop = document.createElement('div');
-        greyLineTop.style.borderTop = '1px solid #e0e0e0';
-        greyLineTop.style.marginTop = '12px'; // Space from list
-        greyLineTop.style.marginBottom = '6px'; // Space before dblp/timestamp text
-        middleBarContainer.appendChild(greyLineTop);
-        const dblpTimestampTextRow = document.createElement('div');
-        dblpTimestampTextRow.style.display = 'flex';
-        dblpTimestampTextRow.style.justifyContent = 'space-between';
-        dblpTimestampTextRow.style.alignItems = 'center';
-        dblpTimestampTextRow.style.fontSize = '11px';
-        dblpTimestampTextRow.style.color = '#6c757d';
-        dblpTimestampTextRow.style.marginBottom = '10px'; // Space before checker section's border/padding
-        if (dblpAuthorPid) {
-            const dblpProfileLink = document.createElement('a');
-            // Construct DBLP profile URL. Standard DBLP person pages are /pid/{pid}.html
-            // or /pers/hd/{initial}/{full_pid_path} but /pid/ is more canonical for linking.
-            dblpProfileLink.href = `https://dblp.org/pid/${dblpAuthorPid}.html`;
-            dblpProfileLink.target = "_blank";
-            dblpProfileLink.textContent = "DBLP Profile";
-            dblpProfileLink.style.textDecoration = 'none';
-            dblpProfileLink.style.color = '#007bff'; // Standard hyperlink blue
-            dblpTimestampTextRow.appendChild(dblpProfileLink);
-        }
-        else {
-            // Add an empty div on the left if no DBLP link, to keep timestamp on the right
-            dblpTimestampTextRow.appendChild(document.createElement('div'));
-        }
-        if (cacheTimestamp) {
-            const timestampTextElement = document.createElement('div');
-            const lastRankingTime = new Date(cacheTimestamp);
-            const formattedDate = lastRankingTime.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-            const formattedTime = lastRankingTime.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-            timestampTextElement.textContent = `Ranks last updated: ${formattedDate} ${formattedTime}`;
-            dblpTimestampTextRow.appendChild(timestampTextElement);
-        }
-        else {
-            // Add an empty div on the right if DBLP link exists but no timestamp, to balance flexbox
-            if (dblpAuthorPid) {
-                dblpTimestampTextRow.appendChild(document.createElement('div'));
-            }
-        }
-        middleBarContainer.appendChild(dblpTimestampTextRow);
-        panel.appendChild(middleBarContainer);
-    }
-    // --- END: DBLP Link and Timestamp section ---
     const finalFooterDiv = document.createElement('div');
-    finalFooterDiv.style.display = 'flex';
-    finalFooterDiv.style.justifyContent = 'flex-end';
-    finalFooterDiv.style.alignItems = 'center';
-    finalFooterDiv.style.marginTop = '15px';
-    finalFooterDiv.style.paddingTop = '5px';
-    finalFooterDiv.style.borderTop = '1px solid #e0e0e0';
-    const betaLabel = document.createElement('span');
-    betaLabel.textContent = 'BETA';
-    betaLabel.style.padding = '1px 7px';
-    betaLabel.style.fontSize = '0.7em';
-    betaLabel.style.fontWeight = '600';
-    betaLabel.style.color = '#fff';
-    betaLabel.style.backgroundColor = '#6c757d';
-    betaLabel.style.borderRadius = '10px';
-    betaLabel.style.lineHeight = '1.4';
-    betaLabel.style.height = 'fit-content';
-    betaLabel.style.display = 'inline-flex';
-    betaLabel.style.alignItems = 'center';
-    betaLabel.style.marginRight = '10px';
-    betaLabel.style.cursor = 'help';
-    betaLabel.setAttribute('title', "Developed by Naveed Anwar Bhatti.\nIt is free and open source.\nIt uses CORE rankings (2014-2026) and SCImago journal quartiles for reliability.\nHelp us spot inconsistencies!\nFor any issues, please click on “Report Bug”.");
-    finalFooterDiv.appendChild(betaLabel);
-
-    // Manual venue verification (Phase 2): search icon immediately after the "BETA" badge.
-    const searchIconBtn = document.createElement('button');
-    searchIconBtn.type = 'button';
-    searchIconBtn.className = 'gsr-search-icon-btn';
-    searchIconBtn.textContent = '🔎 Search Ranking';
-    searchIconBtn.style.marginRight = '10px';
-    searchIconBtn.style.lineHeight = '1.4';
-    searchIconBtn.style.height = 'fit-content';
-    searchIconBtn.style.display = 'inline-flex';
-    searchIconBtn.style.alignItems = 'center';
-    searchIconBtn.style.justifyContent = 'center';
-    searchIconBtn.setAttribute('title', 'Search Ranking (local CORE/SJR datasets)');
-    searchIconBtn.addEventListener('click', () => openSearchUtilityOverlay());
-    finalFooterDiv.appendChild(searchIconBtn);
-    const reportBugLink = document.createElement('a');
-    reportBugLink.href = "https://forms.office.com/r/PbSzWaQmpJ";
-    reportBugLink.target = "_blank";
-    reportBugLink.style.textDecoration = 'none';
-    reportBugLink.style.color = '#D32F2F';
-    reportBugLink.style.fontSize = '0.8em';
-    reportBugLink.innerHTML = '🐞 Report Bug';
-    reportBugLink.setAttribute('title', 'Report a bug or inconsistency (opens new tab)');
-    finalFooterDiv.appendChild(reportBugLink);
+    finalFooterDiv.className = 'gsr-card__footer gsr-summary-footer';
+    const footerMeta = document.createElement('div');
+    footerMeta.className = 'gsr-summary-footer__meta';
+    if (dblpAuthorPid) {
+        const dblpProfileLink = document.createElement('a');
+        dblpProfileLink.href = `https://dblp.org/pid/${dblpAuthorPid}.html`;
+        dblpProfileLink.target = '_blank';
+        dblpProfileLink.rel = 'noopener noreferrer';
+        dblpProfileLink.className = 'gsr-summary-meta__link gsr-summary-meta__link--profile';
+        dblpProfileLink.textContent = 'DBLP Profile';
+        dblpProfileLink.setAttribute('title', 'Open your DBLP profile in a new tab');
+        footerMeta.appendChild(dblpProfileLink);
+    }
+    if (cacheTimestamp) {
+        const timestampTextElement = document.createElement('span');
+        timestampTextElement.className = 'gsr-summary-footer__stamp';
+        const lastRankingTime = new Date(cacheTimestamp);
+        const formattedDate = lastRankingTime.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        const formattedTime = lastRankingTime.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+        timestampTextElement.textContent = `Updated ${formattedDate} ${formattedTime}`;
+        footerMeta.appendChild(timestampTextElement);
+    }
+    if (footerMeta.childNodes.length > 0) {
+        finalFooterDiv.appendChild(footerMeta);
+    }
+    const footerActions = document.createElement('div');
+    footerActions.className = 'gsr-summary-footer__actions';
+    const createFooterAction = ({ label, badgeText, title, href = null, variant = 'neutral', onClick = null }) => {
+        const element = href ? document.createElement('a') : document.createElement('button');
+        if (href) {
+            element.href = href;
+            element.target = '_blank';
+            element.rel = 'noopener noreferrer';
+        }
+        else {
+            element.type = 'button';
+        }
+        element.className = `gsr-summary-footer__action gsr-summary-footer__action--${variant}`;
+        element.setAttribute('title', title);
+        if (typeof onClick === 'function') {
+            element.addEventListener('click', onClick);
+        }
+        const icon = document.createElement('span');
+        icon.className = 'gsr-summary-footer__action-icon';
+        icon.setAttribute('aria-hidden', 'true');
+        icon.textContent = badgeText;
+        const text = document.createElement('span');
+        text.className = 'gsr-summary-footer__action-label';
+        text.textContent = label;
+        element.appendChild(icon);
+        element.appendChild(text);
+        return element;
+    };
+    footerActions.appendChild(createFooterAction({
+        label: 'Search',
+        badgeText: 'S',
+        title: 'Search ranking in the bundled CORE and SJR datasets',
+        variant: 'search',
+        onClick: () => openSearchUtilityOverlay()
+    }));
+    footerActions.appendChild(createFooterAction({
+        label: 'Report',
+        badgeText: '!',
+        title: 'Report a bug or inconsistency (opens new tab)',
+        href: 'https://forms.office.com/r/PbSzWaQmpJ',
+        variant: 'report'
+    }));
+    footerActions.appendChild(createFooterAction({
+        label: 'About',
+        badgeText: 'i',
+        title: 'About the extension, ranking sources, and editorial rules',
+        variant: 'about',
+        onClick: () => openAboutOverlay()
+    }));
+    finalFooterDiv.appendChild(footerActions);
     panel.appendChild(finalFooterDiv);
     const gsBdy = document.getElementById('gs_bdy');
     const rightSidebarContainer = gsBdy?.querySelector('div.gsc_rsb');
@@ -2333,17 +3178,30 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
         rankMapForObserver = new Map();
         activeCachedPublicationRanks.forEach(pubRank => {
             if (pubRank.url && pubRank.rank) {
-                rankMapForObserver.set(pubRank.url, { rank: pubRank.rank, system: pubRank.system, reason: pubRank.reason ?? null });
+                rankMapForObserver.set(pubRank.url, {
+                    rank: pubRank.rank,
+                    system: pubRank.system,
+                    reason: pubRank.reason ?? null,
+                    matchConfidence: pubRank.matchConfidence ?? null,
+                    matchedVenue: pubRank.matchedVenue ?? null,
+                    venueMatchConfidence: pubRank.venueMatchConfidence ?? null,
+                    dblpVenue: pubRank.dblpVenue ?? null,
+                    sourceYear: pubRank.sourceYear ?? null
+                });
             }
         });
         restoreVisibleInlineBadgesFromCache(activeCachedPublicationRanks);
-        setupPublicationTableObserver(); // Call the revised function directly
+        setupPublicationTableObserver();
     }
     else {
         activeCachedPublicationRanks = null;
         rankMapForObserver = null;
         disconnectPublicationTableObserver();
     }
+    if (!activeSummaryFilter && currentSettings.defaultHighlightMode !== 'none') {
+        activeSummaryFilter = { type: 'preset', mode: currentSettings.defaultHighlightMode };
+    }
+    applyActiveSummaryFilter();
 }
 // --- NEW: Function to display the specific DBLP rate limit error ---
 function displayDblpRateLimitError() {
@@ -2359,21 +3217,14 @@ function displayDblpRateLimitError() {
     }
     const statusText = statusElement.querySelector('.gsr-status-text');
     if (statusText) {
-        statusText.innerHTML = `DBLP is overwhelmed (Too Many Requests).<br>Give it some time to recover!`;
-        statusText.style.color = '#D2691E';
+        statusText.textContent = "DBLP is receiving too many requests right now. Give it a moment, then try again.";
+        statusText.style.color = '#b45309';
     }
-    // Add a "Try Again" button to the status panel
     let tryAgainButton = statusElement.querySelector('.gsr-try-again-button');
     if (!tryAgainButton) {
         tryAgainButton = document.createElement('button');
         tryAgainButton.textContent = 'Try Again';
-        tryAgainButton.className = 'gsr-try-again-button';
-        tryAgainButton.style.marginTop = '10px';
-        tryAgainButton.style.padding = '5px 10px';
-        tryAgainButton.style.fontSize = '12px';
-        tryAgainButton.style.cursor = 'pointer';
-        tryAgainButton.style.border = '1px solid #ccc';
-        tryAgainButton.style.borderRadius = '5px';
+        tryAgainButton.className = 'gsr-try-again-button gsr-button gsr-button--secondary';
         tryAgainButton.onclick = () => {
             if (isMainProcessing)
                 return;
@@ -2386,16 +3237,27 @@ function displayDblpRateLimitError() {
 
 // Issue 4: Friendly message when DBLP is down/unreachable
 function displayDblpUnavailableError(message = "DBLP is down/unreachable. Please try again later.") {
-    const statusElement = document.getElementById(STATUS_ELEMENT_ID);
-    if (!statusElement)
-        return;
-    statusElement.innerHTML = `
-        <span style="color: red; font-weight: bold;">${message}</span>
-        <button id="gsr-retry-button" style="margin-left: 10px; padding: 5px 10px; cursor: pointer;">Try Again</button>
-    `;
-    document.getElementById('gsr-retry-button')?.addEventListener('click', () => {
-        window.location.reload();
-    });
+    const statusElement = document.getElementById(STATUS_ELEMENT_ID) || createStatusElement("DBLP Unavailable");
+    const title = statusElement.querySelector('div:first-child');
+    if (title) {
+        title.textContent = "DBLP Unavailable";
+    }
+    statusElement.querySelector('.gsr-progress')?.remove();
+    const statusText = statusElement.querySelector('.gsr-status-text');
+    if (statusText) {
+        statusText.textContent = `${message} Reload Scholar or try again in a few minutes.`;
+        statusText.style.color = '#b91c1c';
+    }
+    let retryButton = statusElement.querySelector('.gsr-try-again-button');
+    if (!retryButton) {
+        retryButton = document.createElement('button');
+        retryButton.className = 'gsr-try-again-button gsr-button gsr-button--secondary';
+        retryButton.textContent = 'Reload Page';
+        retryButton.addEventListener('click', () => {
+            window.location.reload();
+        });
+        statusElement.appendChild(retryButton);
+    }
 }
 function setupPublicationTableObserver(retryCount = 0) {
     disconnectPublicationTableObserver(); // Ensure any old one is gone
@@ -2444,12 +3306,25 @@ function setupPublicationTableObserver(retryCount = 0) {
         if (!newPubRowsAdded) {
             return;
         }
+        const addedRows = [];
+        for (const mutation of mutationsList) {
+            if (mutation.type !== 'childList')
+                continue;
+            for (const node of Array.from(mutation.addedNodes)) {
+                if (node.nodeName === 'TR' && node.classList.contains('gsc_a_tr')) {
+                    addedRows.push(node);
+                }
+                else if (node instanceof HTMLElement) {
+                    addedRows.push(...Array.from(node.querySelectorAll('tr.gsc_a_tr')));
+                }
+            }
+        }
         if (reapplyDebounceTimeout) {
             clearTimeout(reapplyDebounceTimeout);
         }
         reapplyDebounceTimeout = window.setTimeout(() => {
             if (activeCachedPublicationRanks && rankMapForObserver && rankMapForObserver.size > 0) {
-                restoreVisibleInlineBadgesFromCache(activeCachedPublicationRanks);
+                restoreVisibleInlineBadgesFromCache(activeCachedPublicationRanks, addedRows);
             }
             else {
                 console.warn("GSR OBSERVER: Debounced re-scan aborted at execution, cached rank data is unavailable or empty.");
@@ -2470,8 +3345,8 @@ function disconnectPublicationTableObserver() {
         publicationTableObserver = null;
     }
 }
-function restoreVisibleInlineBadgesFromCache(cachedRanks) {
-    const allVisibleRows = document.querySelectorAll('tr.gsc_a_tr');
+function restoreVisibleInlineBadgesFromCache(cachedRanks, targetRows = null) {
+    const allVisibleRows = targetRows && targetRows.length ? targetRows : document.querySelectorAll('tr.gsc_a_tr');
     const currentRankMap = rankMapForObserver;
     if (allVisibleRows.length === 0 || !cachedRanks || cachedRanks.length === 0 || !currentRankMap || currentRankMap.size === 0) {
         return;
@@ -2495,6 +3370,9 @@ function restoreVisibleInlineBadgesFromCache(cachedRanks) {
             }
         }
     });
+    if (badgesAppliedCount > 0 || activeSummaryFilter || previewSummaryFilter) {
+        applyActiveSummaryFilter();
+    }
 }
 // --- START: DBLP Integration Functions (REPLACED/UPDATED) ---
 const normalizeText = (s) => s.toLowerCase().replace(/[\.,\/#!$%\^&\*;:{}=\_`~?"“”()\[\]]/g, " ").replace(/\s+/g, ' ').trim();
@@ -2682,64 +3560,87 @@ async function fetchDblpPublicationsViaSparql(pid) {
         throw new DblpRateLimitError("DBLP connection failed during SPARQL query.");
     }
 }
+async function mapWithConcurrencyLimit(items, limit, worker) {
+    const maxConcurrency = Math.max(1, limit || 1);
+    const results = new Array(items.length);
+    let nextIndex = 0;
+    async function runWorker() {
+        while (nextIndex < items.length) {
+            const currentIndex = nextIndex++;
+            results[currentIndex] = await worker(items[currentIndex], currentIndex);
+        }
+    }
+    const workers = Array.from({ length: Math.min(maxConcurrency, items.length) }, () => runWorker());
+    await Promise.all(workers);
+    return results;
+}
 // in content.ts
 async function findBestDblpProfile(scholarName, scholarSamplePubs) {
     const candidates = await searchDblpForCandidates(scholarName);
-    let bestPid = null;
-    let highestScore = 0;
-    const scholarTitles = scholarSamplePubs.map(p => p.title);
-    for (const [index, candidate] of candidates.entries()) {
-        const dblpName = candidate.info.author.replace(/\s\d{4}$/, '').replace(/\s+\(Variant \d+\)$/, '').trim();
-        const pid = extractPidFromUrl(candidate.info.url);
+    const utils = (typeof window !== 'undefined' && window.GSVRUtils) ? window.GSVRUtils : null;
+    const evaluations = await mapWithConcurrencyLimit(candidates, 4, async (candidate) => {
+        const rawName = candidate?.info?.author || '';
+        const dblpName = rawName.replace(/\s\d{4}$/, '').replace(/\s+\(Variant \d+\)$/, '').trim();
+        const pid = extractPidFromUrl(candidate?.info?.url || '');
         if (!pid)
-            continue;
-        const nameSimilarity = jaroWinkler(scholarName.toLowerCase(), dblpName.toLowerCase());
+            return null;
+        const nameSimilarity = utils?.hybridSimilarity
+            ? utils.hybridSimilarity(utils.normalizeProfileName(scholarName), utils.normalizeProfileName(dblpName))
+            : jaroWinkler(scholarName.toLowerCase(), dblpName.toLowerCase());
         if (nameSimilarity < HEURISTIC_MIN_NAME_SIMILARITY)
-            continue;
-        let dblpPublications;
+            return null;
         try {
-            // This is the "check" part of "guess and check". It will throw an error if the PID does not exist.
-            dblpPublications = await fetchDblpPubsForCheck(pid);
-            if (dblpPublications.length === 0)
-                continue; // Valid PID but no publications, skip.
+            const dblpPublications = await fetchDblpPubsForCheck(pid);
+            if (!dblpPublications.length)
+                return null;
+            const score = utils?.scoreDblpProfileCandidate
+                ? utils.scoreDblpProfileCandidate({
+                    scholarName,
+                    scholarSamplePubs,
+                    candidateName: dblpName,
+                    dblpPublications
+                })
+                : null;
+            if (!score)
+                return null;
+            return {
+                pid,
+                dblpName,
+                nameSimilarity,
+                dblpPublications,
+                score: score.score,
+                confidence: score.confidence,
+                overlapCount: score.overlapCount,
+                status: score.status,
+                reason: score.reason
+            };
         }
-        catch (error) {
-            // This PID is invalid or fetch failed. This is expected. We just continue to the next guess.
-            continue;
+        catch {
+            return null;
         }
-        let currentScore = nameSimilarity * 2.0;
-        let overlapCount = 0;
-        for (const scholarTitle of scholarTitles) {
-            for (const dblpPub of dblpPublications) {
-                if (jaroWinkler(normalizeText(scholarTitle), normalizeText(dblpPub.title)) > 0.85) {
-                    overlapCount++;
-                    currentScore += 1.0;
-                    break;
-                }
-            }
-        }
-        const qualifies = overlapCount >= DBLP_HEURISTIC_MIN_OVERLAP_COUNT;
-        const eps = 1e-9;
-        if (qualifies) {
-            const better =
-                (currentScore > highestScore + eps) ||
-                    (Math.abs(currentScore - highestScore) <= eps && bestPid !== null && pid < bestPid) ||
-                    (Math.abs(currentScore - highestScore) <= eps && bestPid === null);
-            if (better) {
-                highestScore = currentScore;
-                bestPid = pid;
-                console.log(`GSR: New best DBLP candidate found! PID: ${pid}, Score: ${currentScore.toFixed(2)}, Overlap: ${overlapCount}`);
-            }
-        }
-    }
-    if (bestPid && highestScore >= HEURISTIC_SCORE_THRESHOLD) {
-        console.log(`GSR: DBLP Heuristic Match SUCCESS for "${scholarName}" -> PID: ${bestPid}, Score: ${highestScore.toFixed(2)}`);
-        return bestPid;
-    }
-    else {
-        console.log(`GSR: DBLP heuristic matching failed for "${scholarName}". Best score ${highestScore.toFixed(2)}.`);
+    });
+    const ranked = evaluations
+        .filter((entry) => !!entry && entry.status === DECISION_STATUS.MATCHED)
+        .sort((left, right) => {
+        if (right.score !== left.score)
+            return right.score - left.score;
+        if ((right.overlapCount || 0) !== (left.overlapCount || 0))
+            return (right.overlapCount || 0) - (left.overlapCount || 0);
+        return String(left.pid || '').localeCompare(String(right.pid || ''));
+    });
+    const best = ranked[0] || null;
+    const runnerUp = ranked[1] || null;
+    if (!best) {
+        console.log(`GSR: DBLP profile matching failed for "${scholarName}". No candidate met the precision threshold.`);
         return null;
     }
+    const gap = runnerUp ? best.score - runnerUp.score : Number.POSITIVE_INFINITY;
+    if (runnerUp && best.score < RANKING_CONFIG.profileStrongScoreThreshold && gap < RANKING_CONFIG.profileAmbiguityGap) {
+        console.log(`GSR: DBLP profile match for "${scholarName}" was ambiguous. Best PID ${best.pid} gap ${gap.toFixed(2)}.`);
+        return null;
+    }
+    console.log(`GSR: DBLP profile match success for "${scholarName}" -> PID ${best.pid} (score ${best.score.toFixed(2)}, overlap ${best.overlapCount}).`);
+    return best.pid;
 }
 async function fetchPublicationsFromDblp(authorPidPath, statusElement) {
     const statusTextEl = statusElement?.querySelector(".gsr-status-text");
@@ -2825,6 +3726,8 @@ async function fetchPublicationsFromDblp(authorPidPath, statusElement) {
 
             let acronym = null;
             let venue_full = null;
+            let journalIssns = [];
+            let journalShortTitle = null;
 
             const pubUrl = item.querySelector("url")?.textContent?.trim() || null;
             const numericYear = year ? parseInt(year, 10) : null;
@@ -2898,12 +3801,18 @@ async function fetchPublicationsFromDblp(authorPidPath, statusElement) {
                 if (streamMeta.title) {
                     venue_full = streamMeta.title;
                 }
+                if (Array.isArray(streamMeta.issns)) {
+                    journalIssns = normalizeIssnList(streamMeta.issns);
+                }
+                if (streamMeta.shortTitle) {
+                    journalShortTitle = streamMeta.shortTitle;
+                }
             }
 
             if (!acronym && rawVenue?.startsWith('Proc. ACM') && number && /^[A-Za-z]{2,}$/.test(number)) {
                 acronym = number;
             }
-            publications.push({ dblpKey, title, venue: rawVenue, year, pages, venue_full, acronym, volume, number, crossref, dblpType });
+            publications.push({ dblpKey, title, venue: rawVenue, year, pages, venue_full, acronym, volume, number, crossref, dblpType, journalIssns, journalShortTitle });
             maybeUpdateUi(i + 1);
         }
         setProgress(1, `DBLP: Fetched ${publications.length} publications.`);
@@ -2978,30 +3887,38 @@ async function buildDblpInfoMap(scholarPubLinkElements, dblpPublications, mapToF
     const utils = (typeof window !== 'undefined' && window.GSVRUtils) ? window.GSVRUtils : null;
     let mappedCount = 0;
     for (const scholarPub of scholarPubLinkElements) {
-        const best = utils?.selectBestDblpMatch
-            ? utils.selectBestDblpMatch({
+        const best = utils?.selectBestDblpMatchDetailed
+            ? utils.selectBestDblpMatchDetailed({
                 scholarTitle: scholarPub.titleText,
                 scholarYear: scholarPub.yearFromProfile,
                 dblpPublications: sortedDblp,
-                similarityThreshold: 0.80,
-                maxYearDiff: 4
+                similarityThreshold: RANKING_CONFIG.publicationSimilarityThreshold,
+                maxYearDiff: RANKING_CONFIG.publicationMaxYearDiff,
+                strongSimilarityThreshold: RANKING_CONFIG.publicationStrongSimilarityThreshold
             })
             : null;
-        if (!best || !best.dblpKey)
+        if (!best || best.status !== DECISION_STATUS.MATCHED || !best.match?.dblpKey)
             continue;
-        const pageCount = getPageCountFromDblpString(best.pages);
+        const matched = best.match;
+        const pageCount = getPageCountFromDblpString(matched.pages);
         mapToFill.set(scholarPub.url, {
-            title: best.title ?? null,
-            year: best.year ?? null,
-            venue: best.venue,
-            pages: best.pages ?? null,
+            title: matched.title ?? null,
+            year: matched.year ?? null,
+            venue: matched.venue,
+            pages: matched.pages ?? null,
             pageCount: pageCount,
-            dblpKey: best.dblpKey,
-            venue_full: best.venue_full,
-            acronym: best.acronym,
-            dblpType: best.dblpType ?? null,
-            crossref: best.crossref ?? null,
-            matchScore: typeof best.matchScore === 'number' ? best.matchScore : null
+            dblpKey: matched.dblpKey,
+            venue_full: matched.venue_full,
+            acronym: matched.acronym,
+            dblpType: matched.dblpType ?? null,
+            crossref: matched.crossref ?? null,
+            volume: matched.volume ?? null,
+            number: matched.number ?? null,
+            journalIssns: matched.journalIssns ?? [],
+            journalShortTitle: matched.journalShortTitle ?? null,
+            matchScore: typeof best.confidence === 'number' ? best.confidence : (typeof matched.matchScore === 'number' ? matched.matchScore : null),
+            decisionStatus: best.status,
+            decisionEvidence: best.reason ? [best.reason] : null
         });
         mappedCount++;
     }
@@ -3014,6 +3931,7 @@ async function main() {
         return;
     }
     isMainProcessing = true;
+    await loadSettingsIntoState();
     disconnectPublicationTableObserver();
     activeCachedPublicationRanks = null;
     rankMapForObserver = null;
@@ -3145,7 +4063,9 @@ async function main() {
                 matchConfidence: null,
                 matchedVenue: null,
                 venueMatchConfidence: null,
-                dblpVenue: null
+                dblpVenue: null,
+                sourceYear: null,
+                ...createDecisionMeta()
             };
             if (titlesAlreadyProcessedSet.has(pubInfo.titleText)) {
                 return defaultResult;
@@ -3159,12 +4079,20 @@ async function main() {
             let matchedVenue = null;
             let venueMatchConfidence = null;
             let dblpVenue = null;
+            let sourceYear = null;
+            let decisionMeta = createDecisionMeta();
             try {
                 const dblpInfo = scholarUrlToDblpInfoMap.get(pubInfo.url);
                 if (dblpInfo) {
                     if (typeof dblpInfo.matchScore === 'number')
                         matchConfidence = dblpInfo.matchScore;
                     dblpVenue = (dblpInfo.venue_full || dblpInfo.venue || null);
+                    decisionMeta = mergeDecisionMeta(decisionMeta, {
+                        decisionStatus: dblpInfo.decisionStatus ?? DECISION_STATUS.MATCHED,
+                        confidence: dblpInfo.matchScore ?? null,
+                        matchedKey: dblpInfo.dblpKey ?? null,
+                        decisionEvidence: dblpInfo.decisionEvidence ?? null
+                    });
                 }
                 if (dblpInfo && dblpInfo.venue && dblpInfo.dblpKey) {
                     dblpKeyUsedForThisRanking = dblpInfo.dblpKey;
@@ -3208,11 +4136,14 @@ async function main() {
                             return defaultResult;
                         }
                         rankingSystem = 'SJR';
-                        const candidateNames = Array.from(new Set([dblpInfo.venue_full, venueName, dblpInfo.acronym, utils?.canonicalizeCsrankingsVenueName ? utils.canonicalizeCsrankingsVenueName(venueName) : null].filter((name) => !!name && name.trim().length > 0)));
+                        const candidateNames = Array.from(new Set([dblpInfo.venue_full, dblpInfo.journalShortTitle, venueName, dblpInfo.acronym, utils?.canonicalizeCsrankingsVenueName ? utils.canonicalizeCsrankingsVenueName(venueName) : null].filter((name) => !!name && name.trim().length > 0)));
                         let sjrLookupTransientFailure = false;
                         let bestSjr = null;
+                        let sawAmbiguousSjr = false;
                         for (const candidate of candidateNames) {
-                            const sjrResult = await resolveSjrQuartile(candidate, publicationYear ?? null);
+                            const sjrResult = await resolveSjrQuartile(candidate, publicationYear ?? null, {
+                                issns: dblpInfo.journalIssns
+                            });
                             if (sjrResult.status === 'success' && sjrResult.quartile && SJR_QUARTILES.includes(sjrResult.quartile)) {
                                 const score = (typeof sjrResult.matchScore === 'number') ? sjrResult.matchScore : 1.0;
                                 if (!bestSjr || score > bestSjr.score) {
@@ -3220,6 +4151,9 @@ async function main() {
                                 }
                                 sjrLookupTransientFailure = false;
                                 continue;
+                            }
+                            if (sjrResult.status === 'ambiguous') {
+                                sawAmbiguousSjr = true;
                             }
                             if (sjrResult.status === 'error' && sjrResult.transient) {
                                 sjrLookupTransientFailure = true;
@@ -3229,6 +4163,23 @@ async function main() {
                             currentRank = bestSjr.quartile;
                             matchedVenue = bestSjr.resolvedTitle ?? matchedVenue;
                             venueMatchConfidence = (typeof bestSjr.matchScore === 'number') ? bestSjr.matchScore : venueMatchConfidence;
+                            sourceYear = bestSjr.year ?? sourceYear;
+                            decisionMeta = mergeDecisionMeta(decisionMeta, {
+                                decisionStatus: DECISION_STATUS.MATCHED,
+                                confidence: bestSjr.matchScore ?? 1,
+                                matchedKey: bestSjr.matchedNormalizedTitle ?? matchedVenue,
+                                matchedSourceId: bestSjr.matchedSourceId ?? null,
+                                sourceYearFallback: bestSjr.sourceYearFallback === true,
+                                decisionEvidence: bestSjr.matchedSourceId ? [`source:${bestSjr.matchedSourceId}`] : null
+                            });
+                        }
+                        else if (sawAmbiguousSjr) {
+                            naReason = 'Ambiguous Journal Match';
+                            decisionMeta = mergeDecisionMeta(decisionMeta, {
+                                decisionStatus: DECISION_STATUS.AMBIGUOUS,
+                                matchedKey: venueName ?? null,
+                                decisionEvidence: ['sjr_ambiguous']
+                            });
                         }
                         if (currentRank === 'N/A' && sjrLookupTransientFailure) {
                             shouldPersist = false;
@@ -3266,7 +4217,12 @@ async function main() {
                                 matchConfidence,
                                 matchedVenue: null,
                                 venueMatchConfidence: null,
-                                dblpVenue
+                                dblpVenue,
+                                sourceYear,
+                                ...mergeDecisionMeta(decisionMeta, {
+                                    decisionStatus: DECISION_STATUS.UNRANKED,
+                                    decisionEvidence: trackInfo.signals ?? ['extended_abstract']
+                                })
                             };
                         }
                         if (naReason === 'Editorship') {
@@ -3281,7 +4237,12 @@ async function main() {
                                 matchConfidence,
                                 matchedVenue: null,
                                 venueMatchConfidence: null,
-                                dblpVenue
+                                dblpVenue,
+                                sourceYear,
+                                ...mergeDecisionMeta(decisionMeta, {
+                                    decisionStatus: DECISION_STATUS.UNRANKED,
+                                    decisionEvidence: trackInfo.signals ?? ['editorship']
+                                })
                             };
                         }
                         // Demo/Poster tracks should not inherit the parent conference rank.
@@ -3297,10 +4258,17 @@ async function main() {
                                 matchConfidence,
                                 matchedVenue: null,
                                 venueMatchConfidence: null,
-                                dblpVenue
+                                dblpVenue,
+                                sourceYear,
+                                ...mergeDecisionMeta(decisionMeta, {
+                                    decisionStatus: DECISION_STATUS.UNRANKED,
+                                    decisionEvidence: trackInfo.signals ?? ['demo_poster']
+                                })
                             };
                         }
                         const coreDataFile = getCoreDataFileForYear(effectiveYear);
+                        const coreDataYearMatch = coreDataFile.match(/CORE_(\d{4})/);
+                        sourceYear = coreDataYearMatch ? parseInt(coreDataYearMatch[1], 10) : sourceYear;
                         const yearSpecificCoreData = await loadCoreDataForFile(coreDataFile);
                         if (yearSpecificCoreData.length > 0) {
                                 const fullVenueTitleForRanking = (forcedCore && csrCanonicalVenue) ? csrCanonicalVenue : (dblpInfo.venue_full ?? null);
@@ -3389,16 +4357,29 @@ async function main() {
                                 if (resolvedDetails) {
                                     matchedVenue = resolvedDetails.matchedVenue ?? matchedVenue;
                                     venueMatchConfidence = resolvedDetails.venueMatchConfidence ?? venueMatchConfidence;
+                                    decisionMeta = mergeDecisionMeta(decisionMeta, {
+                                        decisionStatus: resolvedDetails.decisionStatus ?? (VALID_RANKS.includes(currentRank) ? DECISION_STATUS.MATCHED : DECISION_STATUS.UNRANKED),
+                                        confidence: resolvedDetails.venueMatchConfidence ?? decisionMeta.confidence,
+                                        matchedKey: resolvedDetails.matchedKey ?? matchedVenue,
+                                        decisionEvidence: resolvedDetails.decisionEvidence ?? null
+                                    });
                                 }
                                 // If this is a workshop and we didn't find a CORE rank for the workshop itself, mark as N/A (Workshop)
                                 if (currentRank === 'N/A' && trackInfo.isWorkshop) {
                                     naReason = naReason || 'Workshop';
+                                }
+                                if (currentRank === 'N/A' && resolvedDetails?.decisionStatus === DECISION_STATUS.AMBIGUOUS) {
+                                    naReason = naReason || 'Ambiguous Venue Match';
                                 }
                         }
                         // Page-length override (strictly < 6 pages) unless already classified as Demo/Poster or Workshop.
                         if (pageCount !== null && pageCount < 6 && !trackInfo.isDemoPoster && !trackInfo.isWorkshop) {
                             currentRank = 'N/A';
                             naReason = 'Short-paper';
+                            decisionMeta = mergeDecisionMeta(decisionMeta, {
+                                decisionStatus: DECISION_STATUS.UNRANKED,
+                                decisionEvidence: [...(trackInfo.signals || []), 'short_by_pages']
+                            });
                         }
                     }
                 } else {
@@ -3408,6 +4389,10 @@ async function main() {
                     rankingSystem = 'DBLP';
                     currentRank = DBLP_ENTRY_MISSING_LABEL;
                     naReason = null;
+                    decisionMeta = mergeDecisionMeta(decisionMeta, {
+                        decisionStatus: DECISION_STATUS.MISSING,
+                        decisionEvidence: ['dblp_entry_missing']
+                    });
                 }
             }
             catch (error) {
@@ -3421,7 +4406,18 @@ async function main() {
                     dblpKeysUsedSet.add(dblpKeyUsedForThisRanking);
                 }
             }
-            return { rank: currentRank, system: rankingSystem, reason: (currentRank === 'N/A' ? naReason : null), rowElement: pubInfo.rowElement, titleText: pubInfo.titleText, url: pubInfo.url, shouldPersist, matchConfidence, matchedVenue, venueMatchConfidence, dblpVenue };
+            if (hasCoreRank || hasSjrRank) {
+                decisionMeta = mergeDecisionMeta(decisionMeta, {
+                    decisionStatus: DECISION_STATUS.MATCHED,
+                    confidence: venueMatchConfidence ?? matchConfidence ?? decisionMeta.confidence
+                });
+            }
+            else if (currentRank === 'N/A' && decisionMeta.decisionStatus === DECISION_STATUS.MISSING) {
+                decisionMeta = mergeDecisionMeta(decisionMeta, {
+                    decisionStatus: DECISION_STATUS.UNRANKED
+                });
+            }
+            return { rank: currentRank, system: rankingSystem, reason: (currentRank === 'N/A' ? naReason : null), rowElement: pubInfo.rowElement, titleText: pubInfo.titleText, url: pubInfo.url, shouldPersist, matchConfidence, matchedVenue, venueMatchConfidence, dblpVenue, sourceYear, ...decisionMeta };
         };
         for (const pubInfo of publicationLinkElements) {
             const result = await processPublication(pubInfo, scholarTitlesAlreadyRanked, dblpKeysAlreadyUsedForRank);
@@ -3443,7 +4439,15 @@ async function main() {
                 matchConfidence: result.matchConfidence ?? null,
                 matchedVenue: result.matchedVenue ?? null,
                 venueMatchConfidence: result.venueMatchConfidence ?? null,
-                dblpVenue: result.dblpVenue ?? null
+                dblpVenue: result.dblpVenue ?? null,
+                sourceYear: result.sourceYear ?? null,
+                sourceYearFallback: result.sourceYearFallback === true,
+                decisionVersion: result.decisionVersion ?? DECISION_VERSION,
+                decisionStatus: result.decisionStatus ?? null,
+                confidence: result.confidence ?? null,
+                matchedKey: result.matchedKey ?? null,
+                matchedSourceId: result.matchedSourceId ?? null,
+                decisionEvidence: result.decisionEvidence ?? null
             };
             determinedPublicationRanks.push(publicationRankInfo);
             if (result.shouldPersist !== false) {
@@ -3486,6 +4490,9 @@ async function initialLoad() {
     if (isMainProcessing) {
         return;
     }
+    await loadSettingsIntoState();
+    activeSummaryFilter = null;
+    previewSummaryFilter = null;
     const userId = getScholarUserId();
     if (userId) {
         const cached = await loadCachedData(userId);
@@ -3494,6 +4501,10 @@ async function initialLoad() {
             displaySummaryPanel(cached.coreRankCounts, cached.sjrRankCounts, userId, pubRanksArr, cached.timestamp, cached.dblpAuthorPid);
             return;
         }
+    }
+    if (currentSettings.autoRun === false) {
+        displayDormantStatus();
+        return;
     }
     main().catch(error => {
         // Errors are now handled inside main(), so this top-level catch is a final fallback.
@@ -3513,6 +4524,26 @@ function executeInitialLoad() {
     initialLoad();
 }
 let pageInitializationObserver = null;
+if (chrome?.storage?.onChanged && SETTINGS_API?.SETTINGS_KEY) {
+    chrome.storage.onChanged.addListener(async (changes, areaName) => {
+        if (areaName !== 'local' || !changes[SETTINGS_API.SETTINGS_KEY]) {
+            return;
+        }
+        await loadSettingsIntoState();
+        if (!activeSummaryFilter) {
+            activeSummaryFilter = currentSettings.defaultHighlightMode !== 'none'
+                ? { type: 'preset', mode: currentSettings.defaultHighlightMode }
+                : null;
+        }
+        previewSummaryFilter = null;
+        if (activeCachedPublicationRanks && activeCachedPublicationRanks.length > 0) {
+            restoreVisibleInlineBadgesFromCache(activeCachedPublicationRanks);
+        }
+        else {
+            applyActiveSummaryFilter();
+        }
+    });
+}
 function attemptPageInitialization() {
     if (isMainProcessing && (document.getElementById(STATUS_ELEMENT_ID) || document.getElementById(SUMMARY_PANEL_ID))) {
         return true;

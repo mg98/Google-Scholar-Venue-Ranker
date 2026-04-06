@@ -1,6 +1,63 @@
 const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
 
 const core = require('../rank_core.js');
+const settings = require('../settings.js');
+const accuracyLib = require('./accuracy_benchmark_lib.js');
+const VALID_RANKS = ['A*', 'A', 'B', 'C'];
+
+function parseBundledCoreFile(fileName) {
+  const filePath = path.join(__dirname, '..', 'core', fileName);
+  const jsonData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  let titleKey = 'International Conference on Advanced Communications and Computation';
+  let acronymKey = 'INFOCOMP';
+  if (/2018|2017|2014/.test(fileName)) {
+    titleKey = 'Information Retrieval Facility Conference';
+    acronymKey = 'IRFC';
+  }
+  return jsonData.map((rawEntry) => {
+    const entry = { title: '', acronym: '', rank: 'N/A', rawRank: null };
+    if (typeof rawEntry[titleKey] === 'string') entry.title = rawEntry[titleKey];
+    else if (typeof rawEntry.title === 'string') entry.title = rawEntry.title;
+    else if (typeof rawEntry.Title === 'string') entry.title = rawEntry.Title;
+
+    if (typeof rawEntry[acronymKey] === 'string') entry.acronym = rawEntry[acronymKey];
+    else if (typeof rawEntry.acronym === 'string') entry.acronym = rawEntry.acronym;
+    else if (typeof rawEntry.Acronym === 'string') entry.acronym = rawEntry.Acronym;
+
+    let rawRank = null;
+    if (typeof rawEntry.Unranked === 'string') rawRank = rawEntry.Unranked;
+    else if (typeof rawEntry.rank === 'string') rawRank = rawEntry.rank;
+    else if (typeof rawEntry.CORE_Rating === 'string') rawRank = rawEntry.CORE_Rating;
+    else if (typeof rawEntry.Rating === 'string') rawRank = rawEntry.Rating;
+
+    if (typeof rawRank === 'string') {
+      const trimmed = rawRank.trim();
+      let cleaned = null;
+      if (VALID_RANKS.includes(trimmed.toUpperCase())) cleaned = trimmed.toUpperCase();
+      else if (/\b(unranked|merged|journal|inactive|discontinued|ceased|not\s+ranked|removed|withdrawn|retired|suspended)\b/i.test(trimmed)) cleaned = trimmed;
+      entry.rawRank = cleaned || null;
+      const normalized = String(cleaned || '').toUpperCase();
+      if (VALID_RANKS.includes(normalized)) entry.rank = normalized;
+    }
+
+    entry.title = String(entry.title || '').trim();
+    entry.acronym = String(entry.acronym || '').trim();
+    return (entry.title || entry.acronym) ? entry : null;
+  }).filter(Boolean);
+}
+
+function resolveBundledCoreVenue(fileName, query) {
+  const coreData = parseBundledCoreFile(fileName);
+  const aliasIndex = core.createCoreAliasIndex(coreData);
+  return core.resolveCoreVenue({
+    venueKey: query,
+    fullVenueTitle: query,
+    coreData,
+    aliasIndex,
+  });
+}
 
 function testDeterministicDblpMatch() {
   // Two equally-good candidates; tie-break should be deterministic (dblpKey lexicographic).
@@ -14,21 +71,41 @@ function testDeterministicDblpMatch() {
     scholarTitle: 'On Securing Persistent State in Intermittent Computing',
     scholarYear: 2020,
     dblpPublications: pubs1,
-    similarityThreshold: 0.88,
-    maxYearDiff: 2,
+    similarityThreshold: core.RANKING_CONFIG.publicationSimilarityThreshold,
+    maxYearDiff: core.RANKING_CONFIG.publicationMaxYearDiff,
   });
 
   const r2 = core.selectBestDblpMatch({
     scholarTitle: 'On Securing Persistent State in Intermittent Computing',
     scholarYear: 2020,
     dblpPublications: pubs2,
-    similarityThreshold: 0.88,
-    maxYearDiff: 2,
+    similarityThreshold: core.RANKING_CONFIG.publicationSimilarityThreshold,
+    maxYearDiff: core.RANKING_CONFIG.publicationMaxYearDiff,
   });
 
   assert(r1 && r2, 'Expected a match in both runs');
   assert.strictEqual(r1.dblpKey, r2.dblpKey, 'Match should not depend on input ordering');
   assert.strictEqual(r1.dblpKey, 'conf/sensys/enssys2020', 'Expected lexicographically smallest dblpKey in a tie');
+}
+
+function testAmbiguousDblpMatchAbstains() {
+  const pubs = [
+    { dblpKey: 'conf/foo/2024a', title: 'Energy Harvesting for Embedded Systems', year: '2024', venue: 'FOO' },
+    { dblpKey: 'conf/foo/2024b', title: 'Energy Harvesting of Embedded Systems', year: '2024', venue: 'FOO' },
+  ];
+
+  const result = core.selectBestDblpMatchDetailed({
+    scholarTitle: 'Energy Harvesting Embedded Systems',
+    scholarYear: 2024,
+    dblpPublications: pubs,
+  });
+
+  assert.strictEqual(result.status, core.DECISION_STATUS.AMBIGUOUS);
+  assert.strictEqual(core.selectBestDblpMatch({
+    scholarTitle: 'Energy Harvesting Embedded Systems',
+    scholarYear: 2024,
+    dblpPublications: pubs,
+  }), null);
 }
 
 function testWorkshopClassification() {
@@ -81,6 +158,47 @@ function testShortPaperByPages() {
 function testVenueNormalization() {
   assert.strictEqual(core.normalizeVenueCandidate('MobiQuitous (2)'), 'mobiquitous');
   assert.strictEqual(core.normalizeVenueCandidate('MobiQuitous 2'), 'mobiquitous');
+}
+
+function testCoreAliasResolution() {
+  const coreData = [
+    { title: 'SIGMOD', acronym: 'SIGMOD', rank: 'A*' },
+    { title: 'MobiCom', acronym: 'MOBICOM', rank: 'A*' },
+  ];
+  const aliasIndex = core.createCoreAliasIndex(coreData);
+
+  const sigmod = core.resolveCoreVenue({
+    venueKey: 'SIGMOD Conference',
+    fullVenueTitle: 'Proceedings of the ACM SIGMOD Conference',
+    coreData,
+    aliasIndex,
+  });
+  assert.strictEqual(sigmod.status, core.DECISION_STATUS.MATCHED);
+  assert.strictEqual(sigmod.rank, 'A*');
+
+  const mobicom = core.resolveCoreVenue({
+    venueKey: 'mobicom',
+    fullVenueTitle: 'Proceedings of the Annual International Conference on Mobile Computing and Networking',
+    coreData,
+    aliasIndex,
+  });
+  assert.strictEqual(mobicom.status, core.DECISION_STATUS.MATCHED);
+  assert.strictEqual(mobicom.rank, 'A*');
+}
+
+function testAmbiguousCoreAcronymAbstains() {
+  const coreData = [
+    { title: 'International Workshop on Smart Systems', acronym: 'IWS', rank: 'B' },
+    { title: 'International Workshop on Secure Storage', acronym: 'IWS', rank: 'A' },
+  ];
+  const aliasIndex = core.createCoreAliasIndex(coreData);
+  const result = core.resolveCoreVenue({
+    venueKey: 'IWS',
+    fullVenueTitle: null,
+    coreData,
+    aliasIndex,
+  });
+  assert.strictEqual(result.status, core.DECISION_STATUS.AMBIGUOUS);
 }
 
 
@@ -140,15 +258,154 @@ function testPlusNormalization() {
   assert.strictEqual(a, b);
 }
 
+function testSettingsNormalization() {
+  const normalized = settings.normalizeSettings({
+    autoRun: false,
+    compactMode: true,
+    showUnranked: false,
+    defaultHighlightMode: 'needs-review',
+    showDebugDetails: false,
+  });
+
+  assert.deepStrictEqual(normalized, {
+    autoRun: false,
+    compactMode: true,
+    showUnranked: false,
+    defaultHighlightMode: 'needs-review',
+    showDebugDetails: false,
+  });
+
+  const fallback = settings.normalizeSettings({ defaultHighlightMode: 'invalid-mode' });
+  assert.strictEqual(fallback.defaultHighlightMode, settings.DEFAULT_SETTINGS.defaultHighlightMode);
+}
+
+function testGeneratedSjrIndex() {
+  const indexPath = path.join(__dirname, '..', 'data', 'sjr-index.json');
+  assert.ok(fs.existsSync(indexPath), 'Expected generated SJR index to exist');
+
+  const payload = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
+  assert.strictEqual(payload.version, 2);
+  assert.ok(Array.isArray(payload.entries), 'Expected compact SJR entries array');
+  assert.ok(payload.entries.length > 30000, 'Expected compact SJR index to contain the bundled journals');
+
+  const tpami = payload.entries.find((entry) => entry.n === 'ieee transaction pattern analysi machine intelligence');
+  assert.ok(tpami, 'Expected TPAMI normalized journal entry to exist');
+  assert.strictEqual(tpami.q['2024'], 'Q1');
+  assert.ok(Array.isArray(tpami.i), 'Expected SJR entries to include ISSN metadata');
+}
+
+function testProfileCandidateScoring() {
+  const result = core.scoreDblpProfileCandidate({
+    scholarName: 'Naveed Anwar Bhatti',
+    candidateName: 'Naveed Anwar Bhatti',
+    scholarSamplePubs: [
+      { title: 'Energy Harvesting Systems for IoT', year: 2024 },
+      { title: 'Reliable Intermittent Computing at the Edge', year: 2023 },
+    ],
+    dblpPublications: [
+      { dblpKey: 'conf/test/1', title: 'Energy Harvesting Systems for IoT', year: '2024' },
+      { dblpKey: 'conf/test/2', title: 'Reliable Intermittent Computing at the Edge', year: '2023' },
+    ],
+  });
+
+  assert.strictEqual(result.status, core.DECISION_STATUS.MATCHED);
+  assert.ok(result.score >= core.RANKING_CONFIG.profileMatchScoreThreshold);
+}
+
+function testFixtureCorpusMetrics() {
+  const fixtures = [
+    {
+      expected: core.DECISION_STATUS.MATCHED,
+      result: core.resolveCoreVenue({
+        venueKey: 'SIGMOD Conference',
+        fullVenueTitle: 'Proceedings of the ACM SIGMOD Conference',
+        coreData: [{ title: 'SIGMOD', acronym: 'SIGMOD', rank: 'A*' }],
+      }),
+    },
+    {
+      expected: core.DECISION_STATUS.AMBIGUOUS,
+      result: core.resolveCoreVenue({
+        venueKey: 'IWS',
+        fullVenueTitle: null,
+        coreData: [
+          { title: 'International Workshop on Smart Systems', acronym: 'IWS', rank: 'B' },
+          { title: 'International Workshop on Secure Storage', acronym: 'IWS', rank: 'A' },
+        ],
+      }),
+    },
+    {
+      expected: core.DECISION_STATUS.MATCHED,
+      result: core.selectBestDblpMatchDetailed({
+        scholarTitle: 'Energy Harvesting Systems for IoT',
+        scholarYear: 2024,
+        dblpPublications: [{ dblpKey: 'conf/test/1', title: 'Energy Harvesting Systems for IoT', year: '2024' }],
+      }),
+    },
+  ];
+
+  let matched = 0;
+  let correctMatches = 0;
+  let abstained = 0;
+  for (const fixture of fixtures) {
+    const status = fixture.result.status;
+    if (status === core.DECISION_STATUS.MATCHED) {
+      matched++;
+      if (fixture.expected === status) correctMatches++;
+    } else if (status === core.DECISION_STATUS.AMBIGUOUS || status === core.DECISION_STATUS.MISSING) {
+      abstained++;
+    }
+  }
+
+  const precision = matched > 0 ? correctMatches / matched : 1;
+  const abstainRate = abstained / fixtures.length;
+  assert.strictEqual(precision, 1);
+  assert.ok(abstainRate >= 1 / 3);
+}
+
+function testAccuracyFixtureLoaderSmoke() {
+  const fixtures = accuracyLib.loadFixtures({ suite: 'gold' });
+  assert.ok(Array.isArray(fixtures), 'Expected benchmark fixture loader to return an array');
+  assert.ok(fixtures.length > 0, 'Expected benchmark gold fixtures to exist');
+}
+
+function testBundledCoreConferenceSearchStatus() {
+  const sigcomm = resolveBundledCoreVenue('CORE_2026.json', 'SIGCOMM');
+  assert.strictEqual(sigcomm.status, core.DECISION_STATUS.MATCHED);
+  assert.strictEqual(sigcomm.rank, 'A*');
+
+  const sensysCurrent = resolveBundledCoreVenue('CORE_2026.json', 'SenSys');
+  assert.strictEqual(sensysCurrent.status, core.DECISION_STATUS.UNRANKED);
+  assert.strictEqual(sensysCurrent.rank, 'N/A');
+  assert.strictEqual(String(sensysCurrent.rawRankLabel || '').toLowerCase(), 'unranked: merged');
+
+  const sensysHistorical = resolveBundledCoreVenue('CORE_2023.json', 'SenSys');
+  assert.strictEqual(sensysHistorical.status, core.DECISION_STATUS.MATCHED);
+  assert.strictEqual(sensysHistorical.rank, 'A*');
+
+  const nsdiCurrent = resolveBundledCoreVenue('CORE_2026.json', 'NSDI');
+  assert.strictEqual(nsdiCurrent.status, core.DECISION_STATUS.MATCHED);
+  assert.strictEqual(nsdiCurrent.rank, 'A*');
+  assert.strictEqual(nsdiCurrent.matchType, 'top_venue_fallback');
+}
+
 function run() {
   testDeterministicDblpMatch();
   testWorkshopClassification();
   testDemoPosterClassification();
+  testAmbiguousDblpMatchAbstains();
   testDemoKeywordNotTrackWhenPagesHigh();
   testDemoKeywordNotTrackEvenWithoutPages();
   testExtendedAbstractClassification();
   testLetterPrefixPagesParsing();
   testPlusNormalization();
+  testSettingsNormalization();
+  testGeneratedSjrIndex();
+  testCoreAliasResolution();
+  testAmbiguousCoreAcronymAbstains();
+  testProfileCandidateScoring();
+  testFixtureCorpusMetrics();
+  testBundledCoreConferenceSearchStatus();
+  testAccuracyFixtureLoaderSmoke();
   testShortPaperByPages();
   testVenueNormalization();
 
