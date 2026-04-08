@@ -9,6 +9,8 @@
     showUnranked: document.getElementById("showUnranked"),
     defaultHighlightMode: document.getElementById("defaultHighlightMode")
   };
+  const activePacksEl = document.getElementById("activePacks");
+  const freshnessBadgeEl = document.getElementById("freshnessBadge");
 
   const setStatus = (message) => {
     if (statusEl) {
@@ -17,10 +19,20 @@
   };
 
   const settings = await api.loadSettings();
+  const rankingPacks = await api.loadRankingPacks();
+  const freshness = await api.loadFeatureState("dataFreshnessState");
   controls.autoRun.checked = settings.autoRun;
   controls.compactMode.checked = settings.compactMode;
   controls.showUnranked.checked = settings.showUnranked;
   controls.defaultHighlightMode.value = settings.defaultHighlightMode;
+  if (activePacksEl) {
+    activePacksEl.textContent = `Ranking packs: ${rankingPacks.map((value) => value.toUpperCase()).join(", ")}`;
+  }
+  if (freshnessBadgeEl) {
+    freshnessBadgeEl.textContent = freshness?.lastDataRefreshLabel
+      ? `Freshness: ${freshness.lastDataRefreshLabel}`
+      : "Freshness metadata appears after a Scholar run.";
+  }
 
   async function persist() {
     await api.saveSettings({

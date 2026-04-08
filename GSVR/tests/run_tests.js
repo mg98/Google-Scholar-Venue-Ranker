@@ -277,6 +277,27 @@ function testSettingsNormalization() {
 
   const fallback = settings.normalizeSettings({ defaultHighlightMode: 'invalid-mode' });
   assert.strictEqual(fallback.defaultHighlightMode, settings.DEFAULT_SETTINGS.defaultHighlightMode);
+  assert.ok(!Object.prototype.hasOwnProperty.call(normalized, 'scanMode'));
+  assert.ok(!Object.prototype.hasOwnProperty.call(fallback, 'scanMode'));
+}
+
+function testRankingPackNormalization() {
+  const normalized = settings.normalizeRankingPacks(['sjr', 'ccf', 'sjr', 'CORE', 'invalid']);
+  assert.deepStrictEqual(normalized, ['core', 'sjr', 'ccf']);
+
+  const fallback = settings.normalizeRankingPacks([]);
+  assert.deepStrictEqual(fallback, ['core', 'sjr']);
+}
+
+function testFeatureStateNormalization() {
+  const reportDraft = settings.normalizeFeatureState('reportDraft', { payload: { title: 'Example venue mismatch' } });
+  assert.deepStrictEqual(reportDraft, {
+    createdAt: null,
+    payload: { title: 'Example venue mismatch' },
+  });
+
+  const rankingPacks = settings.normalizeFeatureState('enabledRankingPacks', ['sjr', 'era', 'invalid']);
+  assert.deepStrictEqual(rankingPacks, ['core', 'sjr', 'era']);
 }
 
 function testGeneratedSjrIndex() {
@@ -399,6 +420,8 @@ function run() {
   testLetterPrefixPagesParsing();
   testPlusNormalization();
   testSettingsNormalization();
+  testRankingPackNormalization();
+  testFeatureStateNormalization();
   testGeneratedSjrIndex();
   testCoreAliasResolution();
   testAmbiguousCoreAcronymAbstains();

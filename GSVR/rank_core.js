@@ -481,6 +481,18 @@
     return leftKey.localeCompare(rightKey);
   }
 
+  function summarizePublicationCandidate(candidate) {
+    if (!candidate?.pub) return null;
+    return {
+      dblpKey: candidate.pub.dblpKey || null,
+      title: candidate.pub.title || null,
+      venue: candidate.pub.venue_full || candidate.pub.venue || null,
+      year: candidate.pub.year || null,
+      score: typeof candidate.score === 'number' ? candidate.score : null,
+      exactTitleMatch: candidate.exactTitleMatch === true,
+    };
+  }
+
   function selectBestDblpMatchDetailed({
     scholarTitle,
     scholarYear,
@@ -540,6 +552,7 @@
         scoreGap: gap,
         runnerUpScore: second.score,
         reason: 'publication_ambiguous',
+        topCandidates: [summarizePublicationCandidate(best), summarizePublicationCandidate(second)].filter(Boolean),
       };
     }
 
@@ -551,6 +564,7 @@
       scoreGap: gap,
       exactTitleMatch: best.exactTitleMatch,
       match: { ...best.pub, matchScore: best.score, matchRawSimilarity: best.rawSimilarity },
+      topCandidates: [summarizePublicationCandidate(best), summarizePublicationCandidate(second)].filter(Boolean),
     };
   }
 
@@ -688,9 +702,23 @@
     if (!best) return null;
     const gap = second ? best.score - second.score : Number.POSITIVE_INFINITY;
     if (second && best.score < 0.96 && gap < RANKING_CONFIG.coreAmbiguityGap) {
-      return { status: DECISION_STATUS.AMBIGUOUS, score: best.score, gap };
+      return { status: DECISION_STATUS.AMBIGUOUS, score: best.score, gap, bestIndex: best.index, secondIndex: second.index };
     }
     return { status: DECISION_STATUS.MATCHED, score: best.score, entry: aliasIndex.entries[best.index] };
+  }
+
+  function summarizeCoreEntries(indexes, aliasIndex) {
+    const uniqueIndexes = Array.from(new Set(indexes || []));
+    return uniqueIndexes.slice(0, 4).map((index) => {
+      const entry = aliasIndex.entries[index];
+      if (!entry) return null;
+      return {
+        acronym: entry.acronym || null,
+        title: entry.title || null,
+        rank: entry.rank || 'N/A',
+        rawRankLabel: entry.rawRank || null,
+      };
+    }).filter(Boolean);
   }
 
   function resolveCoreVenue({ venueKey, fullVenueTitle, coreData, aliasIndex }) {
@@ -739,7 +767,13 @@
           const entry = disambiguated.entry;
           return buildEntryResolution(entry, candidate, disambiguated.score, 'acronym_disambiguated', entry.acronym || entry.title || candidate);
         }
-        return { status: DECISION_STATUS.AMBIGUOUS, rank: 'N/A', reason: 'ambiguous_acronym', confidence: disambiguated?.score || null };
+        return {
+          status: DECISION_STATUS.AMBIGUOUS,
+          rank: 'N/A',
+          reason: 'ambiguous_acronym',
+          confidence: disambiguated?.score || null,
+          topCandidates: summarizeCoreEntries(acronymMatches, index),
+        };
       }
     }
 
@@ -756,7 +790,13 @@
           const entry = disambiguated.entry;
           return buildEntryResolution(entry, candidate, disambiguated.score, 'alias_disambiguated', entry.title || candidate);
         }
-        return { status: DECISION_STATUS.AMBIGUOUS, rank: 'N/A', reason: 'ambiguous_title_alias', confidence: disambiguated?.score || null };
+        return {
+          status: DECISION_STATUS.AMBIGUOUS,
+          rank: 'N/A',
+          reason: 'ambiguous_title_alias',
+          confidence: disambiguated?.score || null,
+          topCandidates: summarizeCoreEntries(aliasMatches, index),
+        };
       }
     }
 
@@ -786,7 +826,14 @@
 
     const gap = second ? best.score - second.score : Number.POSITIVE_INFINITY;
     if (second && best.score < 0.97 && gap < RANKING_CONFIG.coreAmbiguityGap) {
-      return { status: DECISION_STATUS.AMBIGUOUS, rank: 'N/A', reason: 'ambiguous_fuzzy_core', confidence: best.score, gap };
+      return {
+        status: DECISION_STATUS.AMBIGUOUS,
+        rank: 'N/A',
+        reason: 'ambiguous_fuzzy_core',
+        confidence: best.score,
+        gap,
+        topCandidates: summarizeCoreEntries([best.index, second.index], index),
+      };
     }
 
     const entry = index.entries[best.index];

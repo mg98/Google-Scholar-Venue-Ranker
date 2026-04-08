@@ -1,9 +1,9 @@
-![Version 1.9](https://img.shields.io/badge/version-1.9-blue.svg)
+![Version 2.0](https://img.shields.io/badge/version-2.0-blue.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 # Google Scholar Venue Ranker (GSVR)
 
-Google Scholar Venue Ranker is an open-source Chrome extension developed by [Naveed Bhatti](https://naveedanwarbhatti.github.io/). It augments Google Scholar profile pages with historical CORE conference ranks and SJR journal quartiles, using a strict DBLP-backed ranking pipeline instead of trusting editable Google Scholar venue text.
+Google Scholar Venue Ranker is an open-source Chrome extension developed by [Naveed Bhatti](https://naveedanwarbhatti.github.io/). It augments the main Google Scholar profile page with historical CORE conference ranks and SJR journal quartiles, using a strict DBLP-backed ranking pipeline instead of trusting editable Google Scholar venue text.
 
 ![Screenshot of Extension in Action](GSVR/images/Screenshot.png)
 
@@ -13,6 +13,24 @@ Google Scholar Venue Ranker is an open-source Chrome extension developed by [Nav
   </a>
 </p>
 
+## What's new in 2.0
+
+- `Research Quality Score` panel with a weighted scoring mechanism across CORE conferences and SJR journals
+- `Venue Ranker` sidebar with compact counts, interactive filters, and a cleaner score-first layout
+- automatic two-pass scan: a fast first pass followed by a deeper background upgrade for better accuracy
+- refreshed `Venue Explorer` for local CORE and SJR lookup
+- richer report generation with PDF summary, full PDF audit, standalone HTML, and CSV exports
+- modernized extension UI with tighter cards, clearer status states, and more polished dialogs
+
+## 2.0 highlights
+
+Version 2.0 is a major usability and workflow upgrade, not just a dataset refresh.
+
+- `Scoring mechanism`: GSVR now includes a `Research Quality Score` that combines CORE conference tiers and SJR journal quartiles using weighted fractional authorship.
+- `Report generation`: profiles can now be exported as a one-page PDF summary, a full PDF audit report, standalone HTML, or CSV for committees, self-audits, and sharing.
+- `Fast scanning`: the extension now shows a fast first-pass result quickly, then improves the result in the background with a deeper second pass.
+- `Better UI`: the sidebar, dialogs, status banners, score presentation, and download flows were redesigned to feel cleaner, more compact, and easier to use.
+
 ## Why GSVR exists
 
 Google Scholar is excellent at collecting publications, but it does not make venue quality easy to inspect, compare, or audit. In Computer Science, Electrical Engineering, and closely related areas, venue information matters a lot, and it is often the first thing people want to sanity-check when browsing a profile.
@@ -20,9 +38,9 @@ Google Scholar is excellent at collecting publications, but it does not make ven
 GSVR brings that context directly into Scholar with:
 
 - inline conference and journal badges beside papers
-- a compact summary panel with interactive filtering
-- local ranking search without leaving Scholar
-- explicit review states for papers that are unranked, ambiguous, or missing from DBLP
+- a score-first sidebar for quick profile assessment
+- local venue exploration without leaving Scholar
+- explicit unranked and DBLP-missing states when GSVR abstains
 
 ## What the extension does
 
@@ -31,9 +49,11 @@ GSVR brings that context directly into Scholar with:
 - Uses DBLP metadata as the authoritative source for venue extraction and disambiguation.
 - Chooses the most appropriate CORE snapshot by publication year.
 - Uses a compact prebuilt SJR index for faster journal lookup on Scholar pages.
-- Shows an interactive summary card for `Conference`, `Journal`, and `Review` states.
-- Lets you filter/highlight papers by category directly from the summary panel.
-- Includes a local `Search Ranking (CORE / SJR)` dialog for ad hoc venue checks.
+- Shows a `Research Quality Score` card above the ranking summary, using weighted fractional scoring across conferences and journals.
+- Shows a compact `Venue Ranker` panel for conference and journal distribution with a modernized sidebar UI.
+- Runs a fast first-pass scan, then upgrades results in the background with a deeper pass.
+- Includes a local `Venue Explorer` dialog for ad hoc CORE and SJR checks.
+- Includes a `Download Report` flow for one-page PDF summaries, full PDF audits, HTML, and CSV exports.
 - Includes a popup and full settings page for behavior and UI defaults.
 - Includes an in-product About panel and report-bug workflow.
 
@@ -65,9 +85,12 @@ GSVR is intentionally conservative. It prefers abstaining over showing a confide
 On supported Google Scholar profile pages, GSVR injects:
 
 - inline rank chips next to publication titles
-- a compact summary panel with quick filters
+- a `Research Quality Score` panel
+- a compact `Venue Ranker` panel with quick filters
 - row highlighting for selected categories
-- links for `DBLP Profile`, `Search`, `Report`, and `About`
+- links for `DBLP Profile`, `Explore Venues`, `Download Report`, `Report Issue`, and `About`
+
+GSVR intentionally does not inject UI on individual paper detail pages or Scholar search-results pages.
 
 ### Popup
 
@@ -86,9 +109,18 @@ The options page adds:
 - persistent highlight defaults
 - reset and save controls
 
-### Search dialog
+### Venue Explorer
 
-The built-in search dialog lets you query local CORE and SJR datasets without leaving Google Scholar. This is useful for quickly checking venue acronyms, aliases, merged venues, or journal quartiles.
+The built-in Venue Explorer is launched from the profile sidebar and lets you query local CORE and SJR datasets without leaving Google Scholar. This is useful for checking venue acronyms, aliases, merged venues, historical snapshots, or journal quartiles.
+
+### Download Report
+
+The profile-page report workflow exports the current audit in:
+
+- PDF `Summary`
+- PDF `Full Report`
+- standalone HTML
+- CSV
 
 ### About panel
 

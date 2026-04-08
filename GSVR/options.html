@@ -71,6 +71,45 @@
           </p>
         </section>
 
+        <section class="gsr-popup__section">
+          <h2 class="gsr-popup__section-title">Ranking Packs</h2>
+
+          <label class="gsr-popup__toggle">
+            <span>
+              <strong>CCF Pack</strong>
+              <small>Enable the supplemental CCF pack state for future local bundle installs.</small>
+            </span>
+            <input id="packCcf" type="checkbox">
+          </label>
+
+          <label class="gsr-popup__toggle">
+            <span>
+              <strong>ABDC Pack</strong>
+              <small>Track ABDC as an opt-in supplemental pack without replacing CORE or SJR.</small>
+            </span>
+            <input id="packAbdc" type="checkbox">
+          </label>
+
+          <label class="gsr-popup__toggle">
+            <span>
+              <strong>ERA Pack</strong>
+              <small>Track ERA as an opt-in supplemental pack when bundle support is available.</small>
+            </span>
+            <input id="packEra" type="checkbox">
+          </label>
+
+          <p class="gsr-options__hint">
+            CORE and SJR remain the default trust path. Extra packs are stored locally and shown in-product as supplemental modules.
+          </p>
+        </section>
+
+        <section class="gsr-popup__section">
+          <h2 class="gsr-popup__section-title">Freshness</h2>
+          <p id="freshnessSummary" class="gsr-options__hint">
+            Freshness metadata will appear after you run the extension on a Scholar profile.
+          </p>
+        </section>
+
         <footer class="gsr-options__footer">
           <button id="resetButton" class="gsr-popup__button gsr-popup__button--secondary" type="button">Reset Defaults</button>
           <button class="gsr-popup__button" type="submit">Save Settings</button>
