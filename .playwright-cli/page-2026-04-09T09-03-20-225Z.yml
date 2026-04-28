@@ -1,0 +1,3524 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]: This XML file does not appear to have any style information associated with it. The document tree is shown below.
+  - generic [ref=e4]:
+    - generic [ref=e7]:
+      - text: <dblpperson
+      - generic [ref=e8]: name="Naveed Anwar Bhatti"
+      - generic [ref=e9]: pid="146/7880"
+      - generic [ref=e10]: n="35"
+      - text: ">"
+    - generic [ref=e11]:
+      - generic [ref=e12]:
+        - generic [ref=e15]:
+          - text: <person
+          - generic [ref=e16]: key="homepages/146/7880"
+          - generic [ref=e17]: mdate="2021-07-24"
+          - text: ">"
+        - generic [ref=e18]:
+          - generic [ref=e19]:
+            - generic [ref=e20]:
+              - text: <author
+              - generic [ref=e21]: pid="146/7880"
+              - text: ">"
+            - text: Naveed Anwar Bhatti
+            - generic [ref=e22]: </author>
+          - generic [ref=e23]:
+            - generic [ref=e24]: <url>
+            - text: https://dl.acm.org/profile/87958896657
+            - generic [ref=e25]: </url>
+          - generic [ref=e26]:
+            - generic [ref=e27]: <url>
+            - text: https://orcid.org/0000-0003-4115-9889
+            - generic [ref=e28]: </url>
+        - generic [ref=e30]: </person>
+      - generic [ref=e31]:
+        - generic [ref=e34]: <r>
+        - generic [ref=e36]:
+          - generic [ref=e39]:
+            - text: <article
+            - generic [ref=e40]: publtype="informal"
+            - generic [ref=e41]: key="journals/corr/abs-2602-08593"
+            - generic [ref=e42]: mdate="2026-03-25"
+            - text: ">"
+          - generic [ref=e43]:
+            - generic [ref=e44]:
+              - generic [ref=e45]:
+                - text: <author
+                - generic [ref=e46]: pid="430/0878"
+                - text: ">"
+              - text: Muhammad Saad Ali
+              - generic [ref=e47]: </author>
+            - generic [ref=e48]:
+              - generic [ref=e49]:
+                - text: <author
+                - generic [ref=e50]: pid="430/3611"
+                - text: ">"
+              - text: Daanish U. Khan
+              - generic [ref=e51]: </author>
+            - generic [ref=e52]:
+              - generic [ref=e53]:
+                - text: <author
+                - generic [ref=e54]: pid="430/0057"
+                - text: ">"
+              - text: Laiba Intizar Ahmad
+              - generic [ref=e55]: </author>
+            - generic [ref=e56]:
+              - generic [ref=e57]:
+                - text: <author
+                - generic [ref=e58]: pid="430/2070"
+                - text: ">"
+              - text: Umer Irfan
+              - generic [ref=e59]: </author>
+            - generic [ref=e60]:
+              - generic [ref=e61]:
+                - text: <author
+                - generic [ref=e62]: pid="52/4442"
+                - text: ">"
+              - text: Maryam Mustafa
+              - generic [ref=e63]: </author>
+            - generic [ref=e64]:
+              - generic [ref=e65]:
+                - text: <author
+                - generic [ref=e66]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e67]: </author>
+            - generic [ref=e68]:
+              - generic [ref=e69]:
+                - text: <author
+                - generic [ref=e70]: pid="20/2099"
+                - text: ">"
+              - text: Muhammad Hamad Alizai
+              - generic [ref=e71]: </author>
+            - generic [ref=e72]:
+              - generic [ref=e73]: <title>
+              - text: "Kissan-Dost: Bridging the Last Mile in Smallholder Precision Agriculture with Conversational IoT."
+              - generic [ref=e74]: </title>
+            - generic [ref=e75]:
+              - generic [ref=e76]: <year>
+              - text: "2026"
+              - generic [ref=e77]: </year>
+            - generic [ref=e78]:
+              - generic [ref=e79]: <month>
+              - text: February
+              - generic [ref=e80]: </month>
+            - generic [ref=e81]:
+              - generic [ref=e82]: <volume>
+              - text: abs/2602.08593
+              - generic [ref=e83]: </volume>
+            - generic [ref=e84]:
+              - generic [ref=e85]: <journal>
+              - text: CoRR
+              - generic [ref=e86]: </journal>
+            - generic [ref=e87]:
+              - generic [ref=e88]:
+                - text: <ee
+                - generic [ref=e89]: type="oa"
+                - text: ">"
+              - text: https://doi.org/10.48550/arXiv.2602.08593
+              - generic [ref=e90]: </ee>
+            - generic [ref=e91]:
+              - generic [ref=e92]: <url>
+              - text: db/journals/corr/corr2602.html#abs-2602-08593
+              - generic [ref=e93]: </url>
+            - generic [ref=e94]:
+              - generic [ref=e95]: <stream>
+              - text: streams/journals/corr
+              - generic [ref=e96]: </stream>
+          - generic [ref=e98]: </article>
+        - generic [ref=e100]: </r>
+      - generic [ref=e101]:
+        - generic [ref=e104]: <r>
+        - generic [ref=e106]:
+          - generic [ref=e109]:
+            - text: <article
+            - generic [ref=e110]: publtype="informal"
+            - generic [ref=e111]: key="journals/corr/abs-2602-08701"
+            - generic [ref=e112]: mdate="2026-03-25"
+            - text: ">"
+          - generic [ref=e113]:
+            - generic [ref=e114]:
+              - generic [ref=e115]:
+                - text: <author
+                - generic [ref=e116]: pid="430/0541"
+                - text: ">"
+              - text: Mohammad Shaharyar Ahsan
+              - generic [ref=e117]: </author>
+            - generic [ref=e118]:
+              - generic [ref=e119]:
+                - text: <author
+                - generic [ref=e120]: pid="430/4435"
+                - text: ">"
+              - text: Areeba Shahzad Shaikh
+              - generic [ref=e121]: </author>
+            - generic [ref=e122]:
+              - generic [ref=e123]:
+                - text: <author
+                - generic [ref=e124]: pid="429/9977"
+                - text: ">"
+              - text: Maham Zahid
+              - generic [ref=e125]: </author>
+            - generic [ref=e126]:
+              - generic [ref=e127]:
+                - text: <author
+                - generic [ref=e128]: pid="430/2070"
+                - text: ">"
+              - text: Umer Irfan
+              - generic [ref=e129]: </author>
+            - generic [ref=e130]:
+              - generic [ref=e131]:
+                - text: <author
+                - generic [ref=e132]: pid="52/4442"
+                - text: ">"
+              - text: Maryam Mustafa
+              - generic [ref=e133]: </author>
+            - generic [ref=e134]:
+              - generic [ref=e135]:
+                - text: <author
+                - generic [ref=e136]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e137]: </author>
+            - generic [ref=e138]:
+              - generic [ref=e139]:
+                - text: <author
+                - generic [ref=e140]: pid="20/2099"
+                - text: ">"
+              - text: Muhammad Hamad Alizai
+              - generic [ref=e141]: </author>
+            - generic [ref=e142]:
+              - generic [ref=e143]: <title>
+              - text: LLM-Enhanced Wearables for Comprehensible Health Guidance in LMICs.
+              - generic [ref=e144]: </title>
+            - generic [ref=e145]:
+              - generic [ref=e146]: <year>
+              - text: "2026"
+              - generic [ref=e147]: </year>
+            - generic [ref=e148]:
+              - generic [ref=e149]: <month>
+              - text: February
+              - generic [ref=e150]: </month>
+            - generic [ref=e151]:
+              - generic [ref=e152]: <volume>
+              - text: abs/2602.08701
+              - generic [ref=e153]: </volume>
+            - generic [ref=e154]:
+              - generic [ref=e155]: <journal>
+              - text: CoRR
+              - generic [ref=e156]: </journal>
+            - generic [ref=e157]:
+              - generic [ref=e158]:
+                - text: <ee
+                - generic [ref=e159]: type="oa"
+                - text: ">"
+              - text: https://doi.org/10.48550/arXiv.2602.08701
+              - generic [ref=e160]: </ee>
+            - generic [ref=e161]:
+              - generic [ref=e162]: <url>
+              - text: db/journals/corr/corr2602.html#abs-2602-08701
+              - generic [ref=e163]: </url>
+            - generic [ref=e164]:
+              - generic [ref=e165]: <stream>
+              - text: streams/journals/corr
+              - generic [ref=e166]: </stream>
+          - generic [ref=e168]: </article>
+        - generic [ref=e170]: </r>
+      - generic [ref=e171]:
+        - generic [ref=e174]: <r>
+        - generic [ref=e176]:
+          - generic [ref=e179]:
+            - text: <inproceedings
+            - generic [ref=e180]: key="conf/asiaccs/Najeeb0AB25"
+            - generic [ref=e181]: mdate="2025-10-14"
+            - text: ">"
+          - generic [ref=e182]:
+            - generic [ref=e183]:
+              - generic [ref=e184]:
+                - text: <author
+                - generic [ref=e185]: orcid="0009-0007-2379-368X"
+                - generic [ref=e186]: pid="387/8220"
+                - text: ">"
+              - text: Ahmed Najeeb
+              - generic [ref=e187]: </author>
+            - generic [ref=e188]:
+              - generic [ref=e189]:
+                - text: <author
+                - generic [ref=e190]: orcid="0009-0003-5524-4010"
+                - generic [ref=e191]: pid="198/8811-2"
+                - text: ">"
+              - text: Abdul Rafay 0002
+              - generic [ref=e192]: </author>
+            - generic [ref=e193]:
+              - generic [ref=e194]:
+                - text: <author
+                - generic [ref=e195]: orcid="0000-0003-3112-0374"
+                - generic [ref=e196]: pid="20/2099"
+                - text: ">"
+              - text: Muhammad Hamad Alizai
+              - generic [ref=e197]: </author>
+            - generic [ref=e198]:
+              - generic [ref=e199]:
+                - text: <author
+                - generic [ref=e200]: orcid="0000-0003-4115-9889"
+                - generic [ref=e201]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e202]: </author>
+            - generic [ref=e203]:
+              - generic [ref=e204]: <title>
+              - text: "Glitch in Time: Exploiting Temporal Misalignment of IMU For Eavesdropping."
+              - generic [ref=e205]: </title>
+            - generic [ref=e206]:
+              - generic [ref=e207]: <pages>
+              - text: 530-541
+              - generic [ref=e208]: </pages>
+            - generic [ref=e209]:
+              - generic [ref=e210]: <year>
+              - text: "2025"
+              - generic [ref=e211]: </year>
+            - generic [ref=e212]:
+              - generic [ref=e213]: <booktitle>
+              - text: AsiaCCS
+              - generic [ref=e214]: </booktitle>
+            - generic [ref=e215]:
+              - generic [ref=e216]: <ee>
+              - text: https://doi.org/10.1145/3708821.3710825
+              - generic [ref=e217]: </ee>
+            - generic [ref=e218]:
+              - generic [ref=e219]: <crossref>
+              - text: conf/asiaccs/2025
+              - generic [ref=e220]: </crossref>
+            - generic [ref=e221]:
+              - generic [ref=e222]: <url>
+              - text: db/conf/asiaccs/asiaccs2025.html#Najeeb0AB25
+              - generic [ref=e223]: </url>
+          - generic [ref=e225]: </inproceedings>
+        - generic [ref=e227]: </r>
+      - generic [ref=e228]:
+        - generic [ref=e231]: <r>
+        - generic [ref=e233]:
+          - generic [ref=e236]:
+            - text: <inproceedings
+            - generic [ref=e237]: key="conf/icc/SangeenBK25"
+            - generic [ref=e238]: mdate="2025-10-18"
+            - text: ">"
+          - generic [ref=e239]:
+            - generic [ref=e240]:
+              - generic [ref=e241]:
+                - text: <author
+                - generic [ref=e242]: pid="357/3054"
+                - text: ">"
+              - text: Muhammad Sangeen
+              - generic [ref=e243]: </author>
+            - generic [ref=e244]:
+              - generic [ref=e245]:
+                - text: <author
+                - generic [ref=e246]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e247]: </author>
+            - generic [ref=e248]:
+              - generic [ref=e249]:
+                - text: <author
+                - generic [ref=e250]: pid="53/2466"
+                - text: ">"
+              - text: Kashif Kifayat
+              - generic [ref=e251]: </author>
+            - generic [ref=e252]:
+              - generic [ref=e253]: <title>
+              - text: "PortScout: A Communication Flow-Based Approach to Detect Port Scanning Evasion Attacks."
+              - generic [ref=e254]: </title>
+            - generic [ref=e255]:
+              - generic [ref=e256]: <pages>
+              - text: 3045-3050
+              - generic [ref=e257]: </pages>
+            - generic [ref=e258]:
+              - generic [ref=e259]: <year>
+              - text: "2025"
+              - generic [ref=e260]: </year>
+            - generic [ref=e261]:
+              - generic [ref=e262]: <booktitle>
+              - text: ICC
+              - generic [ref=e263]: </booktitle>
+            - generic [ref=e264]:
+              - generic [ref=e265]: <ee>
+              - text: https://doi.org/10.1109/ICC52391.2025.11160775
+              - generic [ref=e266]: </ee>
+            - generic [ref=e267]:
+              - generic [ref=e268]: <crossref>
+              - text: conf/icc/2025
+              - generic [ref=e269]: </crossref>
+            - generic [ref=e270]:
+              - generic [ref=e271]: <url>
+              - text: db/conf/icc/icc2025.html#SangeenBK25
+              - generic [ref=e272]: </url>
+            - generic [ref=e273]:
+              - generic [ref=e274]: <stream>
+              - text: streams/conf/icc
+              - generic [ref=e275]: </stream>
+          - generic [ref=e277]: </inproceedings>
+        - generic [ref=e279]: </r>
+      - generic [ref=e280]:
+        - generic [ref=e283]: <r>
+        - generic [ref=e285]:
+          - generic [ref=e288]:
+            - text: <inproceedings
+            - generic [ref=e289]: key="conf/sensys/Sayyid-Ali0SAB25"
+            - generic [ref=e290]: mdate="2025-05-09"
+            - text: ">"
+          - generic [ref=e291]:
+            - generic [ref=e292]:
+              - generic [ref=e293]:
+                - text: <author
+                - generic [ref=e294]: orcid="0009-0005-7748-620X"
+                - generic [ref=e295]: pid="393/1860"
+                - text: ">"
+              - text: Abdur-Rahman Ibrahim Sayyid-Ali
+              - generic [ref=e296]: </author>
+            - generic [ref=e297]:
+              - generic [ref=e298]:
+                - text: <author
+                - generic [ref=e299]: orcid="0009-0003-5524-4010"
+                - generic [ref=e300]: pid="198/8811-2"
+                - text: ">"
+              - text: Abdul Rafay 0002
+              - generic [ref=e301]: </author>
+            - generic [ref=e302]:
+              - generic [ref=e303]:
+                - text: <author
+                - generic [ref=e304]: orcid="0009-0006-1751-4552"
+                - generic [ref=e305]: pid="391/7192"
+                - text: ">"
+              - text: Muhammad Abdullah Soomro
+              - generic [ref=e306]: </author>
+            - generic [ref=e307]:
+              - generic [ref=e308]:
+                - text: <author
+                - generic [ref=e309]: orcid="0000-0003-3112-0374"
+                - generic [ref=e310]: pid="20/2099"
+                - text: ">"
+              - text: Muhammad Hamad Alizai
+              - generic [ref=e311]: </author>
+            - generic [ref=e312]:
+              - generic [ref=e313]:
+                - text: <author
+                - generic [ref=e314]: orcid="0000-0003-4115-9889"
+                - generic [ref=e315]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e316]: </author>
+            - generic [ref=e317]:
+              - generic [ref=e318]: <title>
+              - text: "CheckMate: LLM-Powered Approximate Intermittent Computing."
+              - generic [ref=e319]: </title>
+            - generic [ref=e320]:
+              - generic [ref=e321]: <pages>
+              - text: 71-87
+              - generic [ref=e322]: </pages>
+            - generic [ref=e323]:
+              - generic [ref=e324]: <year>
+              - text: "2025"
+              - generic [ref=e325]: </year>
+            - generic [ref=e326]:
+              - generic [ref=e327]: <booktitle>
+              - text: SenSys
+              - generic [ref=e328]: </booktitle>
+            - generic [ref=e329]:
+              - generic [ref=e330]: <ee>
+              - text: https://doi.org/10.1145/3715014.3722056
+              - generic [ref=e331]: </ee>
+            - generic [ref=e332]:
+              - generic [ref=e333]: <crossref>
+              - text: conf/sensys/2025
+              - generic [ref=e334]: </crossref>
+            - generic [ref=e335]:
+              - generic [ref=e336]: <url>
+              - text: db/conf/sensys/sensys2025.html#Sayyid-Ali0SAB25
+              - generic [ref=e337]: </url>
+          - generic [ref=e339]: </inproceedings>
+        - generic [ref=e341]: </r>
+      - generic [ref=e342]:
+        - generic [ref=e345]: <r>
+        - generic [ref=e347]:
+          - generic [ref=e350]:
+            - text: <inproceedings
+            - generic [ref=e351]: key="conf/wcnc/KhowajaLKBSD25"
+            - generic [ref=e352]: mdate="2026-01-12"
+            - text: ">"
+          - generic [ref=e353]:
+            - generic [ref=e354]:
+              - generic [ref=e355]:
+                - text: <author
+                - generic [ref=e356]: orcid="0000-0002-4586-4131"
+                - generic [ref=e357]: pid="204/8791"
+                - text: ">"
+              - text: Sunder Ali Khowaja
+              - generic [ref=e358]: </author>
+            - generic [ref=e359]:
+              - generic [ref=e360]:
+                - text: <author
+                - generic [ref=e361]: pid="122/0027"
+                - text: ">"
+              - text: Ik Hyun Lee
+              - generic [ref=e362]: </author>
+            - generic [ref=e363]:
+              - generic [ref=e364]:
+                - text: <author
+                - generic [ref=e365]: orcid="0000-0002-6499-1734"
+                - generic [ref=e366]: pid="236/6939"
+                - text: ">"
+              - text: Parus Khuwaja
+              - generic [ref=e367]: </author>
+            - generic [ref=e368]:
+              - generic [ref=e369]:
+                - text: <author
+                - generic [ref=e370]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e371]: </author>
+            - generic [ref=e372]:
+              - generic [ref=e373]:
+                - text: <author
+                - generic [ref=e374]: pid="132/7939-1"
+                - text: ">"
+              - text: Keshav Singh 0001
+              - generic [ref=e375]: </author>
+            - generic [ref=e376]:
+              - generic [ref=e377]:
+                - text: <author
+                - generic [ref=e378]: pid="254/5735"
+                - text: ">"
+              - text: Kapal Dev
+              - generic [ref=e379]: </author>
+            - generic [ref=e380]:
+              - generic [ref=e381]: <title>
+              - text: "FLEXFL: Flexible Federated Learning for Customized Network Architectures in 6G."
+              - generic [ref=e382]: </title>
+            - generic [ref=e383]:
+              - generic [ref=e384]: <pages>
+              - text: 1-6
+              - generic [ref=e385]: </pages>
+            - generic [ref=e386]:
+              - generic [ref=e387]: <year>
+              - text: "2025"
+              - generic [ref=e388]: </year>
+            - generic [ref=e389]:
+              - generic [ref=e390]: <booktitle>
+              - text: WCNC
+              - generic [ref=e391]: </booktitle>
+            - generic [ref=e392]:
+              - generic [ref=e393]: <ee>
+              - text: https://doi.org/10.1109/WCNC61545.2025.10978249
+              - generic [ref=e394]: </ee>
+            - generic [ref=e395]:
+              - generic [ref=e396]: <crossref>
+              - text: conf/wcnc/2025
+              - generic [ref=e397]: </crossref>
+            - generic [ref=e398]:
+              - generic [ref=e399]: <url>
+              - text: db/conf/wcnc/wcnc2025.html#KhowajaLKBSD25
+              - generic [ref=e400]: </url>
+          - generic [ref=e402]: </inproceedings>
+        - generic [ref=e404]: </r>
+      - generic [ref=e405]:
+        - generic [ref=e408]: <r>
+        - generic [ref=e410]:
+          - generic [ref=e413]:
+            - text: <inproceedings
+            - generic [ref=e414]: key="conf/wcnc/SoomroBA25"
+            - generic [ref=e415]: mdate="2025-05-26"
+            - text: ">"
+          - generic [ref=e416]:
+            - generic [ref=e417]:
+              - generic [ref=e418]:
+                - text: <author
+                - generic [ref=e419]: pid="391/7192"
+                - text: ">"
+              - text: Muhammad Abdullah Soomro
+              - generic [ref=e420]: </author>
+            - generic [ref=e421]:
+              - generic [ref=e422]:
+                - text: <author
+                - generic [ref=e423]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e424]: </author>
+            - generic [ref=e425]:
+              - generic [ref=e426]:
+                - text: <author
+                - generic [ref=e427]: pid="20/2099"
+                - text: ">"
+              - text: Muhammad Hamad Alizai
+              - generic [ref=e428]: </author>
+            - generic [ref=e429]:
+              - generic [ref=e430]: <title>
+              - text: "Approxify: Automating Energy-Accuracy Trade-offs in Batteryless IoT Devices."
+              - generic [ref=e431]: </title>
+            - generic [ref=e432]:
+              - generic [ref=e433]: <pages>
+              - text: 1-6
+              - generic [ref=e434]: </pages>
+            - generic [ref=e435]:
+              - generic [ref=e436]: <year>
+              - text: "2025"
+              - generic [ref=e437]: </year>
+            - generic [ref=e438]:
+              - generic [ref=e439]: <booktitle>
+              - text: WCNC
+              - generic [ref=e440]: </booktitle>
+            - generic [ref=e441]:
+              - generic [ref=e442]: <ee>
+              - text: https://doi.org/10.1109/WCNC61545.2025.10978153
+              - generic [ref=e443]: </ee>
+            - generic [ref=e444]:
+              - generic [ref=e445]: <crossref>
+              - text: conf/wcnc/2025
+              - generic [ref=e446]: </crossref>
+            - generic [ref=e447]:
+              - generic [ref=e448]: <url>
+              - text: db/conf/wcnc/wcnc2025.html#SoomroBA25
+              - generic [ref=e449]: </url>
+          - generic [ref=e451]: </inproceedings>
+        - generic [ref=e453]: </r>
+      - generic [ref=e454]:
+        - generic [ref=e457]: <r>
+        - generic [ref=e459]:
+          - generic [ref=e462]:
+            - text: <article
+            - generic [ref=e463]: publtype="informal"
+            - generic [ref=e464]: key="journals/corr/abs-2507-23674"
+            - generic [ref=e465]: mdate="2025-08-22"
+            - text: ">"
+          - generic [ref=e466]:
+            - generic [ref=e467]:
+              - generic [ref=e468]:
+                - text: <author
+                - generic [ref=e469]: pid="413/8853"
+                - text: ">"
+              - text: Muhammad Taha Cheema
+              - generic [ref=e470]: </author>
+            - generic [ref=e471]:
+              - generic [ref=e472]:
+                - text: <author
+                - generic [ref=e473]: pid="413/9364"
+                - text: ">"
+              - text: Abeer Aamir
+              - generic [ref=e474]: </author>
+            - generic [ref=e475]:
+              - generic [ref=e476]:
+                - text: <author
+                - generic [ref=e477]: pid="413/8964"
+                - text: ">"
+              - text: Khawaja Gul Muhammad
+              - generic [ref=e478]: </author>
+            - generic [ref=e479]:
+              - generic [ref=e480]:
+                - text: <author
+                - generic [ref=e481]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e482]: </author>
+            - generic [ref=e483]:
+              - generic [ref=e484]:
+                - text: <author
+                - generic [ref=e485]: pid="98/776"
+                - text: ">"
+              - text: Ihsan Ayyub Qazi
+              - generic [ref=e486]: </author>
+            - generic [ref=e487]:
+              - generic [ref=e488]:
+                - text: <author
+                - generic [ref=e489]: pid="131/6120"
+                - text: ">"
+              - text: Zafar Ayyub Qazi
+              - generic [ref=e490]: </author>
+            - generic [ref=e491]:
+              - generic [ref=e492]: <title>
+              - text: "TweakLLM: A Routing Architecture for Dynamic Tailoring of Cached Responses."
+              - generic [ref=e493]: </title>
+            - generic [ref=e494]:
+              - generic [ref=e495]: <year>
+              - text: "2025"
+              - generic [ref=e496]: </year>
+            - generic [ref=e497]:
+              - generic [ref=e498]: <month>
+              - text: July
+              - generic [ref=e499]: </month>
+            - generic [ref=e500]:
+              - generic [ref=e501]: <volume>
+              - text: abs/2507.23674
+              - generic [ref=e502]: </volume>
+            - generic [ref=e503]:
+              - generic [ref=e504]: <journal>
+              - text: CoRR
+              - generic [ref=e505]: </journal>
+            - generic [ref=e506]:
+              - generic [ref=e507]:
+                - text: <ee
+                - generic [ref=e508]: type="oa"
+                - text: ">"
+              - text: https://doi.org/10.48550/arXiv.2507.23674
+              - generic [ref=e509]: </ee>
+            - generic [ref=e510]:
+              - generic [ref=e511]: <url>
+              - text: db/journals/corr/corr2507.html#abs-2507-23674
+              - generic [ref=e512]: </url>
+            - generic [ref=e513]:
+              - generic [ref=e514]: <stream>
+              - text: streams/journals/corr
+              - generic [ref=e515]: </stream>
+          - generic [ref=e517]: </article>
+        - generic [ref=e519]: </r>
+      - generic [ref=e520]:
+        - generic [ref=e523]: <r>
+        - generic [ref=e525]:
+          - generic [ref=e528]:
+            - text: <article
+            - generic [ref=e529]: publtype="informal"
+            - generic [ref=e530]: key="journals/corr/abs-2409-16438"
+            - generic [ref=e531]: mdate="2024-10-22"
+            - text: ">"
+          - generic [ref=e532]:
+            - generic [ref=e533]:
+              - generic [ref=e534]:
+                - text: <author
+                - generic [ref=e535]: pid="387/8220"
+                - text: ">"
+              - text: Ahmed Najeeb
+              - generic [ref=e536]: </author>
+            - generic [ref=e537]:
+              - generic [ref=e538]:
+                - text: <author
+                - generic [ref=e539]: pid="198/8811-2"
+                - text: ">"
+              - text: Abdul Rafay 0002
+              - generic [ref=e540]: </author>
+            - generic [ref=e541]:
+              - generic [ref=e542]:
+                - text: <author
+                - generic [ref=e543]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e544]: </author>
+            - generic [ref=e545]:
+              - generic [ref=e546]:
+                - text: <author
+                - generic [ref=e547]: pid="20/2099"
+                - text: ">"
+              - text: Muhammad Hamad Alizai
+              - generic [ref=e548]: </author>
+            - generic [ref=e549]:
+              - generic [ref=e550]: <title>
+              - text: "Glitch in Time: Exploiting Temporal Misalignment of IMU For Eavesdropping."
+              - generic [ref=e551]: </title>
+            - generic [ref=e552]:
+              - generic [ref=e553]: <year>
+              - text: "2024"
+              - generic [ref=e554]: </year>
+            - generic [ref=e555]:
+              - generic [ref=e556]: <volume>
+              - text: abs/2409.16438
+              - generic [ref=e557]: </volume>
+            - generic [ref=e558]:
+              - generic [ref=e559]: <journal>
+              - text: CoRR
+              - generic [ref=e560]: </journal>
+            - generic [ref=e561]:
+              - generic [ref=e562]:
+                - text: <ee
+                - generic [ref=e563]: type="oa"
+                - text: ">"
+              - text: https://doi.org/10.48550/arXiv.2409.16438
+              - generic [ref=e564]: </ee>
+            - generic [ref=e565]:
+              - generic [ref=e566]: <url>
+              - text: db/journals/corr/corr2409.html#abs-2409-16438
+              - generic [ref=e567]: </url>
+            - generic [ref=e568]:
+              - generic [ref=e569]: <stream>
+              - text: streams/journals/corr
+              - generic [ref=e570]: </stream>
+          - generic [ref=e572]: </article>
+        - generic [ref=e574]: </r>
+      - generic [ref=e575]:
+        - generic [ref=e578]: <r>
+        - generic [ref=e580]:
+          - generic [ref=e583]:
+            - text: <article
+            - generic [ref=e584]: publtype="informal"
+            - generic [ref=e585]: key="journals/corr/abs-2410-07202"
+            - generic [ref=e586]: mdate="2024-11-29"
+            - text: ">"
+          - generic [ref=e587]:
+            - generic [ref=e588]:
+              - generic [ref=e589]:
+                - text: <author
+                - generic [ref=e590]: pid="391/7192"
+                - text: ">"
+              - text: Muhammad Abdullah Soomro
+              - generic [ref=e591]: </author>
+            - generic [ref=e592]:
+              - generic [ref=e593]:
+                - text: <author
+                - generic [ref=e594]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e595]: </author>
+            - generic [ref=e596]:
+              - generic [ref=e597]:
+                - text: <author
+                - generic [ref=e598]: pid="20/2099"
+                - text: ">"
+              - text: Muhammad Hamad Alizai
+              - generic [ref=e599]: </author>
+            - generic [ref=e600]:
+              - generic [ref=e601]: <title>
+              - text: "Approxify: Automating Energy-Accuracy Trade-offs in Batteryless IoT Devices."
+              - generic [ref=e602]: </title>
+            - generic [ref=e603]:
+              - generic [ref=e604]: <year>
+              - text: "2024"
+              - generic [ref=e605]: </year>
+            - generic [ref=e606]:
+              - generic [ref=e607]: <volume>
+              - text: abs/2410.07202
+              - generic [ref=e608]: </volume>
+            - generic [ref=e609]:
+              - generic [ref=e610]: <journal>
+              - text: CoRR
+              - generic [ref=e611]: </journal>
+            - generic [ref=e612]:
+              - generic [ref=e613]:
+                - text: <ee
+                - generic [ref=e614]: type="oa"
+                - text: ">"
+              - text: https://doi.org/10.48550/arXiv.2410.07202
+              - generic [ref=e615]: </ee>
+            - generic [ref=e616]:
+              - generic [ref=e617]: <url>
+              - text: db/journals/corr/corr2410.html#abs-2410-07202
+              - generic [ref=e618]: </url>
+            - generic [ref=e619]:
+              - generic [ref=e620]: <stream>
+              - text: streams/journals/corr
+              - generic [ref=e621]: </stream>
+          - generic [ref=e623]: </article>
+        - generic [ref=e625]: </r>
+      - generic [ref=e626]:
+        - generic [ref=e629]: <r>
+        - generic [ref=e631]:
+          - generic [ref=e634]:
+            - text: <article
+            - generic [ref=e635]: publtype="informal"
+            - generic [ref=e636]: key="journals/corr/abs-2411-17732"
+            - generic [ref=e637]: mdate="2025-01-01"
+            - text: ">"
+          - generic [ref=e638]:
+            - generic [ref=e639]:
+              - generic [ref=e640]:
+                - text: <author
+                - generic [ref=e641]: pid="393/1860"
+                - text: ">"
+              - text: Abdur-Rahman Ibrahim Sayyid-Ali
+              - generic [ref=e642]: </author>
+            - generic [ref=e643]:
+              - generic [ref=e644]:
+                - text: <author
+                - generic [ref=e645]: pid="198/8811-2"
+                - text: ">"
+              - text: Abdul Rafay 0002
+              - generic [ref=e646]: </author>
+            - generic [ref=e647]:
+              - generic [ref=e648]:
+                - text: <author
+                - generic [ref=e649]: pid="391/7192"
+                - text: ">"
+              - text: Muhammad Abdullah Soomro
+              - generic [ref=e650]: </author>
+            - generic [ref=e651]:
+              - generic [ref=e652]:
+                - text: <author
+                - generic [ref=e653]: pid="20/2099"
+                - text: ">"
+              - text: Muhammad Hamad Alizai
+              - generic [ref=e654]: </author>
+            - generic [ref=e655]:
+              - generic [ref=e656]:
+                - text: <author
+                - generic [ref=e657]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e658]: </author>
+            - generic [ref=e659]:
+              - generic [ref=e660]: <title>
+              - text: LLM-Powered Approximate Intermittent Computing.
+              - generic [ref=e661]: </title>
+            - generic [ref=e662]:
+              - generic [ref=e663]: <year>
+              - text: "2024"
+              - generic [ref=e664]: </year>
+            - generic [ref=e665]:
+              - generic [ref=e666]: <volume>
+              - text: abs/2411.17732
+              - generic [ref=e667]: </volume>
+            - generic [ref=e668]:
+              - generic [ref=e669]: <journal>
+              - text: CoRR
+              - generic [ref=e670]: </journal>
+            - generic [ref=e671]:
+              - generic [ref=e672]:
+                - text: <ee
+                - generic [ref=e673]: type="oa"
+                - text: ">"
+              - text: https://doi.org/10.48550/arXiv.2411.17732
+              - generic [ref=e674]: </ee>
+            - generic [ref=e675]:
+              - generic [ref=e676]: <url>
+              - text: db/journals/corr/corr2411.html#abs-2411-17732
+              - generic [ref=e677]: </url>
+            - generic [ref=e678]:
+              - generic [ref=e679]: <stream>
+              - text: streams/journals/corr
+              - generic [ref=e680]: </stream>
+          - generic [ref=e682]: </article>
+        - generic [ref=e684]: </r>
+      - generic [ref=e685]:
+        - generic [ref=e688]: <r>
+        - generic [ref=e690]:
+          - generic [ref=e693]:
+            - text: <article
+            - generic [ref=e694]: key="journals/comcom/SangeenBKAW23"
+            - generic [ref=e695]: mdate="2024-10-06"
+            - text: ">"
+          - generic [ref=e696]:
+            - generic [ref=e697]:
+              - generic [ref=e698]:
+                - text: <author
+                - generic [ref=e699]: pid="357/3054"
+                - text: ">"
+              - text: Muhammad Sangeen
+              - generic [ref=e700]: </author>
+            - generic [ref=e701]:
+              - generic [ref=e702]:
+                - text: <author
+                - generic [ref=e703]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e704]: </author>
+            - generic [ref=e705]:
+              - generic [ref=e706]:
+                - text: <author
+                - generic [ref=e707]: orcid="0000-0001-5088-0825"
+                - generic [ref=e708]: pid="53/2466"
+                - text: ">"
+              - text: Kashif Kifayat
+              - generic [ref=e709]: </author>
+            - generic [ref=e710]:
+              - generic [ref=e711]:
+                - text: <author
+                - generic [ref=e712]: pid="224/1873"
+                - text: ">"
+              - text: Abeer Abdullah Alsadhan
+              - generic [ref=e713]: </author>
+            - generic [ref=e714]:
+              - generic [ref=e715]:
+                - text: <author
+                - generic [ref=e716]: pid="325/3413"
+                - text: ">"
+              - text: Haoda Wang
+              - generic [ref=e717]: </author>
+            - generic [ref=e718]:
+              - generic [ref=e719]: <title>
+              - text: "Blind-trust: Raising awareness of the dangers of using unsecured public Wi-Fi networks."
+              - generic [ref=e720]: </title>
+            - generic [ref=e721]:
+              - generic [ref=e722]: <pages>
+              - text: 359-367
+              - generic [ref=e723]: </pages>
+            - generic [ref=e724]:
+              - generic [ref=e725]: <year>
+              - text: "2023"
+              - generic [ref=e726]: </year>
+            - generic [ref=e727]:
+              - generic [ref=e728]: <month>
+              - text: September
+              - generic [ref=e729]: </month>
+            - generic [ref=e730]:
+              - generic [ref=e731]: <volume>
+              - text: "209"
+              - generic [ref=e732]: </volume>
+            - generic [ref=e733]:
+              - generic [ref=e734]: <journal>
+              - text: Comput. Commun.
+              - generic [ref=e735]: </journal>
+            - generic [ref=e736]:
+              - generic [ref=e737]: <ee>
+              - text: https://doi.org/10.1016/j.comcom.2023.07.011
+              - generic [ref=e738]: </ee>
+            - generic [ref=e739]:
+              - generic [ref=e740]: <url>
+              - text: db/journals/comcom/comcom209.html#SangeenBKAW23
+              - generic [ref=e741]: </url>
+          - generic [ref=e743]: </article>
+        - generic [ref=e745]: </r>
+      - generic [ref=e746]:
+        - generic [ref=e749]: <r>
+        - generic [ref=e751]:
+          - generic [ref=e754]:
+            - text: <article
+            - generic [ref=e755]: key="journals/jsa/JavedBI23"
+            - generic [ref=e756]: mdate="2023-09-30"
+            - text: ">"
+          - generic [ref=e757]:
+            - generic [ref=e758]:
+              - generic [ref=e759]:
+                - text: <author
+                - generic [ref=e760]: pid="59/10820"
+                - text: ">"
+              - text: Kashif Javed
+              - generic [ref=e761]: </author>
+            - generic [ref=e762]:
+              - generic [ref=e763]:
+                - text: <author
+                - generic [ref=e764]: orcid="0000-0003-4115-9889"
+                - generic [ref=e765]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e766]: </author>
+            - generic [ref=e767]:
+              - generic [ref=e768]:
+                - text: <author
+                - generic [ref=e769]: orcid="0000-0003-3321-741X"
+                - generic [ref=e770]: pid="68/8836"
+                - text: ">"
+              - text: Mohammad Imran
+              - generic [ref=e771]: </author>
+            - generic [ref=e772]:
+              - generic [ref=e773]: <title>
+              - text: "MOPTIC-SM: Sleep mode-enabled multi-optimized intermittent computing for transiently powered systems."
+              - generic [ref=e774]: </title>
+            - generic [ref=e775]:
+              - generic [ref=e776]: <pages>
+              - text: "102850"
+              - generic [ref=e777]: </pages>
+            - generic [ref=e778]:
+              - generic [ref=e779]: <year>
+              - text: "2023"
+              - generic [ref=e780]: </year>
+            - generic [ref=e781]:
+              - generic [ref=e782]: <month>
+              - text: April
+              - generic [ref=e783]: </month>
+            - generic [ref=e784]:
+              - generic [ref=e785]: <volume>
+              - text: "137"
+              - generic [ref=e786]: </volume>
+            - generic [ref=e787]:
+              - generic [ref=e788]: <journal>
+              - text: J. Syst. Archit.
+              - generic [ref=e789]: </journal>
+            - generic [ref=e790]:
+              - generic [ref=e791]: <ee>
+              - text: https://doi.org/10.1016/j.sysarc.2023.102850
+              - generic [ref=e792]: </ee>
+            - generic [ref=e793]:
+              - generic [ref=e794]: <url>
+              - text: db/journals/jsa/jsa137.html#JavedBI23
+              - generic [ref=e795]: </url>
+          - generic [ref=e797]: </article>
+        - generic [ref=e799]: </r>
+      - generic [ref=e800]:
+        - generic [ref=e803]: <r>
+        - generic [ref=e805]:
+          - generic [ref=e808]:
+            - text: <inproceedings
+            - generic [ref=e809]: key="conf/mobiquitous/AsgharFSBA23"
+            - generic [ref=e810]: mdate="2025-05-31"
+            - text: ">"
+          - generic [ref=e811]:
+            - generic [ref=e812]:
+              - generic [ref=e813]:
+                - text: <author
+                - generic [ref=e814]: pid="404/0327"
+                - text: ">"
+              - text: Farhan Asghar
+              - generic [ref=e815]: </author>
+            - generic [ref=e816]:
+              - generic [ref=e817]:
+                - text: <author
+                - generic [ref=e818]: pid="308/4348"
+                - text: ">"
+              - text: Tehreem Fatima
+              - generic [ref=e819]: </author>
+            - generic [ref=e820]:
+              - generic [ref=e821]:
+                - text: <author
+                - generic [ref=e822]: pid="22/7567"
+                - text: ">"
+              - text: Junaid Haroon Siddiqui
+              - generic [ref=e823]: </author>
+            - generic [ref=e824]:
+              - generic [ref=e825]:
+                - text: <author
+                - generic [ref=e826]: orcid="0000-0003-4115-9889"
+                - generic [ref=e827]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e828]: </author>
+            - generic [ref=e829]:
+              - generic [ref=e830]:
+                - text: <author
+                - generic [ref=e831]: pid="20/2099"
+                - text: ">"
+              - text: Muhammad Hamad Alizai
+              - generic [ref=e832]: </author>
+            - generic [ref=e833]:
+              - generic [ref=e834]: <title>
+              - text: "Shepard: Dynamic Placement of Microservices in the Edge-Cloud Continuum."
+              - generic [ref=e835]: </title>
+            - generic [ref=e836]:
+              - generic [ref=e837]: <pages>
+              - text: 43-62
+              - generic [ref=e838]: </pages>
+            - generic [ref=e839]:
+              - generic [ref=e840]: <year>
+              - text: "2023"
+              - generic [ref=e841]: </year>
+            - generic [ref=e842]:
+              - generic [ref=e843]: <booktitle>
+              - text: MobiQuitous (2)
+              - generic [ref=e844]: </booktitle>
+            - generic [ref=e845]:
+              - generic [ref=e846]: <ee>
+              - text: https://doi.org/10.1007/978-3-031-63992-0_4
+              - generic [ref=e847]: </ee>
+            - generic [ref=e848]:
+              - generic [ref=e849]: <crossref>
+              - text: conf/mobiquitous/2023-2
+              - generic [ref=e850]: </crossref>
+            - generic [ref=e851]:
+              - generic [ref=e852]: <url>
+              - text: db/conf/mobiquitous/mobiquitous2023-2.html#AsgharFSBA23
+              - generic [ref=e853]: </url>
+          - generic [ref=e855]: </inproceedings>
+        - generic [ref=e857]: </r>
+      - generic [ref=e858]:
+        - generic [ref=e861]: <r>
+        - generic [ref=e863]:
+          - generic [ref=e866]:
+            - text: <inproceedings
+            - generic [ref=e867]: key="conf/sensys/ChaudhryRAZB23"
+            - generic [ref=e868]: mdate="2025-01-31"
+            - text: ">"
+          - generic [ref=e869]:
+            - generic [ref=e870]:
+              - generic [ref=e871]:
+                - text: <author
+                - generic [ref=e872]: orcid="0009-0002-3668-729X"
+                - generic [ref=e873]: pid="359/8462"
+                - text: ">"
+              - text: Hassan Habib Chaudhry
+              - generic [ref=e874]: </author>
+            - generic [ref=e875]:
+              - generic [ref=e876]:
+                - text: <author
+                - generic [ref=e877]: orcid="0009-0008-3840-3346"
+                - generic [ref=e878]: pid="359/8404"
+                - text: ">"
+              - text: Ramish Majeed Raja
+              - generic [ref=e879]: </author>
+            - generic [ref=e880]:
+              - generic [ref=e881]:
+                - text: <author
+                - generic [ref=e882]: orcid="0000-0003-3112-0374"
+                - generic [ref=e883]: pid="20/2099"
+                - text: ">"
+              - text: Muhammad Hamad Alizai
+              - generic [ref=e884]: </author>
+            - generic [ref=e885]:
+              - generic [ref=e886]:
+                - text: <author
+                - generic [ref=e887]: orcid="0000-0002-7568-9426"
+                - generic [ref=e888]: pid="233/7443"
+                - text: ">"
+              - text: Nauman Ahmad Zaffar
+              - generic [ref=e889]: </author>
+            - generic [ref=e890]:
+              - generic [ref=e891]:
+                - text: <author
+                - generic [ref=e892]: orcid="0000-0003-4115-9889"
+                - generic [ref=e893]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e894]: </author>
+            - generic [ref=e895]:
+              - generic [ref=e896]: <title>
+              - text: "From Waste to Watts: A Self-Sustaining Water Heating System Powered by a Thermoelectric Generator."
+              - generic [ref=e897]: </title>
+            - generic [ref=e898]:
+              - generic [ref=e899]: <pages>
+              - text: 244-247
+              - generic [ref=e900]: </pages>
+            - generic [ref=e901]:
+              - generic [ref=e902]: <year>
+              - text: "2023"
+              - generic [ref=e903]: </year>
+            - generic [ref=e904]:
+              - generic [ref=e905]: <booktitle>
+              - text: BuildSys
+              - generic [ref=e906]: </booktitle>
+            - generic [ref=e907]:
+              - generic [ref=e908]: <ee>
+              - text: https://doi.org/10.1145/3600100.3623743
+              - generic [ref=e909]: </ee>
+            - generic [ref=e910]:
+              - generic [ref=e911]: <crossref>
+              - text: conf/sensys/2023buildsys
+              - generic [ref=e912]: </crossref>
+            - generic [ref=e913]:
+              - generic [ref=e914]: <url>
+              - text: db/conf/sensys/buildsys2023.html#ChaudhryRAZB23
+              - generic [ref=e915]: </url>
+          - generic [ref=e917]: </inproceedings>
+        - generic [ref=e919]: </r>
+      - generic [ref=e920]:
+        - generic [ref=e923]: <r>
+        - generic [ref=e925]:
+          - generic [ref=e928]:
+            - text: <article
+            - generic [ref=e929]: key="journals/jpdc/SootherUDKBH22"
+            - generic [ref=e930]: mdate="2025-03-03"
+            - text: ">"
+          - generic [ref=e931]:
+            - generic [ref=e932]:
+              - generic [ref=e933]:
+                - text: <author
+                - generic [ref=e934]: orcid="0000-0002-6211-1078"
+                - generic [ref=e935]: pid="308/7161"
+                - text: ">"
+              - text: Dileep Kumar Soother
+              - generic [ref=e936]: </author>
+            - generic [ref=e937]:
+              - generic [ref=e938]:
+                - text: <author
+                - generic [ref=e939]: orcid="0000-0003-1879-8754"
+                - generic [ref=e940]: pid="308/6703"
+                - text: ">"
+              - text: Sanaullah Mehran Ujjan
+              - generic [ref=e941]: </author>
+            - generic [ref=e942]:
+              - generic [ref=e943]:
+                - text: <author
+                - generic [ref=e944]: orcid="0000-0003-1262-8594"
+                - generic [ref=e945]: pid="254/5735"
+                - text: ">"
+              - text: Kapal Dev
+              - generic [ref=e946]: </author>
+            - generic [ref=e947]:
+              - generic [ref=e948]:
+                - text: <author
+                - generic [ref=e949]: orcid="0000-0002-4586-4131"
+                - generic [ref=e950]: pid="204/8791"
+                - text: ">"
+              - text: Sunder Ali Khowaja
+              - generic [ref=e951]: </author>
+            - generic [ref=e952]:
+              - generic [ref=e953]:
+                - text: <author
+                - generic [ref=e954]: orcid="0000-0003-4115-9889"
+                - generic [ref=e955]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e956]: </author>
+            - generic [ref=e957]:
+              - generic [ref=e958]:
+                - text: <author
+                - generic [ref=e959]: orcid="0000-0002-6208-1702"
+                - generic [ref=e960]: pid="00/4425"
+                - text: ">"
+              - text: Tanweer Hussain
+              - generic [ref=e961]: </author>
+            - generic [ref=e962]:
+              - generic [ref=e963]: <title>
+              - text: Towards soft real-time fault diagnosis for edge devices in industrial IoT using deep domain adaptation training strategy.
+              - generic [ref=e964]: </title>
+            - generic [ref=e965]:
+              - generic [ref=e966]: <pages>
+              - text: 90-99
+              - generic [ref=e967]: </pages>
+            - generic [ref=e968]:
+              - generic [ref=e969]: <year>
+              - text: "2022"
+              - generic [ref=e970]: </year>
+            - generic [ref=e971]:
+              - generic [ref=e972]: <volume>
+              - text: "160"
+              - generic [ref=e973]: </volume>
+            - generic [ref=e974]:
+              - generic [ref=e975]: <journal>
+              - text: J. Parallel Distributed Comput.
+              - generic [ref=e976]: </journal>
+            - generic [ref=e977]:
+              - generic [ref=e978]: <ee>
+              - text: https://doi.org/10.1016/j.jpdc.2021.10.005
+              - generic [ref=e979]: </ee>
+            - generic [ref=e980]:
+              - generic [ref=e981]: <url>
+              - text: db/journals/jpdc/jpdc160.html#SootherUDKBH22
+              - generic [ref=e982]: </url>
+          - generic [ref=e984]: </article>
+        - generic [ref=e986]: </r>
+      - generic [ref=e987]:
+        - generic [ref=e990]: <r>
+        - generic [ref=e992]:
+          - generic [ref=e995]:
+            - text: <article
+            - generic [ref=e996]: key="journals/iotj/ShahBDC21"
+            - generic [ref=e997]: mdate="2021-06-01"
+            - text: ">"
+          - generic [ref=e998]:
+            - generic [ref=e999]:
+              - generic [ref=e1000]:
+                - text: <author
+                - generic [ref=e1001]: pid="271/6663"
+                - text: ">"
+              - text: Ali Akbar Shah
+              - generic [ref=e1002]: </author>
+            - generic [ref=e1003]:
+              - generic [ref=e1004]:
+                - text: <author
+                - generic [ref=e1005]: orcid="0000-0003-4115-9889"
+                - generic [ref=e1006]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e1007]: </author>
+            - generic [ref=e1008]:
+              - generic [ref=e1009]:
+                - text: <author
+                - generic [ref=e1010]: orcid="0000-0003-1262-8594"
+                - generic [ref=e1011]: pid="254/5735"
+                - text: ">"
+              - text: Kapal Dev
+              - generic [ref=e1012]: </author>
+            - generic [ref=e1013]:
+              - generic [ref=e1014]:
+                - text: <author
+                - generic [ref=e1015]: orcid="0000-0002-4340-9602"
+                - generic [ref=e1016]: pid="45/5627"
+                - text: ">"
+              - text: Bhawani Shankar Chowdhry
+              - generic [ref=e1017]: </author>
+            - generic [ref=e1018]:
+              - generic [ref=e1019]: <title>
+              - text: "MUHAFIZ: IoT-Based Track Recording Vehicle for the Damage Analysis of the Railway Track."
+              - generic [ref=e1020]: </title>
+            - generic [ref=e1021]:
+              - generic [ref=e1022]: <pages>
+              - text: 9397-9406
+              - generic [ref=e1023]: </pages>
+            - generic [ref=e1024]:
+              - generic [ref=e1025]: <year>
+              - text: "2021"
+              - generic [ref=e1026]: </year>
+            - generic [ref=e1027]:
+              - generic [ref=e1028]: <volume>
+              - text: "8"
+              - generic [ref=e1029]: </volume>
+            - generic [ref=e1030]:
+              - generic [ref=e1031]: <journal>
+              - text: IEEE Internet Things J.
+              - generic [ref=e1032]: </journal>
+            - generic [ref=e1033]:
+              - generic [ref=e1034]: <number>
+              - text: "11"
+              - generic [ref=e1035]: </number>
+            - generic [ref=e1036]:
+              - generic [ref=e1037]: <ee>
+              - text: https://doi.org/10.1109/JIOT.2021.3057835
+              - generic [ref=e1038]: </ee>
+            - generic [ref=e1039]:
+              - generic [ref=e1040]: <url>
+              - text: db/journals/iotj/iotj8.html#ShahBDC21
+              - generic [ref=e1041]: </url>
+          - generic [ref=e1043]: </article>
+        - generic [ref=e1045]: </r>
+      - generic [ref=e1046]:
+        - generic [ref=e1049]: <r>
+        - generic [ref=e1051]:
+          - generic [ref=e1054]:
+            - text: <article
+            - generic [ref=e1055]: key="journals/jsa/AhmedBBA21"
+            - generic [ref=e1056]: mdate="2025-09-06"
+            - text: ">"
+          - generic [ref=e1057]:
+            - generic [ref=e1058]:
+              - generic [ref=e1059]:
+                - text: <author
+                - generic [ref=e1060]: orcid="0000-0002-0341-2997"
+                - generic [ref=e1061]: pid="01/10415"
+                - text: ">"
+              - text: Saad Ahmed
+              - generic [ref=e1062]: </author>
+            - generic [ref=e1063]:
+              - generic [ref=e1064]:
+                - text: <author
+                - generic [ref=e1065]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e1066]: </author>
+            - generic [ref=e1067]:
+              - generic [ref=e1068]:
+                - text: <author
+                - generic [ref=e1069]: orcid="0000-0002-3077-2680"
+                - generic [ref=e1070]: pid="129/1931"
+                - text: ">"
+              - text: Martina Brachmann
+              - generic [ref=e1071]: </author>
+            - generic [ref=e1072]:
+              - generic [ref=e1073]:
+                - text: <author
+                - generic [ref=e1074]: pid="20/2099"
+                - text: ">"
+              - text: Muhammad Hamad Alizai
+              - generic [ref=e1075]: </author>
+            - generic [ref=e1076]:
+              - generic [ref=e1077]: <title>
+              - text: A survey on program-state retention for transiently-powered systems.
+              - generic [ref=e1078]: </title>
+            - generic [ref=e1079]:
+              - generic [ref=e1080]: <pages>
+              - text: "102013"
+              - generic [ref=e1081]: </pages>
+            - generic [ref=e1082]:
+              - generic [ref=e1083]: <year>
+              - text: "2021"
+              - generic [ref=e1084]: </year>
+            - generic [ref=e1085]:
+              - generic [ref=e1086]: <volume>
+              - text: "115"
+              - generic [ref=e1087]: </volume>
+            - generic [ref=e1088]:
+              - generic [ref=e1089]: <journal>
+              - text: J. Syst. Archit.
+              - generic [ref=e1090]: </journal>
+            - generic [ref=e1091]:
+              - generic [ref=e1092]: <ee>
+              - text: https://doi.org/10.1016/j.sysarc.2021.102013
+              - generic [ref=e1093]: </ee>
+            - generic [ref=e1094]:
+              - generic [ref=e1095]: <url>
+              - text: db/journals/jsa/jsa115.html#AhmedBBA21
+              - generic [ref=e1096]: </url>
+          - generic [ref=e1098]: </article>
+        - generic [ref=e1100]: </r>
+      - generic [ref=e1101]:
+        - generic [ref=e1104]: <r>
+        - generic [ref=e1106]:
+          - generic [ref=e1109]:
+            - text: <article
+            - generic [ref=e1110]: key="journals/wpc/ZehraQDSB21"
+            - generic [ref=e1111]: mdate="2024-05-07"
+            - text: ">"
+          - generic [ref=e1112]:
+            - generic [ref=e1113]:
+              - generic [ref=e1114]:
+                - text: <author
+                - generic [ref=e1115]: orcid="0000-0001-6502-356X"
+                - generic [ref=e1116]: pid="283/9174"
+                - text: ">"
+              - text: Syeda Sundus Zehra
+              - generic [ref=e1117]: </author>
+            - generic [ref=e1118]:
+              - generic [ref=e1119]:
+                - text: <author
+                - generic [ref=e1120]: orcid="0000-0001-8946-6170"
+                - generic [ref=e1121]: pid="61/7825"
+                - text: ">"
+              - text: Rehan Qureshi
+              - generic [ref=e1122]: </author>
+            - generic [ref=e1123]:
+              - generic [ref=e1124]:
+                - text: <author
+                - generic [ref=e1125]: orcid="0000-0003-1262-8594"
+                - generic [ref=e1126]: pid="254/5735"
+                - text: ">"
+              - text: Kapal Dev
+              - generic [ref=e1127]: </author>
+            - generic [ref=e1128]:
+              - generic [ref=e1129]:
+                - text: <author
+                - generic [ref=e1130]: orcid="0000-0002-7610-9948"
+                - generic [ref=e1131]: pid="217/1227"
+                - text: ">"
+              - text: Saleem Shahid
+              - generic [ref=e1132]: </author>
+            - generic [ref=e1133]:
+              - generic [ref=e1134]:
+                - text: <author
+                - generic [ref=e1135]: orcid="0000-0003-4115-9889"
+                - generic [ref=e1136]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e1137]: </author>
+            - generic [ref=e1138]:
+              - generic [ref=e1139]: <title>
+              - text: Comparative Analysis of Bio-Inspired Algorithms for Underwater Wireless Sensor Networks.
+              - generic [ref=e1140]: </title>
+            - generic [ref=e1141]:
+              - generic [ref=e1142]: <pages>
+              - text: 1311-1323
+              - generic [ref=e1143]: </pages>
+            - generic [ref=e1144]:
+              - generic [ref=e1145]: <year>
+              - text: "2021"
+              - generic [ref=e1146]: </year>
+            - generic [ref=e1147]:
+              - generic [ref=e1148]: <volume>
+              - text: "116"
+              - generic [ref=e1149]: </volume>
+            - generic [ref=e1150]:
+              - generic [ref=e1151]: <journal>
+              - text: Wirel. Pers. Commun.
+              - generic [ref=e1152]: </journal>
+            - generic [ref=e1153]:
+              - generic [ref=e1154]: <number>
+              - text: "2"
+              - generic [ref=e1155]: </number>
+            - generic [ref=e1156]:
+              - generic [ref=e1157]: <ee>
+              - text: https://doi.org/10.1007/s11277-020-07418-8
+              - generic [ref=e1158]: </ee>
+            - generic [ref=e1159]:
+              - generic [ref=e1160]: <url>
+              - text: db/journals/wpc/wpc116.html#ZehraQDSB21
+              - generic [ref=e1161]: </url>
+          - generic [ref=e1163]: </article>
+        - generic [ref=e1165]: </r>
+      - generic [ref=e1166]:
+        - generic [ref=e1169]: <r>
+        - generic [ref=e1171]:
+          - generic [ref=e1174]:
+            - text: <article
+            - generic [ref=e1175]: key="journals/tecs/AhmedBASM20"
+            - generic [ref=e1176]: mdate="2023-09-30"
+            - text: ">"
+          - generic [ref=e1177]:
+            - generic [ref=e1178]:
+              - generic [ref=e1179]:
+                - text: <author
+                - generic [ref=e1180]: orcid="0000-0002-0341-2997"
+                - generic [ref=e1181]: pid="01/10415"
+                - text: ">"
+              - text: Saad Ahmed
+              - generic [ref=e1182]: </author>
+            - generic [ref=e1183]:
+              - generic [ref=e1184]:
+                - text: <author
+                - generic [ref=e1185]: orcid="0000-0003-4115-9889"
+                - generic [ref=e1186]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e1187]: </author>
+            - generic [ref=e1188]:
+              - generic [ref=e1189]:
+                - text: <author
+                - generic [ref=e1190]: pid="20/2099"
+                - text: ">"
+              - text: Muhammad Hamad Alizai
+              - generic [ref=e1191]: </author>
+            - generic [ref=e1192]:
+              - generic [ref=e1193]:
+                - text: <author
+                - generic [ref=e1194]: pid="22/7567"
+                - text: ">"
+              - text: Junaid Haroon Siddiqui
+              - generic [ref=e1195]: </author>
+            - generic [ref=e1196]:
+              - generic [ref=e1197]:
+                - text: <author
+                - generic [ref=e1198]: pid="60/5205"
+                - text: ">"
+              - text: Luca Mottola
+              - generic [ref=e1199]: </author>
+            - generic [ref=e1200]:
+              - generic [ref=e1201]: <title>
+              - text: Fast and Energy-Efficient State Checkpointing for Intermittent Computing.
+              - generic [ref=e1202]: </title>
+            - generic [ref=e1203]:
+              - generic [ref=e1204]: <pages>
+              - text: 45:1-45:27
+              - generic [ref=e1205]: </pages>
+            - generic [ref=e1206]:
+              - generic [ref=e1207]: <year>
+              - text: "2020"
+              - generic [ref=e1208]: </year>
+            - generic [ref=e1209]:
+              - generic [ref=e1210]: <volume>
+              - text: "19"
+              - generic [ref=e1211]: </volume>
+            - generic [ref=e1212]:
+              - generic [ref=e1213]: <journal>
+              - text: ACM Trans. Embed. Comput. Syst.
+              - generic [ref=e1214]: </journal>
+            - generic [ref=e1215]:
+              - generic [ref=e1216]: <number>
+              - text: "6"
+              - generic [ref=e1217]: </number>
+            - generic [ref=e1218]:
+              - generic [ref=e1219]: <ee>
+              - text: https://doi.org/10.1145/3391903
+              - generic [ref=e1220]: </ee>
+            - generic [ref=e1221]:
+              - generic [ref=e1222]: <url>
+              - text: db/journals/tecs/tecs19.html#AhmedBASM20
+              - generic [ref=e1223]: </url>
+          - generic [ref=e1225]: </article>
+        - generic [ref=e1227]: </r>
+      - generic [ref=e1228]:
+        - generic [ref=e1231]: <r>
+        - generic [ref=e1233]:
+          - generic [ref=e1236]:
+            - text: <article
+            - generic [ref=e1237]: key="journals/tecs/AhmedNBBASM20"
+            - generic [ref=e1238]: mdate="2023-09-30"
+            - text: ">"
+          - generic [ref=e1239]:
+            - generic [ref=e1240]:
+              - generic [ref=e1241]:
+                - text: <author
+                - generic [ref=e1242]: orcid="0000-0002-0341-2997"
+                - generic [ref=e1243]: pid="01/10415"
+                - text: ">"
+              - text: Saad Ahmed
+              - generic [ref=e1244]: </author>
+            - generic [ref=e1245]:
+              - generic [ref=e1246]:
+                - text: <author
+                - generic [ref=e1247]: pid="39/5057"
+                - text: ">"
+              - text: Muhammad Nawaz
+              - generic [ref=e1248]: </author>
+            - generic [ref=e1249]:
+              - generic [ref=e1250]:
+                - text: <author
+                - generic [ref=e1251]: pid="42/4230"
+                - text: ">"
+              - text: Abu Bakar
+              - generic [ref=e1252]: </author>
+            - generic [ref=e1253]:
+              - generic [ref=e1254]:
+                - text: <author
+                - generic [ref=e1255]: orcid="0000-0003-4115-9889"
+                - generic [ref=e1256]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e1257]: </author>
+            - generic [ref=e1258]:
+              - generic [ref=e1259]:
+                - text: <author
+                - generic [ref=e1260]: pid="20/2099"
+                - text: ">"
+              - text: Muhammad Hamad Alizai
+              - generic [ref=e1261]: </author>
+            - generic [ref=e1262]:
+              - generic [ref=e1263]:
+                - text: <author
+                - generic [ref=e1264]: pid="22/7567"
+                - text: ">"
+              - text: Junaid Haroon Siddiqui
+              - generic [ref=e1265]: </author>
+            - generic [ref=e1266]:
+              - generic [ref=e1267]:
+                - text: <author
+                - generic [ref=e1268]: pid="60/5205"
+                - text: ">"
+              - text: Luca Mottola
+              - generic [ref=e1269]: </author>
+            - generic [ref=e1270]:
+              - generic [ref=e1271]: <title>
+              - text: Demystifying Energy Consumption Dynamics in Transiently powered Computers.
+              - generic [ref=e1272]: </title>
+            - generic [ref=e1273]:
+              - generic [ref=e1274]: <pages>
+              - text: 47:1-47:25
+              - generic [ref=e1275]: </pages>
+            - generic [ref=e1276]:
+              - generic [ref=e1277]: <year>
+              - text: "2020"
+              - generic [ref=e1278]: </year>
+            - generic [ref=e1279]:
+              - generic [ref=e1280]: <volume>
+              - text: "19"
+              - generic [ref=e1281]: </volume>
+            - generic [ref=e1282]:
+              - generic [ref=e1283]: <journal>
+              - text: ACM Trans. Embed. Comput. Syst.
+              - generic [ref=e1284]: </journal>
+            - generic [ref=e1285]:
+              - generic [ref=e1286]: <number>
+              - text: "6"
+              - generic [ref=e1287]: </number>
+            - generic [ref=e1288]:
+              - generic [ref=e1289]: <ee>
+              - text: https://doi.org/10.1145/3391893
+              - generic [ref=e1290]: </ee>
+            - generic [ref=e1291]:
+              - generic [ref=e1292]: <url>
+              - text: db/journals/tecs/tecs19.html#AhmedNBBASM20
+              - generic [ref=e1293]: </url>
+          - generic [ref=e1295]: </article>
+        - generic [ref=e1297]: </r>
+      - generic [ref=e1298]:
+        - generic [ref=e1301]: <r>
+        - generic [ref=e1303]:
+          - generic [ref=e1306]:
+            - text: <inproceedings
+            - generic [ref=e1307]: key="conf/sensys/AsadWBMV20"
+            - generic [ref=e1308]: mdate="2020-12-29"
+            - text: ">"
+          - generic [ref=e1309]:
+            - generic [ref=e1310]:
+              - generic [ref=e1311]:
+                - text: <author
+                - generic [ref=e1312]: pid="278/4038"
+                - text: ">"
+              - text: Hafiz Areeb Asad
+              - generic [ref=e1313]: </author>
+            - generic [ref=e1314]:
+              - generic [ref=e1315]:
+                - text: <author
+                - generic [ref=e1316]: pid="278/4082"
+                - text: ">"
+              - text: Erik Henricus Wouters
+              - generic [ref=e1317]: </author>
+            - generic [ref=e1318]:
+              - generic [ref=e1319]:
+                - text: <author
+                - generic [ref=e1320]: orcid="0000-0003-4115-9889"
+                - generic [ref=e1321]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e1322]: </author>
+            - generic [ref=e1323]:
+              - generic [ref=e1324]:
+                - text: <author
+                - generic [ref=e1325]: pid="60/5205"
+                - text: ">"
+              - text: Luca Mottola
+              - generic [ref=e1326]: </author>
+            - generic [ref=e1327]:
+              - generic [ref=e1328]:
+                - text: <author
+                - generic [ref=e1329]: pid="46/5016"
+                - text: ">"
+              - text: Thiemo Voigt
+              - generic [ref=e1330]: </author>
+            - generic [ref=e1331]:
+              - generic [ref=e1332]: <title>
+              - text: On Securing Persistent State in Intermittent Computing.
+              - generic [ref=e1333]: </title>
+            - generic [ref=e1334]:
+              - generic [ref=e1335]: <pages>
+              - text: 8-14
+              - generic [ref=e1336]: </pages>
+            - generic [ref=e1337]:
+              - generic [ref=e1338]: <year>
+              - text: "2020"
+              - generic [ref=e1339]: </year>
+            - generic [ref=e1340]:
+              - generic [ref=e1341]: <booktitle>
+              - text: ENSsys@SenSys
+              - generic [ref=e1342]: </booktitle>
+            - generic [ref=e1343]:
+              - generic [ref=e1344]: <ee>
+              - text: https://doi.org/10.1145/3417308.3430267
+              - generic [ref=e1345]: </ee>
+            - generic [ref=e1346]:
+              - generic [ref=e1347]: <crossref>
+              - text: conf/sensys/2020ensSYS
+              - generic [ref=e1348]: </crossref>
+            - generic [ref=e1349]:
+              - generic [ref=e1350]: <url>
+              - text: db/conf/sensys/enssys2020.html#AsadWBMV20
+              - generic [ref=e1351]: </url>
+          - generic [ref=e1353]: </inproceedings>
+        - generic [ref=e1355]: </r>
+      - generic [ref=e1356]:
+        - generic [ref=e1359]: <r>
+        - generic [ref=e1361]:
+          - generic [ref=e1364]:
+            - text: <inproceedings
+            - generic [ref=e1365]: key="conf/sensys/AfanasovBCCCDMB20"
+            - generic [ref=e1366]: mdate="2025-01-19"
+            - text: ">"
+          - generic [ref=e1367]:
+            - generic [ref=e1368]:
+              - generic [ref=e1369]:
+                - text: <author
+                - generic [ref=e1370]: pid="134/3205"
+                - text: ">"
+              - text: Mikhail Afanasov
+              - generic [ref=e1371]: </author>
+            - generic [ref=e1372]:
+              - generic [ref=e1373]:
+                - text: <author
+                - generic [ref=e1374]: orcid="0000-0003-4115-9889"
+                - generic [ref=e1375]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e1376]: </author>
+            - generic [ref=e1377]:
+              - generic [ref=e1378]:
+                - text: <author
+                - generic [ref=e1379]: pid="279/2767"
+                - text: ">"
+              - text: Dennis Campagna
+              - generic [ref=e1380]: </author>
+            - generic [ref=e1381]:
+              - generic [ref=e1382]:
+                - text: <author
+                - generic [ref=e1383]: orcid="0000-0002-7554-5094"
+                - generic [ref=e1384]: pid="279/2853"
+                - text: ">"
+              - text: Giacomo Caslini
+              - generic [ref=e1385]: </author>
+            - generic [ref=e1386]:
+              - generic [ref=e1387]:
+                - text: <author
+                - generic [ref=e1388]: pid="279/2774"
+                - text: ">"
+              - text: Fabio Massimo Centonze
+              - generic [ref=e1389]: </author>
+            - generic [ref=e1390]:
+              - generic [ref=e1391]:
+                - text: <author
+                - generic [ref=e1392]: pid="153/0338"
+                - text: ">"
+              - text: Koustabh Dolui
+              - generic [ref=e1393]: </author>
+            - generic [ref=e1394]:
+              - generic [ref=e1395]:
+                - text: <author
+                - generic [ref=e1396]: orcid="0000-0002-5089-8256"
+                - generic [ref=e1397]: pid="242/4757"
+                - text: ">"
+              - text: Andrea Maioli
+              - generic [ref=e1398]: </author>
+            - generic [ref=e1399]:
+              - generic [ref=e1400]:
+                - text: <author
+                - generic [ref=e1401]: pid="279/2790"
+                - text: ">"
+              - text: Erica Barone
+              - generic [ref=e1402]: </author>
+            - generic [ref=e1403]:
+              - generic [ref=e1404]:
+                - text: <author
+                - generic [ref=e1405]: pid="20/2099"
+                - text: ">"
+              - text: Muhammad Hamad Alizai
+              - generic [ref=e1406]: </author>
+            - generic [ref=e1407]:
+              - generic [ref=e1408]:
+                - text: <author
+                - generic [ref=e1409]: pid="22/7567"
+                - text: ">"
+              - text: Junaid Haroon Siddiqui
+              - generic [ref=e1410]: </author>
+            - generic [ref=e1411]:
+              - generic [ref=e1412]:
+                - text: <author
+                - generic [ref=e1413]: pid="60/5205"
+                - text: ">"
+              - text: Luca Mottola
+              - generic [ref=e1414]: </author>
+            - generic [ref=e1415]:
+              - generic [ref=e1416]: <title>
+              - text: Battery-less zero-maintenance embedded sensing at the mithræum of circus maximus.
+              - generic [ref=e1417]: </title>
+            - generic [ref=e1418]:
+              - generic [ref=e1419]: <pages>
+              - text: 368-381
+              - generic [ref=e1420]: </pages>
+            - generic [ref=e1421]:
+              - generic [ref=e1422]: <year>
+              - text: "2020"
+              - generic [ref=e1423]: </year>
+            - generic [ref=e1424]:
+              - generic [ref=e1425]: <booktitle>
+              - text: SenSys
+              - generic [ref=e1426]: </booktitle>
+            - generic [ref=e1427]:
+              - generic [ref=e1428]: <ee>
+              - text: https://doi.org/10.1145/3384419.3430722
+              - generic [ref=e1429]: </ee>
+            - generic [ref=e1430]:
+              - generic [ref=e1431]: <ee>
+              - text: https://www.wikidata.org/entity/Q130827564
+              - generic [ref=e1432]: </ee>
+            - generic [ref=e1433]:
+              - generic [ref=e1434]: <crossref>
+              - text: conf/sensys/2020
+              - generic [ref=e1435]: </crossref>
+            - generic [ref=e1436]:
+              - generic [ref=e1437]: <url>
+              - text: db/conf/sensys/sensys2020.html#AfanasovBCCCDMB20
+              - generic [ref=e1438]: </url>
+          - generic [ref=e1440]: </inproceedings>
+        - generic [ref=e1442]: </r>
+      - generic [ref=e1443]:
+        - generic [ref=e1446]: <r>
+        - generic [ref=e1448]:
+          - generic [ref=e1451]:
+            - text: <inproceedings
+            - generic [ref=e1452]: key="conf/lctrts/AhmedBASM19"
+            - generic [ref=e1453]: mdate="2022-04-09"
+            - text: ">"
+          - generic [ref=e1454]:
+            - generic [ref=e1455]:
+              - generic [ref=e1456]:
+                - text: <author
+                - generic [ref=e1457]: orcid="0000-0002-0341-2997"
+                - generic [ref=e1458]: pid="01/10415"
+                - text: ">"
+              - text: Saad Ahmed
+              - generic [ref=e1459]: </author>
+            - generic [ref=e1460]:
+              - generic [ref=e1461]:
+                - text: <author
+                - generic [ref=e1462]: orcid="0000-0003-4115-9889"
+                - generic [ref=e1463]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e1464]: </author>
+            - generic [ref=e1465]:
+              - generic [ref=e1466]:
+                - text: <author
+                - generic [ref=e1467]: pid="20/2099"
+                - text: ">"
+              - text: Muhammad Hamad Alizai
+              - generic [ref=e1468]: </author>
+            - generic [ref=e1469]:
+              - generic [ref=e1470]:
+                - text: <author
+                - generic [ref=e1471]: pid="22/7567"
+                - text: ">"
+              - text: Junaid Haroon Siddiqui
+              - generic [ref=e1472]: </author>
+            - generic [ref=e1473]:
+              - generic [ref=e1474]:
+                - text: <author
+                - generic [ref=e1475]: pid="60/5205"
+                - text: ">"
+              - text: Luca Mottola
+              - generic [ref=e1476]: </author>
+            - generic [ref=e1477]:
+              - generic [ref=e1478]: <title>
+              - text: Efficient intermittent computing with differential checkpointing.
+              - generic [ref=e1479]: </title>
+            - generic [ref=e1480]:
+              - generic [ref=e1481]: <pages>
+              - text: 70-81
+              - generic [ref=e1482]: </pages>
+            - generic [ref=e1483]:
+              - generic [ref=e1484]: <year>
+              - text: "2019"
+              - generic [ref=e1485]: </year>
+            - generic [ref=e1486]:
+              - generic [ref=e1487]: <booktitle>
+              - text: LCTES
+              - generic [ref=e1488]: </booktitle>
+            - generic [ref=e1489]:
+              - generic [ref=e1490]: <ee>
+              - text: https://doi.org/10.1145/3316482.3326357
+              - generic [ref=e1491]: </ee>
+            - generic [ref=e1492]:
+              - generic [ref=e1493]: <crossref>
+              - text: conf/lctrts/2019
+              - generic [ref=e1494]: </crossref>
+            - generic [ref=e1495]:
+              - generic [ref=e1496]: <url>
+              - text: db/conf/lctrts/lctes2019.html#AhmedBASM19
+              - generic [ref=e1497]: </url>
+          - generic [ref=e1499]: </inproceedings>
+        - generic [ref=e1501]: </r>
+      - generic [ref=e1502]:
+        - generic [ref=e1505]: <r>
+        - generic [ref=e1507]:
+          - generic [ref=e1510]:
+            - text: <inproceedings
+            - generic [ref=e1511]: key="conf/lctrts/AhmedBBASM19"
+            - generic [ref=e1512]: mdate="2022-04-09"
+            - text: ">"
+          - generic [ref=e1513]:
+            - generic [ref=e1514]:
+              - generic [ref=e1515]:
+                - text: <author
+                - generic [ref=e1516]: orcid="0000-0002-0341-2997"
+                - generic [ref=e1517]: pid="01/10415"
+                - text: ">"
+              - text: Saad Ahmed
+              - generic [ref=e1518]: </author>
+            - generic [ref=e1519]:
+              - generic [ref=e1520]:
+                - text: <author
+                - generic [ref=e1521]: pid="42/4230"
+                - text: ">"
+              - text: Abu Bakar
+              - generic [ref=e1522]: </author>
+            - generic [ref=e1523]:
+              - generic [ref=e1524]:
+                - text: <author
+                - generic [ref=e1525]: orcid="0000-0003-4115-9889"
+                - generic [ref=e1526]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e1527]: </author>
+            - generic [ref=e1528]:
+              - generic [ref=e1529]:
+                - text: <author
+                - generic [ref=e1530]: pid="20/2099"
+                - text: ">"
+              - text: Muhammad Hamad Alizai
+              - generic [ref=e1531]: </author>
+            - generic [ref=e1532]:
+              - generic [ref=e1533]:
+                - text: <author
+                - generic [ref=e1534]: pid="22/7567"
+                - text: ">"
+              - text: Junaid Haroon Siddiqui
+              - generic [ref=e1535]: </author>
+            - generic [ref=e1536]:
+              - generic [ref=e1537]:
+                - text: <author
+                - generic [ref=e1538]: pid="60/5205"
+                - text: ">"
+              - text: Luca Mottola
+              - generic [ref=e1539]: </author>
+            - generic [ref=e1540]:
+              - generic [ref=e1541]: <title>
+              - text: "The betrayal of constant power × time: finding the missing Joules of transiently-powered computers."
+              - generic [ref=e1542]: </title>
+            - generic [ref=e1543]:
+              - generic [ref=e1544]: <pages>
+              - text: 97-109
+              - generic [ref=e1545]: </pages>
+            - generic [ref=e1546]:
+              - generic [ref=e1547]: <year>
+              - text: "2019"
+              - generic [ref=e1548]: </year>
+            - generic [ref=e1549]:
+              - generic [ref=e1550]: <booktitle>
+              - text: LCTES
+              - generic [ref=e1551]: </booktitle>
+            - generic [ref=e1552]:
+              - generic [ref=e1553]: <ee>
+              - text: https://doi.org/10.1145/3316482.3326348
+              - generic [ref=e1554]: </ee>
+            - generic [ref=e1555]:
+              - generic [ref=e1556]: <crossref>
+              - text: conf/lctrts/2019
+              - generic [ref=e1557]: </crossref>
+            - generic [ref=e1558]:
+              - generic [ref=e1559]: <url>
+              - text: db/conf/lctrts/lctes2019.html#AhmedBBASM19
+              - generic [ref=e1560]: </url>
+          - generic [ref=e1562]: </inproceedings>
+        - generic [ref=e1564]: </r>
+      - generic [ref=e1565]:
+        - generic [ref=e1568]: <r>
+        - generic [ref=e1570]:
+          - generic [ref=e1573]:
+            - text: <phdthesis
+            - generic [ref=e1574]: key="phd/it/Bhatti18"
+            - generic [ref=e1575]: mdate="2022-10-12"
+            - text: ">"
+          - generic [ref=e1576]:
+            - generic [ref=e1577]:
+              - generic [ref=e1578]:
+                - text: <author
+                - generic [ref=e1579]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e1580]: </author>
+            - generic [ref=e1581]:
+              - generic [ref=e1582]: <title>
+              - text: System support for transiently-powered embedded sensing systems.
+              - generic [ref=e1583]: </title>
+            - generic [ref=e1584]:
+              - generic [ref=e1585]: <school>
+              - text: Polytechnic University of Milan, Italy
+              - generic [ref=e1586]: </school>
+            - generic [ref=e1587]:
+              - generic [ref=e1588]: <year>
+              - text: "2018"
+              - generic [ref=e1589]: </year>
+            - generic [ref=e1590]:
+              - generic [ref=e1591]: <ee>
+              - text: https://hdl.handle.net/10589/137902
+              - generic [ref=e1592]: </ee>
+          - generic [ref=e1594]: </phdthesis>
+        - generic [ref=e1596]: </r>
+      - generic [ref=e1597]:
+        - generic [ref=e1600]: <r>
+        - generic [ref=e1602]:
+          - generic [ref=e1605]:
+            - text: <inproceedings
+            - generic [ref=e1606]: key="conf/ipsn/AhmedASBM18"
+            - generic [ref=e1607]: mdate="2025-04-01"
+            - text: ">"
+          - generic [ref=e1608]:
+            - generic [ref=e1609]:
+              - generic [ref=e1610]:
+                - text: <author
+                - generic [ref=e1611]: orcid="0000-0002-0341-2997"
+                - generic [ref=e1612]: pid="01/10415"
+                - text: ">"
+              - text: Saad Ahmed
+              - generic [ref=e1613]: </author>
+            - generic [ref=e1614]:
+              - generic [ref=e1615]:
+                - text: <author
+                - generic [ref=e1616]: pid="20/2099"
+                - text: ">"
+              - text: Muhammad Hamad Alizai
+              - generic [ref=e1617]: </author>
+            - generic [ref=e1618]:
+              - generic [ref=e1619]:
+                - text: <author
+                - generic [ref=e1620]: orcid="0000-0002-6674-7727"
+                - generic [ref=e1621]: pid="22/7567"
+                - text: ">"
+              - text: Junaid Haroon Siddiqui
+              - generic [ref=e1622]: </author>
+            - generic [ref=e1623]:
+              - generic [ref=e1624]:
+                - text: <author
+                - generic [ref=e1625]: orcid="0000-0003-4115-9889"
+                - generic [ref=e1626]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e1627]: </author>
+            - generic [ref=e1628]:
+              - generic [ref=e1629]:
+                - text: <author
+                - generic [ref=e1630]: pid="60/5205"
+                - text: ">"
+              - text: Luca Mottola
+              - generic [ref=e1631]: </author>
+            - generic [ref=e1632]:
+              - generic [ref=e1633]: <title>
+              - text: "Towards smaller checkpoints for better intermittent computing: poster abstract."
+              - generic [ref=e1634]: </title>
+            - generic [ref=e1635]:
+              - generic [ref=e1636]: <pages>
+              - text: 132-133
+              - generic [ref=e1637]: </pages>
+            - generic [ref=e1638]:
+              - generic [ref=e1639]: <year>
+              - text: "2018"
+              - generic [ref=e1640]: </year>
+            - generic [ref=e1641]:
+              - generic [ref=e1642]: <booktitle>
+              - text: IPSN
+              - generic [ref=e1643]: </booktitle>
+            - generic [ref=e1644]:
+              - generic [ref=e1645]: <ee>
+              - text: https://doi.org/10.1109/IPSN.2018.00029
+              - generic [ref=e1646]: </ee>
+            - generic [ref=e1647]:
+              - generic [ref=e1648]: <ee>
+              - text: http://dl.acm.org/citation.cfm?id=3207973
+              - generic [ref=e1649]: </ee>
+            - generic [ref=e1650]:
+              - generic [ref=e1651]: <crossref>
+              - text: conf/ipsn/2018
+              - generic [ref=e1652]: </crossref>
+            - generic [ref=e1653]:
+              - generic [ref=e1654]: <url>
+              - text: db/conf/ipsn/ipsn2018.html#AhmedASBM18
+              - generic [ref=e1655]: </url>
+          - generic [ref=e1657]: </inproceedings>
+        - generic [ref=e1659]: </r>
+      - generic [ref=e1660]:
+        - generic [ref=e1663]: <r>
+        - generic [ref=e1665]:
+          - generic [ref=e1668]:
+            - text: <inproceedings
+            - generic [ref=e1669]: key="conf/ewsn/BhattiM17"
+            - generic [ref=e1670]: mdate="2017-06-22"
+            - text: ">"
+          - generic [ref=e1671]:
+            - generic [ref=e1672]:
+              - generic [ref=e1673]:
+                - text: <author
+                - generic [ref=e1674]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e1675]: </author>
+            - generic [ref=e1676]:
+              - generic [ref=e1677]:
+                - text: <author
+                - generic [ref=e1678]: pid="60/5205"
+                - text: ">"
+              - text: Luca Mottola
+              - generic [ref=e1679]: </author>
+            - generic [ref=e1680]:
+              - generic [ref=e1681]: <title>
+              - text: "Poster: Compiler-assisted Automatic Checkpointing for Transiently-powered Embedded Devices."
+              - generic [ref=e1682]: </title>
+            - generic [ref=e1683]:
+              - generic [ref=e1684]: <pages>
+              - text: 200-201
+              - generic [ref=e1685]: </pages>
+            - generic [ref=e1686]:
+              - generic [ref=e1687]: <year>
+              - text: "2017"
+              - generic [ref=e1688]: </year>
+            - generic [ref=e1689]:
+              - generic [ref=e1690]: <booktitle>
+              - text: EWSN
+              - generic [ref=e1691]: </booktitle>
+            - generic [ref=e1692]:
+              - generic [ref=e1693]: <ee>
+              - text: http://dl.acm.org/citation.cfm?id=3108039
+              - generic [ref=e1694]: </ee>
+            - generic [ref=e1695]:
+              - generic [ref=e1696]: <crossref>
+              - text: conf/ewsn/2017
+              - generic [ref=e1697]: </crossref>
+            - generic [ref=e1698]:
+              - generic [ref=e1699]: <url>
+              - text: db/conf/ewsn/ewsn2017.html#BhattiM17
+              - generic [ref=e1700]: </url>
+          - generic [ref=e1702]: </inproceedings>
+        - generic [ref=e1704]: </r>
+      - generic [ref=e1705]:
+        - generic [ref=e1708]: <r>
+        - generic [ref=e1710]:
+          - generic [ref=e1713]:
+            - text: <inproceedings
+            - generic [ref=e1714]: key="conf/ipsn/BhattiM17"
+            - generic [ref=e1715]: mdate="2021-08-10"
+            - text: ">"
+          - generic [ref=e1716]:
+            - generic [ref=e1717]:
+              - generic [ref=e1718]:
+                - text: <author
+                - generic [ref=e1719]: orcid="0000-0003-4115-9889"
+                - generic [ref=e1720]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e1721]: </author>
+            - generic [ref=e1722]:
+              - generic [ref=e1723]:
+                - text: <author
+                - generic [ref=e1724]: orcid="0000-0003-4560-9541"
+                - generic [ref=e1725]: pid="60/5205"
+                - text: ">"
+              - text: Luca Mottola
+              - generic [ref=e1726]: </author>
+            - generic [ref=e1727]:
+              - generic [ref=e1728]: <title>
+              - text: "HarvOS: efficient code instrumentation for transiently-powered embedded sensing."
+              - generic [ref=e1729]: </title>
+            - generic [ref=e1730]:
+              - generic [ref=e1731]: <pages>
+              - text: 209-219
+              - generic [ref=e1732]: </pages>
+            - generic [ref=e1733]:
+              - generic [ref=e1734]: <year>
+              - text: "2017"
+              - generic [ref=e1735]: </year>
+            - generic [ref=e1736]:
+              - generic [ref=e1737]: <booktitle>
+              - text: IPSN
+              - generic [ref=e1738]: </booktitle>
+            - generic [ref=e1739]:
+              - generic [ref=e1740]: <ee>
+              - text: https://doi.org/10.1145/3055031.3055082
+              - generic [ref=e1741]: </ee>
+            - generic [ref=e1742]:
+              - generic [ref=e1743]: <ee>
+              - text: https://ieeexplore.ieee.org/document/7944791
+              - generic [ref=e1744]: </ee>
+            - generic [ref=e1745]:
+              - generic [ref=e1746]: <crossref>
+              - text: conf/ipsn/2017
+              - generic [ref=e1747]: </crossref>
+            - generic [ref=e1748]:
+              - generic [ref=e1749]: <url>
+              - text: db/conf/ipsn/ipsn2017.html#BhattiM17
+              - generic [ref=e1750]: </url>
+          - generic [ref=e1752]: </inproceedings>
+        - generic [ref=e1754]: </r>
+      - generic [ref=e1755]:
+        - generic [ref=e1758]: <r>
+        - generic [ref=e1760]:
+          - generic [ref=e1763]:
+            - text: <article
+            - generic [ref=e1764]: key="journals/tosn/BhattiASM16"
+            - generic [ref=e1765]: mdate="2020-05-12"
+            - text: ">"
+          - generic [ref=e1766]:
+            - generic [ref=e1767]:
+              - generic [ref=e1768]:
+                - text: <author
+                - generic [ref=e1769]: orcid="0000-0003-4115-9889"
+                - generic [ref=e1770]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e1771]: </author>
+            - generic [ref=e1772]:
+              - generic [ref=e1773]:
+                - text: <author
+                - generic [ref=e1774]: pid="20/2099"
+                - text: ">"
+              - text: Muhammad Hamad Alizai
+              - generic [ref=e1775]: </author>
+            - generic [ref=e1776]:
+              - generic [ref=e1777]:
+                - text: <author
+                - generic [ref=e1778]: pid="80/3447"
+                - text: ">"
+              - text: Affan A. Syed
+              - generic [ref=e1779]: </author>
+            - generic [ref=e1780]:
+              - generic [ref=e1781]:
+                - text: <author
+                - generic [ref=e1782]: orcid="0000-0003-4560-9541"
+                - generic [ref=e1783]: pid="60/5205"
+                - text: ">"
+              - text: Luca Mottola
+              - generic [ref=e1784]: </author>
+            - generic [ref=e1785]:
+              - generic [ref=e1786]: <title>
+              - text: "Energy Harvesting and Wireless Transfer in Sensor Network Applications: Concepts and Experiences."
+              - generic [ref=e1787]: </title>
+            - generic [ref=e1788]:
+              - generic [ref=e1789]: <pages>
+              - text: 24:1-24:40
+              - generic [ref=e1790]: </pages>
+            - generic [ref=e1791]:
+              - generic [ref=e1792]: <year>
+              - text: "2016"
+              - generic [ref=e1793]: </year>
+            - generic [ref=e1794]:
+              - generic [ref=e1795]: <volume>
+              - text: "12"
+              - generic [ref=e1796]: </volume>
+            - generic [ref=e1797]:
+              - generic [ref=e1798]: <journal>
+              - text: ACM Trans. Sens. Networks
+              - generic [ref=e1799]: </journal>
+            - generic [ref=e1800]:
+              - generic [ref=e1801]: <number>
+              - text: "3"
+              - generic [ref=e1802]: </number>
+            - generic [ref=e1803]:
+              - generic [ref=e1804]: <ee>
+              - text: https://doi.org/10.1145/2915918
+              - generic [ref=e1805]: </ee>
+            - generic [ref=e1806]:
+              - generic [ref=e1807]: <url>
+              - text: db/journals/tosn/tosn12.html#BhattiASM16
+              - generic [ref=e1808]: </url>
+          - generic [ref=e1810]: </article>
+        - generic [ref=e1812]: </r>
+      - generic [ref=e1813]:
+        - generic [ref=e1816]: <r>
+        - generic [ref=e1818]:
+          - generic [ref=e1821]:
+            - text: <inproceedings
+            - generic [ref=e1822]: key="conf/ewsn/BhattiM16"
+            - generic [ref=e1823]: mdate="2016-03-14"
+            - text: ">"
+          - generic [ref=e1824]:
+            - generic [ref=e1825]:
+              - generic [ref=e1826]:
+                - text: <author
+                - generic [ref=e1827]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e1828]: </author>
+            - generic [ref=e1829]:
+              - generic [ref=e1830]:
+                - text: <author
+                - generic [ref=e1831]: pid="60/5205"
+                - text: ">"
+              - text: Luca Mottola
+              - generic [ref=e1832]: </author>
+            - generic [ref=e1833]:
+              - generic [ref=e1834]: <title>
+              - text: Efficient State Retention for Transiently-powered Embedded Sensing.
+              - generic [ref=e1835]: </title>
+            - generic [ref=e1836]:
+              - generic [ref=e1837]: <pages>
+              - text: 137-148
+              - generic [ref=e1838]: </pages>
+            - generic [ref=e1839]:
+              - generic [ref=e1840]: <year>
+              - text: "2016"
+              - generic [ref=e1841]: </year>
+            - generic [ref=e1842]:
+              - generic [ref=e1843]: <booktitle>
+              - text: EWSN
+              - generic [ref=e1844]: </booktitle>
+            - generic [ref=e1845]:
+              - generic [ref=e1846]: <ee>
+              - text: http://dl.acm.org/citation.cfm?id=2893731
+              - generic [ref=e1847]: </ee>
+            - generic [ref=e1848]:
+              - generic [ref=e1849]: <crossref>
+              - text: conf/ewsn/2016
+              - generic [ref=e1850]: </crossref>
+            - generic [ref=e1851]:
+              - generic [ref=e1852]: <url>
+              - text: db/conf/ewsn/ewsn2016.html#BhattiM16
+              - generic [ref=e1853]: </url>
+          - generic [ref=e1855]: </inproceedings>
+        - generic [ref=e1857]: </r>
+      - generic [ref=e1858]:
+        - generic [ref=e1861]: <r>
+        - generic [ref=e1863]:
+          - generic [ref=e1866]:
+            - text: <inproceedings
+            - generic [ref=e1867]: key="conf/ipsn/Bhatti16"
+            - generic [ref=e1868]: mdate="2020-12-29"
+            - text: ">"
+          - generic [ref=e1869]:
+            - generic [ref=e1870]:
+              - generic [ref=e1871]:
+                - text: <author
+                - generic [ref=e1872]: orcid="0000-0003-4115-9889"
+                - generic [ref=e1873]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e1874]: </author>
+            - generic [ref=e1875]:
+              - generic [ref=e1876]: <title>
+              - text: "Ph.D. Forum Abstract: Back to the Future - Sustainable Transiently Powered Embedded Systems."
+              - generic [ref=e1877]: </title>
+            - generic [ref=e1878]:
+              - generic [ref=e1879]: <pages>
+              - text: 24:1-24:2
+              - generic [ref=e1880]: </pages>
+            - generic [ref=e1881]:
+              - generic [ref=e1882]: <year>
+              - text: "2016"
+              - generic [ref=e1883]: </year>
+            - generic [ref=e1884]:
+              - generic [ref=e1885]: <booktitle>
+              - text: IPSN
+              - generic [ref=e1886]: </booktitle>
+            - generic [ref=e1887]:
+              - generic [ref=e1888]: <ee>
+              - text: https://doi.org/10.1109/IPSN.2016.7460686
+              - generic [ref=e1889]: </ee>
+            - generic [ref=e1890]:
+              - generic [ref=e1891]: <ee>
+              - text: http://dl.acm.org/citation.cfm?id=2959379
+              - generic [ref=e1892]: </ee>
+            - generic [ref=e1893]:
+              - generic [ref=e1894]: <crossref>
+              - text: conf/ipsn/2016
+              - generic [ref=e1895]: </crossref>
+            - generic [ref=e1896]:
+              - generic [ref=e1897]: <url>
+              - text: db/conf/ipsn/ipsn2016.html#Bhatti16
+              - generic [ref=e1898]: </url>
+          - generic [ref=e1900]: </inproceedings>
+        - generic [ref=e1902]: </r>
+      - generic [ref=e1903]:
+        - generic [ref=e1906]: <r>
+        - generic [ref=e1908]:
+          - generic [ref=e1911]:
+            - text: <article
+            - generic [ref=e1912]: key="journals/ijdsn/BhattiSA15"
+            - generic [ref=e1913]: mdate="2020-10-26"
+            - text: ">"
+          - generic [ref=e1914]:
+            - generic [ref=e1915]:
+              - generic [ref=e1916]:
+                - text: <author
+                - generic [ref=e1917]: orcid="0000-0003-4115-9889"
+                - generic [ref=e1918]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e1919]: </author>
+            - generic [ref=e1920]:
+              - generic [ref=e1921]:
+                - text: <author
+                - generic [ref=e1922]: pid="80/3447"
+                - text: ">"
+              - text: Affan A. Syed
+              - generic [ref=e1923]: </author>
+            - generic [ref=e1924]:
+              - generic [ref=e1925]:
+                - text: <author
+                - generic [ref=e1926]: orcid="0000-0003-3112-0374"
+                - generic [ref=e1927]: pid="20/2099"
+                - text: ">"
+              - text: Muhammad Hamad Alizai
+              - generic [ref=e1928]: </author>
+            - generic [ref=e1929]:
+              - generic [ref=e1930]: <title>
+              - text: Laser Based Energy Distribution Architecture for Decoupling Energy and Sensing Planes in WSN.
+              - generic [ref=e1931]: </title>
+            - generic [ref=e1932]:
+              - generic [ref=e1933]: <pages>
+              - text: 526858:1-526858:18
+              - generic [ref=e1934]: </pages>
+            - generic [ref=e1935]:
+              - generic [ref=e1936]: <year>
+              - text: "2015"
+              - generic [ref=e1937]: </year>
+            - generic [ref=e1938]:
+              - generic [ref=e1939]: <volume>
+              - text: "11"
+              - generic [ref=e1940]: </volume>
+            - generic [ref=e1941]:
+              - generic [ref=e1942]: <journal>
+              - text: Int. J. Distributed Sens. Networks
+              - generic [ref=e1943]: </journal>
+            - generic [ref=e1944]:
+              - generic [ref=e1945]:
+                - text: <ee
+                - generic [ref=e1946]: type="oa"
+                - text: ">"
+              - text: https://doi.org/10.1155/2015/526858
+              - generic [ref=e1947]: </ee>
+            - generic [ref=e1948]:
+              - generic [ref=e1949]: <ee>
+              - text: https://www.wikidata.org/entity/Q59108180
+              - generic [ref=e1950]: </ee>
+            - generic [ref=e1951]:
+              - generic [ref=e1952]: <url>
+              - text: db/journals/ijdsn/ijdsn11.html#BhattiSA15
+              - generic [ref=e1953]: </url>
+          - generic [ref=e1955]: </article>
+        - generic [ref=e1957]: </r>
+      - generic [ref=e1958]:
+        - generic [ref=e1961]: <r>
+        - generic [ref=e1963]:
+          - generic [ref=e1966]:
+            - text: <inproceedings
+            - generic [ref=e1967]: key="conf/icc/HaqABAS15"
+            - generic [ref=e1968]: mdate="2020-12-29"
+            - text: ">"
+          - generic [ref=e1969]:
+            - generic [ref=e1970]:
+              - generic [ref=e1971]:
+                - text: <author
+                - generic [ref=e1972]: pid="151/4130"
+                - text: ">"
+              - text: Osama Haq
+              - generic [ref=e1973]: </author>
+            - generic [ref=e1974]:
+              - generic [ref=e1975]:
+                - text: <author
+                - generic [ref=e1976]: pid="162/1602"
+                - text: ">"
+              - text: Zainab Abaid
+              - generic [ref=e1977]: </author>
+            - generic [ref=e1978]:
+              - generic [ref=e1979]:
+                - text: <author
+                - generic [ref=e1980]: orcid="0000-0003-4115-9889"
+                - generic [ref=e1981]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e1982]: </author>
+            - generic [ref=e1983]:
+              - generic [ref=e1984]:
+                - text: <author
+                - generic [ref=e1985]: pid="136/8486"
+                - text: ">"
+              - text: Zaafar Ahmed
+              - generic [ref=e1986]: </author>
+            - generic [ref=e1987]:
+              - generic [ref=e1988]:
+                - text: <author
+                - generic [ref=e1989]: pid="80/3447"
+                - text: ">"
+              - text: Affan A. Syed
+              - generic [ref=e1990]: </author>
+            - generic [ref=e1991]:
+              - generic [ref=e1992]: <title>
+              - text: SDN-inspired, real-time botnet detection and flow-blocking at ISP and enterprise-level.
+              - generic [ref=e1993]: </title>
+            - generic [ref=e1994]:
+              - generic [ref=e1995]: <pages>
+              - text: 5278-5283
+              - generic [ref=e1996]: </pages>
+            - generic [ref=e1997]:
+              - generic [ref=e1998]: <year>
+              - text: "2015"
+              - generic [ref=e1999]: </year>
+            - generic [ref=e2000]:
+              - generic [ref=e2001]: <booktitle>
+              - text: ICC
+              - generic [ref=e2002]: </booktitle>
+            - generic [ref=e2003]:
+              - generic [ref=e2004]: <ee>
+              - text: https://doi.org/10.1109/ICC.2015.7249162
+              - generic [ref=e2005]: </ee>
+            - generic [ref=e2006]:
+              - generic [ref=e2007]: <crossref>
+              - text: conf/icc/2015
+              - generic [ref=e2008]: </crossref>
+            - generic [ref=e2009]:
+              - generic [ref=e2010]: <url>
+              - text: db/conf/icc/icc2015.html#HaqABAS15
+              - generic [ref=e2011]: </url>
+          - generic [ref=e2013]: </inproceedings>
+        - generic [ref=e2015]: </r>
+      - generic [ref=e2016]:
+        - generic [ref=e2019]: <r>
+        - generic [ref=e2021]:
+          - generic [ref=e2024]:
+            - text: <inproceedings
+            - generic [ref=e2025]: key="conf/ipsn/BhattiSA14"
+            - generic [ref=e2026]: mdate="2014-06-13"
+            - text: ">"
+          - generic [ref=e2027]:
+            - generic [ref=e2028]:
+              - generic [ref=e2029]:
+                - text: <author
+                - generic [ref=e2030]: pid="146/7880"
+                - text: ">"
+              - text: Naveed Anwar Bhatti
+              - generic [ref=e2031]: </author>
+            - generic [ref=e2032]:
+              - generic [ref=e2033]:
+                - text: <author
+                - generic [ref=e2034]: pid="80/3447"
+                - text: ">"
+              - text: Affan Ahmed Syed
+              - generic [ref=e2035]: </author>
+            - generic [ref=e2036]:
+              - generic [ref=e2037]:
+                - text: <author
+                - generic [ref=e2038]: pid="20/2099"
+                - text: ">"
+              - text: Muhammad Hamad Alizai
+              - generic [ref=e2039]: </author>
+            - generic [ref=e2040]:
+              - generic [ref=e2041]: <title>
+              - text: "Sensors with lasers: building a WSN power grid."
+              - generic [ref=e2042]: </title>
+            - generic [ref=e2043]:
+              - generic [ref=e2044]: <pages>
+              - text: 261-272
+              - generic [ref=e2045]: </pages>
+            - generic [ref=e2046]:
+              - generic [ref=e2047]: <year>
+              - text: "2014"
+              - generic [ref=e2048]: </year>
+            - generic [ref=e2049]:
+              - generic [ref=e2050]: <booktitle>
+              - text: IPSN
+              - generic [ref=e2051]: </booktitle>
+            - generic [ref=e2052]:
+              - generic [ref=e2053]: <ee>
+              - text: http://dl.acm.org/citation.cfm?id=2602368
+              - generic [ref=e2054]: </ee>
+            - generic [ref=e2055]:
+              - generic [ref=e2056]: <crossref>
+              - text: conf/ipsn/2014
+              - generic [ref=e2057]: </crossref>
+            - generic [ref=e2058]:
+              - generic [ref=e2059]: <url>
+              - text: db/conf/ipsn/ipsn2014.html#BhattiSA14
+              - generic [ref=e2060]: </url>
+          - generic [ref=e2062]: </inproceedings>
+        - generic [ref=e2064]: </r>
+      - generic [ref=e2065]:
+        - generic [ref=e2068]:
+          - text: <coauthors
+          - generic [ref=e2069]: n="62"
+          - generic [ref=e2070]: nc="4"
+          - text: ">"
+        - generic [ref=e2071]:
+          - generic [ref=e2072]:
+            - generic [ref=e2075]:
+              - text: <co
+              - generic [ref=e2076]: c="0"
+              - text: ">"
+            - generic [ref=e2078]:
+              - generic [ref=e2079]:
+                - text: <na
+                - generic [ref=e2080]: f="a/Aamir:Abeer"
+                - generic [ref=e2081]: pid="413/9364"
+                - text: ">"
+              - text: Abeer Aamir
+              - generic [ref=e2082]: </na>
+            - generic [ref=e2084]: </co>
+          - generic [ref=e2085]:
+            - generic [ref=e2088]:
+              - text: <co
+              - generic [ref=e2089]: c="0"
+              - text: ">"
+            - generic [ref=e2091]:
+              - generic [ref=e2092]:
+                - text: <na
+                - generic [ref=e2093]: f="a/Abaid:Zainab"
+                - generic [ref=e2094]: pid="162/1602"
+                - text: ">"
+              - text: Zainab Abaid
+              - generic [ref=e2095]: </na>
+            - generic [ref=e2097]: </co>
+          - generic [ref=e2098]:
+            - generic [ref=e2101]:
+              - text: <co
+              - generic [ref=e2102]: c="0"
+              - text: ">"
+            - generic [ref=e2104]:
+              - generic [ref=e2105]:
+                - text: <na
+                - generic [ref=e2106]: f="a/Afanasov:Mikhail"
+                - generic [ref=e2107]: pid="134/3205"
+                - text: ">"
+              - text: Mikhail Afanasov
+              - generic [ref=e2108]: </na>
+            - generic [ref=e2110]: </co>
+          - generic [ref=e2111]:
+            - generic [ref=e2114]:
+              - text: <co
+              - generic [ref=e2115]: c="0"
+              - text: ">"
+            - generic [ref=e2117]:
+              - generic [ref=e2118]:
+                - text: <na
+                - generic [ref=e2119]: f="a/Ahmad:Laiba_Intizar"
+                - generic [ref=e2120]: pid="430/0057"
+                - text: ">"
+              - text: Laiba Intizar Ahmad
+              - generic [ref=e2121]: </na>
+            - generic [ref=e2123]: </co>
+          - generic [ref=e2124]:
+            - generic [ref=e2127]:
+              - text: <co
+              - generic [ref=e2128]: c="0"
+              - text: ">"
+            - generic [ref=e2130]:
+              - generic [ref=e2131]:
+                - text: <na
+                - generic [ref=e2132]: f="a/Ahmed:Saad"
+                - generic [ref=e2133]: pid="01/10415"
+                - text: ">"
+              - text: Saad Ahmed
+              - generic [ref=e2134]: </na>
+            - generic [ref=e2136]: </co>
+          - generic [ref=e2137]:
+            - generic [ref=e2140]:
+              - text: <co
+              - generic [ref=e2141]: c="0"
+              - text: ">"
+            - generic [ref=e2143]:
+              - generic [ref=e2144]:
+                - text: <na
+                - generic [ref=e2145]: f="a/Ahmed:Zaafar"
+                - generic [ref=e2146]: pid="136/8486"
+                - text: ">"
+              - text: Zaafar Ahmed
+              - generic [ref=e2147]: </na>
+            - generic [ref=e2149]: </co>
+          - generic [ref=e2150]:
+            - generic [ref=e2153]:
+              - text: <co
+              - generic [ref=e2154]: c="0"
+              - text: ">"
+            - generic [ref=e2156]:
+              - generic [ref=e2157]:
+                - text: <na
+                - generic [ref=e2158]: f="a/Ahsan:Mohammad_Shaharyar"
+                - generic [ref=e2159]: pid="430/0541"
+                - text: ">"
+              - text: Mohammad Shaharyar Ahsan
+              - generic [ref=e2160]: </na>
+            - generic [ref=e2162]: </co>
+          - generic [ref=e2163]:
+            - generic [ref=e2166]:
+              - text: <co
+              - generic [ref=e2167]: c="0"
+              - text: ">"
+            - generic [ref=e2169]:
+              - generic [ref=e2170]:
+                - text: <na
+                - generic [ref=e2171]: f="a/Ali:Muhammad_Saad"
+                - generic [ref=e2172]: pid="430/0878"
+                - text: ">"
+              - text: Muhammad Saad Ali
+              - generic [ref=e2173]: </na>
+            - generic [ref=e2175]: </co>
+          - generic [ref=e2176]:
+            - generic [ref=e2179]:
+              - text: <co
+              - generic [ref=e2180]: c="0"
+              - text: ">"
+            - generic [ref=e2182]:
+              - generic [ref=e2183]:
+                - text: <na
+                - generic [ref=e2184]: f="a/Alizai:Muhammad_Hamad"
+                - generic [ref=e2185]: pid="20/2099"
+                - text: ">"
+              - text: Muhammad Hamad Alizai
+              - generic [ref=e2186]: </na>
+            - generic [ref=e2188]: </co>
+          - generic [ref=e2189]:
+            - generic [ref=e2192]:
+              - text: <co
+              - generic [ref=e2193]: c="2"
+              - text: ">"
+            - generic [ref=e2195]:
+              - generic [ref=e2196]:
+                - text: <na
+                - generic [ref=e2197]: f="a/Alsadhan:Abeer_Abdullah"
+                - generic [ref=e2198]: pid="224/1873"
+                - text: ">"
+              - text: Abeer Abdullah Alsadhan
+              - generic [ref=e2199]: </na>
+            - generic [ref=e2201]: </co>
+          - generic [ref=e2202]:
+            - generic [ref=e2205]:
+              - text: <co
+              - generic [ref=e2206]: c="0"
+              - text: ">"
+            - generic [ref=e2208]:
+              - generic [ref=e2209]:
+                - text: <na
+                - generic [ref=e2210]: f="a/Asad:Hafiz_Areeb"
+                - generic [ref=e2211]: pid="278/4038"
+                - text: ">"
+              - text: Hafiz Areeb Asad
+              - generic [ref=e2212]: </na>
+            - generic [ref=e2214]: </co>
+          - generic [ref=e2215]:
+            - generic [ref=e2218]:
+              - text: <co
+              - generic [ref=e2219]: c="0"
+              - text: ">"
+            - generic [ref=e2221]:
+              - generic [ref=e2222]:
+                - text: <na
+                - generic [ref=e2223]: f="a/Asghar:Farhan"
+                - generic [ref=e2224]: pid="404/0327"
+                - text: ">"
+              - text: Farhan Asghar
+              - generic [ref=e2225]: </na>
+            - generic [ref=e2227]: </co>
+          - generic [ref=e2228]:
+            - generic [ref=e2231]:
+              - text: <co
+              - generic [ref=e2232]: c="0"
+              - text: ">"
+            - generic [ref=e2234]:
+              - generic [ref=e2235]:
+                - text: <na
+                - generic [ref=e2236]: f="b/Bakar:Abu"
+                - generic [ref=e2237]: pid="42/4230"
+                - text: ">"
+              - text: Abu Bakar
+              - generic [ref=e2238]: </na>
+            - generic [ref=e2240]: </co>
+          - generic [ref=e2241]:
+            - generic [ref=e2244]:
+              - text: <co
+              - generic [ref=e2245]: c="0"
+              - text: ">"
+            - generic [ref=e2247]:
+              - generic [ref=e2248]:
+                - text: <na
+                - generic [ref=e2249]: f="b/Barone:Erica"
+                - generic [ref=e2250]: pid="279/2790"
+                - text: ">"
+              - text: Erica Barone
+              - generic [ref=e2251]: </na>
+            - generic [ref=e2253]: </co>
+          - generic [ref=e2254]:
+            - generic [ref=e2257]:
+              - text: <co
+              - generic [ref=e2258]: c="0"
+              - text: ">"
+            - generic [ref=e2260]:
+              - generic [ref=e2261]:
+                - text: <na
+                - generic [ref=e2262]: f="b/Brachmann:Martina"
+                - generic [ref=e2263]: pid="129/1931"
+                - text: ">"
+              - text: Martina Brachmann
+              - generic [ref=e2264]: </na>
+            - generic [ref=e2266]: </co>
+          - generic [ref=e2267]:
+            - generic [ref=e2270]:
+              - text: <co
+              - generic [ref=e2271]: c="0"
+              - text: ">"
+            - generic [ref=e2273]:
+              - generic [ref=e2274]:
+                - text: <na
+                - generic [ref=e2275]: f="c/Campagna:Dennis"
+                - generic [ref=e2276]: pid="279/2767"
+                - text: ">"
+              - text: Dennis Campagna
+              - generic [ref=e2277]: </na>
+            - generic [ref=e2279]: </co>
+          - generic [ref=e2280]:
+            - generic [ref=e2283]:
+              - text: <co
+              - generic [ref=e2284]: c="0"
+              - text: ">"
+            - generic [ref=e2286]:
+              - generic [ref=e2287]:
+                - text: <na
+                - generic [ref=e2288]: f="c/Caslini:Giacomo"
+                - generic [ref=e2289]: pid="279/2853"
+                - text: ">"
+              - text: Giacomo Caslini
+              - generic [ref=e2290]: </na>
+            - generic [ref=e2292]: </co>
+          - generic [ref=e2293]:
+            - generic [ref=e2296]:
+              - text: <co
+              - generic [ref=e2297]: c="0"
+              - text: ">"
+            - generic [ref=e2299]:
+              - generic [ref=e2300]:
+                - text: <na
+                - generic [ref=e2301]: f="c/Centonze:Fabio_Massimo"
+                - generic [ref=e2302]: pid="279/2774"
+                - text: ">"
+              - text: Fabio Massimo Centonze
+              - generic [ref=e2303]: </na>
+            - generic [ref=e2305]: </co>
+          - generic [ref=e2306]:
+            - generic [ref=e2309]:
+              - text: <co
+              - generic [ref=e2310]: c="0"
+              - text: ">"
+            - generic [ref=e2312]:
+              - generic [ref=e2313]:
+                - text: <na
+                - generic [ref=e2314]: f="c/Chaudhry:Hassan_Habib"
+                - generic [ref=e2315]: pid="359/8462"
+                - text: ">"
+              - text: Hassan Habib Chaudhry
+              - generic [ref=e2316]: </na>
+            - generic [ref=e2318]: </co>
+          - generic [ref=e2319]:
+            - generic [ref=e2322]:
+              - text: <co
+              - generic [ref=e2323]: c="0"
+              - text: ">"
+            - generic [ref=e2325]:
+              - generic [ref=e2326]:
+                - text: <na
+                - generic [ref=e2327]: f="c/Cheema:Muhammad_Taha"
+                - generic [ref=e2328]: pid="413/8853"
+                - text: ">"
+              - text: Muhammad Taha Cheema
+              - generic [ref=e2329]: </na>
+            - generic [ref=e2331]: </co>
+          - generic [ref=e2332]:
+            - generic [ref=e2335]:
+              - text: <co
+              - generic [ref=e2336]: c="1"
+              - text: ">"
+            - generic [ref=e2338]:
+              - generic [ref=e2339]:
+                - text: <na
+                - generic [ref=e2340]: f="c/Chowdhry:Bhawani_Shankar"
+                - generic [ref=e2341]: pid="45/5627"
+                - text: ">"
+              - text: Bhawani Shankar Chowdhry
+              - generic [ref=e2342]: </na>
+            - generic [ref=e2344]: </co>
+          - generic [ref=e2345]:
+            - generic [ref=e2348]:
+              - text: <co
+              - generic [ref=e2349]: c="1"
+              - text: ">"
+            - generic [ref=e2351]:
+              - generic [ref=e2352]:
+                - text: <na
+                - generic [ref=e2353]: f="d/Dev:Kapal"
+                - generic [ref=e2354]: pid="254/5735"
+                - text: ">"
+              - text: Kapal Dev
+              - generic [ref=e2355]: </na>
+            - generic [ref=e2357]: </co>
+          - generic [ref=e2358]:
+            - generic [ref=e2361]:
+              - text: <co
+              - generic [ref=e2362]: c="0"
+              - text: ">"
+            - generic [ref=e2364]:
+              - generic [ref=e2365]:
+                - text: <na
+                - generic [ref=e2366]: f="d/Dolui:Koustabh"
+                - generic [ref=e2367]: pid="153/0338"
+                - text: ">"
+              - text: Koustabh Dolui
+              - generic [ref=e2368]: </na>
+            - generic [ref=e2370]: </co>
+          - generic [ref=e2371]:
+            - generic [ref=e2374]:
+              - text: <co
+              - generic [ref=e2375]: c="0"
+              - text: ">"
+            - generic [ref=e2377]:
+              - generic [ref=e2378]:
+                - text: <na
+                - generic [ref=e2379]: f="f/Fatima:Tehreem"
+                - generic [ref=e2380]: pid="308/4348"
+                - text: ">"
+              - text: Tehreem Fatima
+              - generic [ref=e2381]: </na>
+            - generic [ref=e2383]: </co>
+          - generic [ref=e2384]:
+            - generic [ref=e2387]:
+              - text: <co
+              - generic [ref=e2388]: c="0"
+              - text: ">"
+            - generic [ref=e2390]:
+              - generic [ref=e2391]:
+                - text: <na
+                - generic [ref=e2392]: f="h/Haq:Osama"
+                - generic [ref=e2393]: pid="151/4130"
+                - text: ">"
+              - text: Osama Haq
+              - generic [ref=e2394]: </na>
+            - generic [ref=e2396]: </co>
+          - generic [ref=e2397]:
+            - generic [ref=e2400]:
+              - text: <co
+              - generic [ref=e2401]: c="1"
+              - text: ">"
+            - generic [ref=e2403]:
+              - generic [ref=e2404]:
+                - text: <na
+                - generic [ref=e2405]: f="h/Hussain:Tanweer"
+                - generic [ref=e2406]: pid="00/4425"
+                - text: ">"
+              - text: Tanweer Hussain
+              - generic [ref=e2407]: </na>
+            - generic [ref=e2409]: </co>
+          - generic [ref=e2410]:
+            - generic [ref=e2413]:
+              - text: <co
+              - generic [ref=e2414]: c="3"
+              - text: ">"
+            - generic [ref=e2416]:
+              - generic [ref=e2417]:
+                - text: <na
+                - generic [ref=e2418]: f="i/Imran:Mohammad"
+                - generic [ref=e2419]: pid="68/8836"
+                - text: ">"
+              - text: Mohammad Imran
+              - generic [ref=e2420]: </na>
+            - generic [ref=e2422]: </co>
+          - generic [ref=e2423]:
+            - generic [ref=e2426]:
+              - text: <co
+              - generic [ref=e2427]: c="0"
+              - text: ">"
+            - generic [ref=e2429]:
+              - generic [ref=e2430]:
+                - text: <na
+                - generic [ref=e2431]: f="i/Irfan:Umer"
+                - generic [ref=e2432]: pid="430/2070"
+                - text: ">"
+              - text: Umer Irfan
+              - generic [ref=e2433]: </na>
+            - generic [ref=e2435]: </co>
+          - generic [ref=e2436]:
+            - generic [ref=e2439]:
+              - text: <co
+              - generic [ref=e2440]: c="3"
+              - text: ">"
+            - generic [ref=e2442]:
+              - generic [ref=e2443]:
+                - text: <na
+                - generic [ref=e2444]: f="j/Javed:Kashif"
+                - generic [ref=e2445]: pid="59/10820"
+                - text: ">"
+              - text: Kashif Javed
+              - generic [ref=e2446]: </na>
+            - generic [ref=e2448]: </co>
+          - generic [ref=e2449]:
+            - generic [ref=e2452]:
+              - text: <co
+              - generic [ref=e2453]: c="0"
+              - text: ">"
+            - generic [ref=e2455]:
+              - generic [ref=e2456]:
+                - text: <na
+                - generic [ref=e2457]: f="k/Khan:Daanish_U="
+                - generic [ref=e2458]: pid="430/3611"
+                - text: ">"
+              - text: Daanish U. Khan
+              - generic [ref=e2459]: </na>
+            - generic [ref=e2461]: </co>
+          - generic [ref=e2462]:
+            - generic [ref=e2465]:
+              - text: <co
+              - generic [ref=e2466]: c="1"
+              - text: ">"
+            - generic [ref=e2468]:
+              - generic [ref=e2469]:
+                - text: <na
+                - generic [ref=e2470]: f="k/Khowaja:Sunder_Ali"
+                - generic [ref=e2471]: pid="204/8791"
+                - text: ">"
+              - text: Sunder Ali Khowaja
+              - generic [ref=e2472]: </na>
+            - generic [ref=e2474]: </co>
+          - generic [ref=e2475]:
+            - generic [ref=e2478]:
+              - text: <co
+              - generic [ref=e2479]: c="1"
+              - text: ">"
+            - generic [ref=e2481]:
+              - generic [ref=e2482]:
+                - text: <na
+                - generic [ref=e2483]: f="k/Khuwaja:Parus"
+                - generic [ref=e2484]: pid="236/6939"
+                - text: ">"
+              - text: Parus Khuwaja
+              - generic [ref=e2485]: </na>
+            - generic [ref=e2487]: </co>
+          - generic [ref=e2488]:
+            - generic [ref=e2491]:
+              - text: <co
+              - generic [ref=e2492]: c="2"
+              - text: ">"
+            - generic [ref=e2494]:
+              - generic [ref=e2495]:
+                - text: <na
+                - generic [ref=e2496]: f="k/Kifayat:Kashif"
+                - generic [ref=e2497]: pid="53/2466"
+                - text: ">"
+              - text: Kashif Kifayat
+              - generic [ref=e2498]: </na>
+            - generic [ref=e2500]: </co>
+          - generic [ref=e2501]:
+            - generic [ref=e2504]:
+              - text: <co
+              - generic [ref=e2505]: c="1"
+              - generic [ref=e2506]: n="2"
+              - text: ">"
+            - generic [ref=e2507]:
+              - generic [ref=e2508]:
+                - generic [ref=e2509]:
+                  - text: <na
+                  - generic [ref=e2510]: f="l/Lee:Ikhyun"
+                  - generic [ref=e2511]: pid="122/0027"
+                  - text: ">"
+                - text: Ikhyun Lee
+                - generic [ref=e2512]: </na>
+              - generic [ref=e2513]:
+                - generic [ref=e2514]: <na>
+                - text: Ik Hyun Lee
+                - generic [ref=e2515]: </na>
+            - generic [ref=e2517]: </co>
+          - generic [ref=e2518]:
+            - generic [ref=e2521]:
+              - text: <co
+              - generic [ref=e2522]: c="0"
+              - text: ">"
+            - generic [ref=e2524]:
+              - generic [ref=e2525]:
+                - text: <na
+                - generic [ref=e2526]: f="m/Maioli:Andrea"
+                - generic [ref=e2527]: pid="242/4757"
+                - text: ">"
+              - text: Andrea Maioli
+              - generic [ref=e2528]: </na>
+            - generic [ref=e2530]: </co>
+          - generic [ref=e2531]:
+            - generic [ref=e2534]:
+              - text: <co
+              - generic [ref=e2535]: c="0"
+              - text: ">"
+            - generic [ref=e2537]:
+              - generic [ref=e2538]:
+                - text: <na
+                - generic [ref=e2539]: f="m/Mottola:Luca"
+                - generic [ref=e2540]: pid="60/5205"
+                - text: ">"
+              - text: Luca Mottola
+              - generic [ref=e2541]: </na>
+            - generic [ref=e2543]: </co>
+          - generic [ref=e2544]:
+            - generic [ref=e2547]:
+              - text: <co
+              - generic [ref=e2548]: c="0"
+              - text: ">"
+            - generic [ref=e2550]:
+              - generic [ref=e2551]:
+                - text: <na
+                - generic [ref=e2552]: f="m/Muhammad:Khawaja_Gul"
+                - generic [ref=e2553]: pid="413/8964"
+                - text: ">"
+              - text: Khawaja Gul Muhammad
+              - generic [ref=e2554]: </na>
+            - generic [ref=e2556]: </co>
+          - generic [ref=e2557]:
+            - generic [ref=e2560]:
+              - text: <co
+              - generic [ref=e2561]: c="0"
+              - text: ">"
+            - generic [ref=e2563]:
+              - generic [ref=e2564]:
+                - text: <na
+                - generic [ref=e2565]: f="m/Mustafa:Maryam"
+                - generic [ref=e2566]: pid="52/4442"
+                - text: ">"
+              - text: Maryam Mustafa
+              - generic [ref=e2567]: </na>
+            - generic [ref=e2569]: </co>
+          - generic [ref=e2570]:
+            - generic [ref=e2573]:
+              - text: <co
+              - generic [ref=e2574]: c="0"
+              - text: ">"
+            - generic [ref=e2576]:
+              - generic [ref=e2577]:
+                - text: <na
+                - generic [ref=e2578]: f="n/Najeeb:Ahmed"
+                - generic [ref=e2579]: pid="387/8220"
+                - text: ">"
+              - text: Ahmed Najeeb
+              - generic [ref=e2580]: </na>
+            - generic [ref=e2582]: </co>
+          - generic [ref=e2583]:
+            - generic [ref=e2586]:
+              - text: <co
+              - generic [ref=e2587]: c="0"
+              - text: ">"
+            - generic [ref=e2589]:
+              - generic [ref=e2590]:
+                - text: <na
+                - generic [ref=e2591]: f="n/Nawaz:Muhammad"
+                - generic [ref=e2592]: pid="39/5057"
+                - text: ">"
+              - text: Muhammad Nawaz
+              - generic [ref=e2593]: </na>
+            - generic [ref=e2595]: </co>
+          - generic [ref=e2596]:
+            - generic [ref=e2599]:
+              - text: <co
+              - generic [ref=e2600]: c="0"
+              - text: ">"
+            - generic [ref=e2602]:
+              - generic [ref=e2603]:
+                - text: <na
+                - generic [ref=e2604]: f="q/Qazi:Ihsan_Ayyub"
+                - generic [ref=e2605]: pid="98/776"
+                - text: ">"
+              - text: Ihsan Ayyub Qazi
+              - generic [ref=e2606]: </na>
+            - generic [ref=e2608]: </co>
+          - generic [ref=e2609]:
+            - generic [ref=e2612]:
+              - text: <co
+              - generic [ref=e2613]: c="0"
+              - text: ">"
+            - generic [ref=e2615]:
+              - generic [ref=e2616]:
+                - text: <na
+                - generic [ref=e2617]: f="q/Qazi:Zafar_Ayyub"
+                - generic [ref=e2618]: pid="131/6120"
+                - text: ">"
+              - text: Zafar Ayyub Qazi
+              - generic [ref=e2619]: </na>
+            - generic [ref=e2621]: </co>
+          - generic [ref=e2622]:
+            - generic [ref=e2625]:
+              - text: <co
+              - generic [ref=e2626]: c="1"
+              - text: ">"
+            - generic [ref=e2628]:
+              - generic [ref=e2629]:
+                - text: <na
+                - generic [ref=e2630]: f="q/Qureshi:Rehan"
+                - generic [ref=e2631]: pid="61/7825"
+                - text: ">"
+              - text: Rehan Qureshi
+              - generic [ref=e2632]: </na>
+            - generic [ref=e2634]: </co>
+          - generic [ref=e2635]:
+            - generic [ref=e2638]:
+              - text: <co
+              - generic [ref=e2639]: c="0"
+              - text: ">"
+            - generic [ref=e2641]:
+              - generic [ref=e2642]:
+                - text: <na
+                - generic [ref=e2643]: f="r/Rafay_0002:Abdul"
+                - generic [ref=e2644]: pid="198/8811-2"
+                - text: ">"
+              - text: Abdul Rafay 0002
+              - generic [ref=e2645]: </na>
+            - generic [ref=e2647]: </co>
+          - generic [ref=e2648]:
+            - generic [ref=e2651]:
+              - text: <co
+              - generic [ref=e2652]: c="0"
+              - text: ">"
+            - generic [ref=e2654]:
+              - generic [ref=e2655]:
+                - text: <na
+                - generic [ref=e2656]: f="r/Raja:Ramish_Majeed"
+                - generic [ref=e2657]: pid="359/8404"
+                - text: ">"
+              - text: Ramish Majeed Raja
+              - generic [ref=e2658]: </na>
+            - generic [ref=e2660]: </co>
+          - generic [ref=e2661]:
+            - generic [ref=e2664]:
+              - text: <co
+              - generic [ref=e2665]: c="2"
+              - text: ">"
+            - generic [ref=e2667]:
+              - generic [ref=e2668]:
+                - text: <na
+                - generic [ref=e2669]: f="s/Sangeen:Muhammad"
+                - generic [ref=e2670]: pid="357/3054"
+                - text: ">"
+              - text: Muhammad Sangeen
+              - generic [ref=e2671]: </na>
+            - generic [ref=e2673]: </co>
+          - generic [ref=e2674]:
+            - generic [ref=e2677]:
+              - text: <co
+              - generic [ref=e2678]: c="0"
+              - text: ">"
+            - generic [ref=e2680]:
+              - generic [ref=e2681]:
+                - text: <na
+                - generic [ref=e2682]: f="s/Sayyid=Ali:Abdur=Rahman_Ibrahim"
+                - generic [ref=e2683]: pid="393/1860"
+                - text: ">"
+              - text: Abdur-Rahman Ibrahim Sayyid-Ali
+              - generic [ref=e2684]: </na>
+            - generic [ref=e2686]: </co>
+          - generic [ref=e2687]:
+            - generic [ref=e2690]:
+              - text: <co
+              - generic [ref=e2691]: c="1"
+              - text: ">"
+            - generic [ref=e2693]:
+              - generic [ref=e2694]:
+                - text: <na
+                - generic [ref=e2695]: f="s/Shah:Ali_Akbar"
+                - generic [ref=e2696]: pid="271/6663"
+                - text: ">"
+              - text: Ali Akbar Shah
+              - generic [ref=e2697]: </na>
+            - generic [ref=e2699]: </co>
+          - generic [ref=e2700]:
+            - generic [ref=e2703]:
+              - text: <co
+              - generic [ref=e2704]: c="1"
+              - text: ">"
+            - generic [ref=e2706]:
+              - generic [ref=e2707]:
+                - text: <na
+                - generic [ref=e2708]: f="s/Shahid:Saleem"
+                - generic [ref=e2709]: pid="217/1227"
+                - text: ">"
+              - text: Saleem Shahid
+              - generic [ref=e2710]: </na>
+            - generic [ref=e2712]: </co>
+          - generic [ref=e2713]:
+            - generic [ref=e2716]:
+              - text: <co
+              - generic [ref=e2717]: c="0"
+              - text: ">"
+            - generic [ref=e2719]:
+              - generic [ref=e2720]:
+                - text: <na
+                - generic [ref=e2721]: f="s/Shaikh:Areeba_Shahzad"
+                - generic [ref=e2722]: pid="430/4435"
+                - text: ">"
+              - text: Areeba Shahzad Shaikh
+              - generic [ref=e2723]: </na>
+            - generic [ref=e2725]: </co>
+          - generic [ref=e2726]:
+            - generic [ref=e2729]:
+              - text: <co
+              - generic [ref=e2730]: c="0"
+              - text: ">"
+            - generic [ref=e2732]:
+              - generic [ref=e2733]:
+                - text: <na
+                - generic [ref=e2734]: f="s/Siddiqui:Junaid_Haroon"
+                - generic [ref=e2735]: pid="22/7567"
+                - text: ">"
+              - text: Junaid Haroon Siddiqui
+              - generic [ref=e2736]: </na>
+            - generic [ref=e2738]: </co>
+          - generic [ref=e2739]:
+            - generic [ref=e2742]:
+              - text: <co
+              - generic [ref=e2743]: c="1"
+              - text: ">"
+            - generic [ref=e2745]:
+              - generic [ref=e2746]:
+                - text: <na
+                - generic [ref=e2747]: f="s/Singh_0001:Keshav"
+                - generic [ref=e2748]: pid="132/7939-1"
+                - text: ">"
+              - text: Keshav Singh 0001
+              - generic [ref=e2749]: </na>
+            - generic [ref=e2751]: </co>
+          - generic [ref=e2752]:
+            - generic [ref=e2755]:
+              - text: <co
+              - generic [ref=e2756]: c="0"
+              - text: ">"
+            - generic [ref=e2758]:
+              - generic [ref=e2759]:
+                - text: <na
+                - generic [ref=e2760]: f="s/Soomro:Muhammad_Abdullah"
+                - generic [ref=e2761]: pid="391/7192"
+                - text: ">"
+              - text: Muhammad Abdullah Soomro
+              - generic [ref=e2762]: </na>
+            - generic [ref=e2764]: </co>
+          - generic [ref=e2765]:
+            - generic [ref=e2768]:
+              - text: <co
+              - generic [ref=e2769]: c="1"
+              - text: ">"
+            - generic [ref=e2771]:
+              - generic [ref=e2772]:
+                - text: <na
+                - generic [ref=e2773]: f="s/Soother:Dileep_Kumar"
+                - generic [ref=e2774]: pid="308/7161"
+                - text: ">"
+              - text: Dileep Kumar Soother
+              - generic [ref=e2775]: </na>
+            - generic [ref=e2777]: </co>
+          - generic [ref=e2778]:
+            - generic [ref=e2781]:
+              - text: <co
+              - generic [ref=e2782]: c="0"
+              - generic [ref=e2783]: n="2"
+              - text: ">"
+            - generic [ref=e2784]:
+              - generic [ref=e2785]:
+                - generic [ref=e2786]:
+                  - text: <na
+                  - generic [ref=e2787]: f="s/Syed:Affan_A="
+                  - generic [ref=e2788]: pid="80/3447"
+                  - text: ">"
+                - text: Affan A. Syed
+                - generic [ref=e2789]: </na>
+              - generic [ref=e2790]:
+                - generic [ref=e2791]: <na>
+                - text: Affan Ahmed Syed
+                - generic [ref=e2792]: </na>
+            - generic [ref=e2794]: </co>
+          - generic [ref=e2795]:
+            - generic [ref=e2798]:
+              - text: <co
+              - generic [ref=e2799]: c="1"
+              - text: ">"
+            - generic [ref=e2801]:
+              - generic [ref=e2802]:
+                - text: <na
+                - generic [ref=e2803]: f="u/Ujjan:Sanaullah_Mehran"
+                - generic [ref=e2804]: pid="308/6703"
+                - text: ">"
+              - text: Sanaullah Mehran Ujjan
+              - generic [ref=e2805]: </na>
+            - generic [ref=e2807]: </co>
+          - generic [ref=e2808]:
+            - generic [ref=e2811]:
+              - text: <co
+              - generic [ref=e2812]: c="0"
+              - text: ">"
+            - generic [ref=e2814]:
+              - generic [ref=e2815]:
+                - text: <na
+                - generic [ref=e2816]: f="v/Voigt:Thiemo"
+                - generic [ref=e2817]: pid="46/5016"
+                - text: ">"
+              - text: Thiemo Voigt
+              - generic [ref=e2818]: </na>
+            - generic [ref=e2820]: </co>
+          - generic [ref=e2821]:
+            - generic [ref=e2824]:
+              - text: <co
+              - generic [ref=e2825]: c="2"
+              - text: ">"
+            - generic [ref=e2827]:
+              - generic [ref=e2828]:
+                - text: <na
+                - generic [ref=e2829]: f="w/Wang:Haoda"
+                - generic [ref=e2830]: pid="325/3413"
+                - text: ">"
+              - text: Haoda Wang
+              - generic [ref=e2831]: </na>
+            - generic [ref=e2833]: </co>
+          - generic [ref=e2834]:
+            - generic [ref=e2837]:
+              - text: <co
+              - generic [ref=e2838]: c="0"
+              - text: ">"
+            - generic [ref=e2840]:
+              - generic [ref=e2841]:
+                - text: <na
+                - generic [ref=e2842]: f="w/Wouters:Erik_Henricus"
+                - generic [ref=e2843]: pid="278/4082"
+                - text: ">"
+              - text: Erik Henricus Wouters
+              - generic [ref=e2844]: </na>
+            - generic [ref=e2846]: </co>
+          - generic [ref=e2847]:
+            - generic [ref=e2850]:
+              - text: <co
+              - generic [ref=e2851]: c="0"
+              - text: ">"
+            - generic [ref=e2853]:
+              - generic [ref=e2854]:
+                - text: <na
+                - generic [ref=e2855]: f="z/Zaffar:Nauman_Ahmad"
+                - generic [ref=e2856]: pid="233/7443"
+                - text: ">"
+              - text: Nauman Ahmad Zaffar
+              - generic [ref=e2857]: </na>
+            - generic [ref=e2859]: </co>
+          - generic [ref=e2860]:
+            - generic [ref=e2863]:
+              - text: <co
+              - generic [ref=e2864]: c="0"
+              - text: ">"
+            - generic [ref=e2866]:
+              - generic [ref=e2867]:
+                - text: <na
+                - generic [ref=e2868]: f="z/Zahid:Maham"
+                - generic [ref=e2869]: pid="429/9977"
+                - text: ">"
+              - text: Maham Zahid
+              - generic [ref=e2870]: </na>
+            - generic [ref=e2872]: </co>
+          - generic [ref=e2873]:
+            - generic [ref=e2876]:
+              - text: <co
+              - generic [ref=e2877]: c="1"
+              - text: ">"
+            - generic [ref=e2879]:
+              - generic [ref=e2880]:
+                - text: <na
+                - generic [ref=e2881]: f="z/Zehra:Syeda_Sundus"
+                - generic [ref=e2882]: pid="283/9174"
+                - text: ">"
+              - text: Syeda Sundus Zehra
+              - generic [ref=e2883]: </na>
+            - generic [ref=e2885]: </co>
+        - generic [ref=e2887]: </coauthors>
+    - generic [ref=e2889]: </dblpperson>

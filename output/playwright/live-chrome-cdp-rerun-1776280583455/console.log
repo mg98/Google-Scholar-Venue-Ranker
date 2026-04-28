@@ -1,0 +1,28 @@
+[chrome stderr] DevTools listening on ws://127.0.0.1:9224/devtools/browser/7dfbc3a6-f158-4f4c-8cef-cc9b615d753f
+serviceWorkers=["chrome-extension://fignfifoniblkonapihmkfakmlgkbkcf/service_worker.js"]
+[chrome stderr] [6596:25752:0416/001629.609:ERROR:google_apis\gcm\engine\registration_request.cc:291] Registration response error message: PHONE_REGISTRATION_ERROR
+[chrome stderr] [6596:25752:0416/001629.618:ERROR:google_apis\gcm\engine\registration_request.cc:291] Registration response error message: PHONE_REGISTRATION_ERROR
+[chrome stderr] [6596:25752:0416/001629.618:ERROR:google_apis\gcm\engine\registration_request.cc:291] Registration response error message: PHONE_REGISTRATION_ERROR
+[page console:info] Slow network is detected. See https://www.chromestatus.com/feature/5636954674692096 for more details. Fallback font will be used while loading: https://fonts.gstatic.com/s/roboto/v48/KFO7CnqEu92Fr1ME7kSn66aGLdTylUAMa3yUBA.woff2
+[page console:info] Slow network is detected. See https://www.chromestatus.com/feature/5636954674692096 for more details. Fallback font will be used while loading: https://fonts.gstatic.com/s/roboto/v48/KFO7CnqEu92Fr1ME7kSn66aGLdTylUAMa3yUBA.woff2
+[chrome stderr] Created TensorFlow Lite XNNPACK delegate for CPU.
+{
+  "serviceWorkers": [
+    "chrome-extension://fignfifoniblkonapihmkfakmlgkbkcf/service_worker.js"
+  ],
+  "profiles": [
+    {
+      "label": "first-profile",
+      "pageTitle": "‪Wolfgang Stuerzlinger‬ - ‪Google Scholar‬",
+      "url": "https://scholar.google.com/citations?hl=en&user=78KBaPsAAAAJ&view_op=list_works",
+      "hasSummary": false,
+      "hasStatus": false,
+      "summaryText": "",
+      "statusText": "",
+      "dblpLink": null,
+      "hasRobotText": true,
+      "coauthorHref": "/citations?user=o9h0dRsAAAAJ&hl=en",
+      "screenshot": "C:\\Users\\Naveed Bhatti\\Documents\\Google-Scholar-Venue-Ranker - CODEX\\output\\playwright\\live-chrome-cdp-rerun-1776280583455\\first-profile.png"
+    }
+  ]
+}
