@@ -1,0 +1,739 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - button [ref=e4] [cursor=pointer]
+    - link "Homepage" [ref=e6] [cursor=pointer]:
+      - /url: /schhp?hl=en
+    - button "Search" [ref=e8] [cursor=pointer]
+    - link "Sign in" [ref=e11] [cursor=pointer]:
+      - /url: https://accounts.google.com/Login?hl=en&continue=https://scholar.google.com.pk/schhp%3Fhl%3Den
+  - main [ref=e13]:
+    - generic [ref=e14]:
+      - navigation [ref=e15]:
+        - link "Get my own profile" [ref=e16] [cursor=pointer]:
+          - /url: /citations?hl=en
+        - region "Cited by" [ref=e17]:
+          - heading "Cited by View all" [level=3] [ref=e18]:
+            - text: Cited by
+            - button "View all" [ref=e19] [cursor=pointer]:
+              - generic [ref=e21]: View all
+          - table [ref=e22]:
+            - rowgroup [ref=e23]:
+              - row "All Since 2021" [ref=e24]:
+                - columnheader [ref=e25]
+                - columnheader "All" [ref=e26]
+                - columnheader "Since 2021" [ref=e27]
+            - rowgroup [ref=e28]:
+              - row "Citations 1007 748" [ref=e29]:
+                - cell "Citations" [ref=e30]:
+                  - link "Citations" [ref=e31] [cursor=pointer]:
+                    - /url: javascript:void(0)
+                - cell "1007" [ref=e32]
+                - cell "748" [ref=e33]
+              - row "h-index 16 14" [ref=e34]:
+                - cell "h-index" [ref=e35]:
+                  - link "h-index" [ref=e36] [cursor=pointer]:
+                    - /url: javascript:void(0)
+                - cell "16" [ref=e37]
+                - cell "14" [ref=e38]
+              - row "i10-index 16 14" [ref=e39]:
+                - cell "i10-index" [ref=e40]:
+                  - link "i10-index" [ref=e41] [cursor=pointer]:
+                    - /url: javascript:void(0)
+                - cell "16" [ref=e42]
+                - cell "14" [ref=e43]
+          - generic [ref=e44]:
+            - generic:
+              - generic [ref=e50]: "0"
+              - generic [ref=e51]: "180"
+              - generic [ref=e52]: "90"
+              - generic [ref=e53]: "45"
+              - generic [ref=e54]: "135"
+            - generic [ref=e56]:
+              - generic [ref=e57]: "2015"
+              - generic [ref=e58]: "2016"
+              - generic [ref=e59]: "2017"
+              - generic [ref=e60]: "2018"
+              - generic [ref=e61]: "2019"
+              - generic [ref=e62]: "2020"
+              - generic [ref=e63]: "2021"
+              - generic [ref=e64]: "2022"
+              - generic [ref=e65]: "2023"
+              - generic [ref=e66]: "2024"
+              - generic [ref=e67]: "2025"
+              - generic [ref=e68]: "2026"
+              - link [ref=e69] [cursor=pointer]:
+                - /url: javascript:void(0)
+              - link [ref=e70] [cursor=pointer]:
+                - /url: javascript:void(0)
+              - link [ref=e71] [cursor=pointer]:
+                - /url: javascript:void(0)
+              - link [ref=e72] [cursor=pointer]:
+                - /url: javascript:void(0)
+              - link [ref=e73] [cursor=pointer]:
+                - /url: javascript:void(0)
+              - link [ref=e74] [cursor=pointer]:
+                - /url: javascript:void(0)
+              - link [ref=e75] [cursor=pointer]:
+                - /url: javascript:void(0)
+              - link [ref=e76] [cursor=pointer]:
+                - /url: javascript:void(0)
+              - link [ref=e77] [cursor=pointer]:
+                - /url: javascript:void(0)
+              - link [ref=e78] [cursor=pointer]:
+                - /url: javascript:void(0)
+              - link [ref=e79] [cursor=pointer]:
+                - /url: javascript:void(0)
+              - link [ref=e80] [cursor=pointer]:
+                - /url: javascript:void(0)
+        - region "Public access" [ref=e81]:
+          - generic [ref=e82]:
+            - generic [ref=e83]: Public access
+            - link "View all" [ref=e84] [cursor=pointer]:
+              - /url: /citations?view_op=list_mandates&hl=en&user=6ZB86uYAAAAJ
+          - generic [ref=e85]:
+            - generic [ref=e86]: 3 articles
+            - generic [ref=e88]: 0 articles
+            - generic [ref=e90]: available
+            - generic [ref=e91]: not available
+            - generic [ref=e92]: Based on funding mandates
+        - region "Co-authors" [ref=e93]:
+          - heading "Co-authors View all" [level=3] [ref=e94]:
+            - text: Co-authors
+            - button "View all" [ref=e95] [cursor=pointer]:
+              - generic [ref=e97]: View all
+          - list [ref=e98]:
+            - listitem [ref=e99]:
+              - generic [ref=e100] [cursor=pointer]:
+                - img "Muhammad Hamad Alizai" [ref=e102]
+                - generic [ref=e103]:
+                  - link "Muhammad Hamad Alizai" [ref=e104]:
+                    - /url: /citations?user=L4lhO6AAAAAJ&hl=en
+                  - generic [ref=e105]: Associate Professor of Computer Science, LUMS
+            - listitem [ref=e109]:
+              - generic [ref=e110] [cursor=pointer]:
+                - img "Luca Mottola" [ref=e112]
+                - generic [ref=e113]:
+                  - link "Luca Mottola" [ref=e114]:
+                    - /url: /citations?user=VkFc88EAAAAJ&hl=en
+                  - generic [ref=e115]: Professor, Politecnico di Milano
+            - listitem [ref=e119]:
+              - generic [ref=e120] [cursor=pointer]:
+                - img "Saad Ahmed" [ref=e122]
+                - generic [ref=e123]:
+                  - link "Saad Ahmed" [ref=e124]:
+                    - /url: /citations?user=pnY2WLsAAAAJ&hl=en
+                  - generic [ref=e125]: Research Scientist, School of Interactive Computing, Georgia Institute of Technology
+            - listitem [ref=e129]:
+              - generic [ref=e130] [cursor=pointer]:
+                - img "Affan Syed" [ref=e132]
+                - generic [ref=e133]:
+                  - link "Affan Syed" [ref=e134]:
+                    - /url: /citations?user=hDmbBcQAAAAJ&hl=en
+                  - generic [ref=e135]: Sr. Director Technology and Solutions
+            - listitem [ref=e139]:
+              - generic [ref=e140] [cursor=pointer]:
+                - img "Kapal Dev" [ref=e142]
+                - generic [ref=e143]:
+                  - link "Kapal Dev" [ref=e144]:
+                    - /url: /citations?user=KQ-c2q8AAAAJ&hl=en
+                  - generic [ref=e145]: Assistant Professor @ Munster Technological University, Ireland.
+            - listitem [ref=e149]:
+              - generic [ref=e150] [cursor=pointer]:
+                - img "Mikhail Afanasov" [ref=e152]
+                - generic [ref=e153]:
+                  - link "Mikhail Afanasov" [ref=e154]:
+                    - /url: /citations?user=vfkU5dkAAAAJ&hl=en
+                  - generic [ref=e155]: PhD student, Politecnico di Milano
+            - listitem [ref=e159]:
+              - generic [ref=e160] [cursor=pointer]:
+                - img "Koustabh Dolui" [ref=e162]
+                - generic [ref=e163]:
+                  - link "Koustabh Dolui" [ref=e164]:
+                    - /url: /citations?user=868ypvYAAAAJ&hl=en
+                  - generic [ref=e165]: Marie Curie doctoral scholar, KU Leuven
+            - listitem [ref=e169]:
+              - generic [ref=e170] [cursor=pointer]:
+                - img "Andrea Maioli" [ref=e172]
+                - generic [ref=e173]:
+                  - link "Andrea Maioli" [ref=e174]:
+                    - /url: /citations?user=HGSaB14AAAAJ&hl=en
+                  - generic [ref=e175]: Postdoc Researcher, Politecnico di Milano
+            - listitem [ref=e179]:
+              - generic [ref=e180] [cursor=pointer]:
+                - img "Bhawani Shankar Chowdhry" [ref=e182]
+                - generic [ref=e183]:
+                  - link "Bhawani Shankar Chowdhry" [ref=e184]:
+                    - /url: /citations?user=tCMobK8AAAAJ&hl=en
+                  - generic [ref=e185]: Professor Mehran university of Engineering & Technology MUET
+            - listitem [ref=e189]:
+              - generic [ref=e190] [cursor=pointer]:
+                - img "Ali Akbar Shah Syed" [ref=e192]
+                - generic [ref=e193]:
+                  - link "Ali Akbar Shah Syed" [ref=e194]:
+                    - /url: /citations?user=FZQwwC9PzawC&hl=en
+                  - generic [ref=e195]: Dublin City University
+            - listitem [ref=e199]:
+              - generic [ref=e200] [cursor=pointer]:
+                - img "Muhammad Sangeen" [ref=e202]
+                - generic [ref=e203]:
+                  - link "Muhammad Sangeen" [ref=e204]:
+                    - /url: /citations?user=nsmq26kAAAAJ&hl=en
+                  - generic [ref=e205]: PhD Candidate
+            - listitem [ref=e209]:
+              - generic [ref=e210] [cursor=pointer]:
+                - img "Kashif Kifayat" [ref=e212]
+                - generic [ref=e213]:
+                  - link "Kashif Kifayat" [ref=e214]:
+                    - /url: /citations?user=yHCaC78AAAAJ&hl=en
+                  - generic [ref=e215]: Professor of Cyber Security
+            - listitem [ref=e219]:
+              - generic [ref=e220] [cursor=pointer]:
+                - img "Dr. Saleem Shahid" [ref=e222]
+                - generic [ref=e223]:
+                  - link "Dr. Saleem Shahid" [ref=e224]:
+                    - /url: /citations?user=XJdQoRUAAAAJ&hl=en
+                  - generic [ref=e225]: University Assistant at Graz University of Technology
+            - listitem [ref=e229]:
+              - generic [ref=e230] [cursor=pointer]:
+                - img "Thiemo Voigt" [ref=e232]
+                - generic [ref=e233]:
+                  - link "Thiemo Voigt" [ref=e234]:
+                    - /url: /citations?user=xSXvpjEAAAAJ&hl=en
+                  - generic [ref=e235]: Uppsala University and RISE Computer Science (formerly SICS)
+            - listitem [ref=e239]:
+              - generic [ref=e240] [cursor=pointer]:
+                - img "Hafiz Areeb Asad" [ref=e242]
+                - generic [ref=e243]:
+                  - link "Hafiz Areeb Asad" [ref=e244]:
+                    - /url: /citations?user=9uRWda0AAAAJ&hl=en
+                  - generic [ref=e245]: NTNU - Norwegian University of Science and Technology
+            - listitem [ref=e249]:
+              - generic [ref=e250] [cursor=pointer]:
+                - img "Martina Brachmann" [ref=e252]
+                - generic [ref=e253]:
+                  - link "Martina Brachmann" [ref=e254]:
+                    - /url: /citations?user=RFjxdIYAAAAJ&hl=en
+                  - generic [ref=e255]: Ericsson Research
+            - listitem [ref=e259]:
+              - generic [ref=e260] [cursor=pointer]:
+                - img "Osama Haq" [ref=e262]
+                - generic [ref=e263]:
+                  - link "Osama Haq" [ref=e264]:
+                    - /url: /citations?user=5Yp1M7oAAAAJ&hl=en
+                  - generic [ref=e265]: PhD, Tufts University
+            - listitem [ref=e269]:
+              - generic [ref=e270] [cursor=pointer]:
+                - img "Zainab Abaid" [ref=e272]
+                - generic [ref=e273]:
+                  - link "Zainab Abaid" [ref=e274]:
+                    - /url: /citations?user=6JTtR9IAAAAJ&hl=en
+                  - generic [ref=e275]: University of New South Wales
+            - listitem [ref=e279]:
+              - generic [ref=e280] [cursor=pointer]:
+                - img "Abdul Rafay" [ref=e282]
+                - generic [ref=e283]:
+                  - link "Abdul Rafay" [ref=e284]:
+                    - /url: /citations?user=jO698fkAAAAJ&hl=en
+                  - generic [ref=e285]: Lahore University of Management Sciences
+            - listitem [ref=e289]:
+              - generic [ref=e290] [cursor=pointer]:
+                - img "Muhammad Abdullah Soomro" [ref=e292]
+                - generic [ref=e293]:
+                  - link "Muhammad Abdullah Soomro" [ref=e294]:
+                    - /url: /citations?user=UssaQrQAAAAJ&hl=en
+                  - generic [ref=e295]: Graduate Student, University of Massachusetts Amherst
+      - main [ref=e299]:
+        - generic [ref=e300]:
+          - button "Follow" [ref=e301] [cursor=pointer]:
+            - generic [ref=e303]: Follow
+          - img "Naveed Anwar Bhatti" [ref=e306]
+          - generic [ref=e307]:
+            - generic [ref=e309]: Naveed Anwar Bhatti
+            - generic [ref=e310]:
+              - text: Assistant Professor,
+              - link "LUMS" [ref=e311] [cursor=pointer]:
+                - /url: /citations?view_op=view_org&hl=en&org=14533007956824985543
+              - text: ", Lahore"
+            - generic [ref=e312]:
+              - text: Verified email at lums.edu.pk -
+              - link "Homepage" [ref=e313] [cursor=pointer]:
+                - /url: https://naveedanwarbhatti.github.io/
+            - generic [ref=e314]:
+              - link "Cyber Physical Systems" [ref=e315] [cursor=pointer]:
+                - /url: /citations?view_op=search_authors&hl=en&mauthors=label:cyber_physical_systems
+              - link "Internet of Things" [ref=e316] [cursor=pointer]:
+                - /url: /citations?view_op=search_authors&hl=en&mauthors=label:internet_of_things
+              - link "Embedded Systems" [ref=e317] [cursor=pointer]:
+                - /url: /citations?view_op=search_authors&hl=en&mauthors=label:embedded_systems
+              - link "Wireless Sensor Networks" [ref=e318] [cursor=pointer]:
+                - /url: /citations?view_op=search_authors&hl=en&mauthors=label:wireless_sensor_networks
+              - link "Security" [ref=e319] [cursor=pointer]:
+                - /url: /citations?view_op=search_authors&hl=en&mauthors=label:security
+      - navigation
+      - region "Articles" [ref=e320]:
+        - generic [ref=e321]:
+          - table [ref=e323]:
+            - rowgroup [ref=e324]:
+              - row "Title Cited by Year" [ref=e325]:
+                - columnheader "Title" [ref=e326]:
+                  - link "Title" [ref=e328] [cursor=pointer]:
+                    - /url: /citations?hl=en&user=6ZB86uYAAAAJ&pagesize=100&view_op=list_works&sortby=title
+                - columnheader "Cited by" [ref=e329]:
+                  - generic [ref=e331]: Cited by
+                - columnheader "Year" [ref=e332]:
+                  - link "Year" [ref=e334] [cursor=pointer]:
+                    - /url: /citations?hl=en&user=6ZB86uYAAAAJ&pagesize=100&view_op=list_works&sortby=pubdate
+            - rowgroup [ref=e335]:
+              - 'row "Energy harvesting and wireless transfer in sensor network applications: Concepts and experiences NA Bhatti, MH Alizai, AA Syed, L Mottola ACM Transactions on Sensor Networks (TOSN) 12 (3), 1-40 192 2016" [ref=e336]':
+                - 'cell "Energy harvesting and wireless transfer in sensor network applications: Concepts and experiences NA Bhatti, MH Alizai, AA Syed, L Mottola ACM Transactions on Sensor Networks (TOSN) 12 (3), 1-40" [ref=e337]':
+                  - 'link "Energy harvesting and wireless transfer in sensor network applications: Concepts and experiences" [ref=e338] [cursor=pointer]':
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:-_dYPAW6P2MC
+                  - generic [ref=e339]: NA Bhatti, MH Alizai, AA Syed, L Mottola
+                  - generic [ref=e340]: ACM Transactions on Sensor Networks (TOSN) 12 (3), 1-40
+                - cell "192" [ref=e341]:
+                  - link "192" [ref=e342] [cursor=pointer]:
+                    - /url: https://scholar.google.com.pk/scholar?oi=bibs&hl=en&cites=13997266730491173823
+                - cell "2016" [ref=e343]:
+                  - generic [ref=e344]: "2016"
+              - 'row "HarvOS: Efficient code instrumentation for transiently-powered embedded sensing NA Bhatti, L Mottola International Conference on Information Processing in Sensor Networks (IPSN) 167 2017" [ref=e345]':
+                - 'cell "HarvOS: Efficient code instrumentation for transiently-powered embedded sensing NA Bhatti, L Mottola International Conference on Information Processing in Sensor Networks (IPSN)" [ref=e346]':
+                  - 'link "HarvOS: Efficient code instrumentation for transiently-powered embedded sensing" [ref=e347] [cursor=pointer]':
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:0KyAp5RtaNEC
+                  - generic [ref=e348]: NA Bhatti, L Mottola
+                  - generic [ref=e349]: International Conference on Information Processing in Sensor Networks (IPSN)
+                - cell "167" [ref=e350]:
+                  - link "167" [ref=e351] [cursor=pointer]:
+                    - /url: https://scholar.google.com.pk/scholar?oi=bibs&hl=en&cites=3006332126515791619
+                - cell "2017" [ref=e352]:
+                  - generic [ref=e353]: "2017"
+              - row "Battery-less Zero-maintenance Embedded Sensing at the Mithraeum of Circus Maximus M Afanasov, NA Bhatti, D Campagna, G Caslini, FM Centonze, K Dolui, ... ACM Conference on Embedded Networked Sensor Systems (SenSys) 123 2020" [ref=e354]:
+                - cell "Battery-less Zero-maintenance Embedded Sensing at the Mithraeum of Circus Maximus M Afanasov, NA Bhatti, D Campagna, G Caslini, FM Centonze, K Dolui, ... ACM Conference on Embedded Networked Sensor Systems (SenSys)" [ref=e355]:
+                  - link "Battery-less Zero-maintenance Embedded Sensing at the Mithraeum of Circus Maximus" [ref=e356] [cursor=pointer]:
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:vDijr-p_gm4C
+                  - generic [ref=e357]: M Afanasov, NA Bhatti, D Campagna, G Caslini, FM Centonze, K Dolui, ...
+                  - generic [ref=e358]: ACM Conference on Embedded Networked Sensor Systems (SenSys)
+                - cell "123" [ref=e359]:
+                  - link "123" [ref=e360] [cursor=pointer]:
+                    - /url: https://scholar.google.com.pk/scholar?oi=bibs&hl=en&cites=14663263863071291032
+                - cell "2020" [ref=e361]:
+                  - generic [ref=e362]: "2020"
+              - row "Efficient Intermittent Computing with Differential Checkpointing S Ahmed, NA Bhatti, MH Alizai, JH Siddiqui, L Mottola ACM SIGPLAN / SIGBED Conference on Languages, Compilers, and Tools for … 92 2019" [ref=e363]:
+                - cell "Efficient Intermittent Computing with Differential Checkpointing S Ahmed, NA Bhatti, MH Alizai, JH Siddiqui, L Mottola ACM SIGPLAN / SIGBED Conference on Languages, Compilers, and Tools for …" [ref=e364]:
+                  - link "Efficient Intermittent Computing with Differential Checkpointing" [ref=e365] [cursor=pointer]:
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:yB1At4FlUx8C
+                  - generic [ref=e366]: S Ahmed, NA Bhatti, MH Alizai, JH Siddiqui, L Mottola
+                  - generic [ref=e367]: ACM SIGPLAN / SIGBED Conference on Languages, Compilers, and Tools for …
+                - cell "92" [ref=e368]:
+                  - link "92" [ref=e369] [cursor=pointer]:
+                    - /url: https://scholar.google.com.pk/scholar?oi=bibs&hl=en&cites=7784989669389654665
+                - cell "2019" [ref=e370]:
+                  - generic [ref=e371]: "2019"
+              - row "Efficient State Retention for Transiently-powered Embedded Sensing. NA Bhatti, L Mottola International Conference on Embedded Wireless Systems and Networks (EWSN … 74 2016" [ref=e372]:
+                - cell "Efficient State Retention for Transiently-powered Embedded Sensing. NA Bhatti, L Mottola International Conference on Embedded Wireless Systems and Networks (EWSN …" [ref=e373]:
+                  - link "Efficient State Retention for Transiently-powered Embedded Sensing." [ref=e374] [cursor=pointer]:
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:2osOgNQ5qMEC
+                  - generic [ref=e375]: NA Bhatti, L Mottola
+                  - generic [ref=e376]: International Conference on Embedded Wireless Systems and Networks (EWSN …
+                - cell "74" [ref=e377]:
+                  - link "74" [ref=e378] [cursor=pointer]:
+                    - /url: https://scholar.google.com.pk/scholar?oi=bibs&hl=en&cites=13938297634347919361
+                - cell "2016" [ref=e379]:
+                  - generic [ref=e380]: "2016"
+              - 'row "MUHAFIZ: IoT-based track recording vehicle for the damage analysis of the railway track AA Shah, NA Bhatti, K Dev, BS Chowdhry IEEE Internet of Things Journal (IoT) 8 (11), 9397-9406 59 2021" [ref=e381]':
+                - 'cell "MUHAFIZ: IoT-based track recording vehicle for the damage analysis of the railway track AA Shah, NA Bhatti, K Dev, BS Chowdhry IEEE Internet of Things Journal (IoT) 8 (11), 9397-9406" [ref=e382]':
+                  - 'link "MUHAFIZ: IoT-based track recording vehicle for the damage analysis of the railway track" [ref=e383] [cursor=pointer]':
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:BUYA1_V_uYcC
+                  - generic [ref=e384]: AA Shah, NA Bhatti, K Dev, BS Chowdhry
+                  - generic [ref=e385]: IEEE Internet of Things Journal (IoT) 8 (11), 9397-9406
+                - cell "59" [ref=e386]:
+                  - link "59" [ref=e387] [cursor=pointer]:
+                    - /url: https://scholar.google.com.pk/scholar?oi=bibs&hl=en&cites=6001854569637485142
+                - cell "2021" [ref=e388]:
+                  - generic [ref=e389]: "2021"
+              - row "Towards soft real-time fault diagnosis for edge devices in industrial IoT using deep domain adaptation training strategy DK Soother, SM Ujjan, K Dev, SA Khowaja, NA Bhatti, T Hussain Journal of Parallel and Distributed Computing 160, 90-99 58 * 2021" [ref=e390]:
+                - cell "Towards soft real-time fault diagnosis for edge devices in industrial IoT using deep domain adaptation training strategy DK Soother, SM Ujjan, K Dev, SA Khowaja, NA Bhatti, T Hussain Journal of Parallel and Distributed Computing 160, 90-99" [ref=e391]:
+                  - link "Towards soft real-time fault diagnosis for edge devices in industrial IoT using deep domain adaptation training strategy" [ref=e392] [cursor=pointer]:
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:Z5m8FVwuT1cC
+                  - generic [ref=e393]: DK Soother, SM Ujjan, K Dev, SA Khowaja, NA Bhatti, T Hussain
+                  - generic [ref=e394]: Journal of Parallel and Distributed Computing 160, 90-99
+                - cell "58 *" [ref=e395]:
+                  - link "58" [ref=e396] [cursor=pointer]:
+                    - /url: https://scholar.google.com.pk/scholar?oi=bibs&hl=en&cites=5015643814060332420
+                  - link "*" [ref=e397] [cursor=pointer]:
+                    - /url: javascript:void(0)
+                - cell "2021" [ref=e398]:
+                  - generic [ref=e399]: "2021"
+              - row "Comparative Analysis of Bio‑Inspired Algorithms for Underwater Wireless Sensor Networks SS Zehra, R Qureshi, K Dev, S Shahid, NA Bhatti Wireless Personal Communications (WPC), Springer 41 2020" [ref=e400]:
+                - cell "Comparative Analysis of Bio‑Inspired Algorithms for Underwater Wireless Sensor Networks SS Zehra, R Qureshi, K Dev, S Shahid, NA Bhatti Wireless Personal Communications (WPC), Springer" [ref=e401]:
+                  - link "Comparative Analysis of Bio‑Inspired Algorithms for Underwater Wireless Sensor Networks" [ref=e402] [cursor=pointer]:
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:zLWjf1WUPmwC
+                  - generic [ref=e403]: SS Zehra, R Qureshi, K Dev, S Shahid, NA Bhatti
+                  - generic [ref=e404]: Wireless Personal Communications (WPC), Springer
+                - cell "41" [ref=e405]:
+                  - link "41" [ref=e406] [cursor=pointer]:
+                    - /url: https://scholar.google.com.pk/scholar?oi=bibs&hl=en&cites=9938180840596890894
+                - cell "2020" [ref=e407]:
+                  - generic [ref=e408]: "2020"
+              - 'row "The Betrayal of Constant Power× Time: Finding the Missing Joules of Transiently-Powered Computers S Ahmed, A Bakar, NA Bhatti, MH Alizai, JH Siddiqui, L Mottola ACM SIGPLAN / SIGBED Conference on Languages, Compilers, and Tools for … 38 2019" [ref=e409]':
+                - 'cell "The Betrayal of Constant Power× Time: Finding the Missing Joules of Transiently-Powered Computers S Ahmed, A Bakar, NA Bhatti, MH Alizai, JH Siddiqui, L Mottola ACM SIGPLAN / SIGBED Conference on Languages, Compilers, and Tools for …" [ref=e410]':
+                  - 'link "The Betrayal of Constant Power× Time: Finding the Missing Joules of Transiently-Powered Computers" [ref=e411] [cursor=pointer]':
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:nrtMV_XWKgEC
+                  - generic [ref=e412]: S Ahmed, A Bakar, NA Bhatti, MH Alizai, JH Siddiqui, L Mottola
+                  - generic [ref=e413]: ACM SIGPLAN / SIGBED Conference on Languages, Compilers, and Tools for …
+                - cell "38" [ref=e414]:
+                  - link "38" [ref=e415] [cursor=pointer]:
+                    - /url: https://scholar.google.com.pk/scholar?oi=bibs&hl=en&cites=4467589085999153168
+                - cell "2019" [ref=e416]:
+                  - generic [ref=e417]: "2019"
+              - row "Fast and Energy-efficient State Checkpointing for Intermittent Computing S Ahmed, NA Bhatti, MH Alizai, JH Siddiqui, L Mottola ACM Transactions on Embedded Computing Systems (TECS) 28 2020" [ref=e418]:
+                - cell "Fast and Energy-efficient State Checkpointing for Intermittent Computing S Ahmed, NA Bhatti, MH Alizai, JH Siddiqui, L Mottola ACM Transactions on Embedded Computing Systems (TECS)" [ref=e419]:
+                  - link "Fast and Energy-efficient State Checkpointing for Intermittent Computing" [ref=e420] [cursor=pointer]:
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:ipzZ9siozwsC
+                  - generic [ref=e421]: S Ahmed, NA Bhatti, MH Alizai, JH Siddiqui, L Mottola
+                  - generic [ref=e422]: ACM Transactions on Embedded Computing Systems (TECS)
+                - cell "28" [ref=e423]:
+                  - link "28" [ref=e424] [cursor=pointer]:
+                    - /url: https://scholar.google.com.pk/scholar?oi=bibs&hl=en&cites=14343433546677349390
+                - cell "2020" [ref=e425]:
+                  - generic [ref=e426]: "2020"
+              - row "On Securing Persistent State in Intermittent Computing HA Asad, EH Wouters, NA Bhatti, L Mottola, T Voigt 8th International Workshop on Energy Harvesting and Energy-Neutral Sensing … 21 2020" [ref=e427]:
+                - cell "On Securing Persistent State in Intermittent Computing HA Asad, EH Wouters, NA Bhatti, L Mottola, T Voigt 8th International Workshop on Energy Harvesting and Energy-Neutral Sensing …" [ref=e428]:
+                  - link "On Securing Persistent State in Intermittent Computing" [ref=e429] [cursor=pointer]:
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:uWiczbcajpAC
+                  - generic [ref=e430]: HA Asad, EH Wouters, NA Bhatti, L Mottola, T Voigt
+                  - generic [ref=e431]: 8th International Workshop on Energy Harvesting and Energy-Neutral Sensing …
+                - cell "21" [ref=e432]:
+                  - link "21" [ref=e433] [cursor=pointer]:
+                    - /url: https://scholar.google.com.pk/scholar?oi=bibs&hl=en&cites=1093847240652384301
+                - cell "2020" [ref=e434]:
+                  - generic [ref=e435]: "2020"
+              - row "Demystifying Energy Consumption Dynamics in Transiently-powered Computers S Ahmed, M Nawaz, A Bakar, NA Bhatti, MH Alizai, JH SIDDIQUI, ... ACM Transactions on Embedded Computing Systems (TECS) 20 2020" [ref=e436]:
+                - cell "Demystifying Energy Consumption Dynamics in Transiently-powered Computers S Ahmed, M Nawaz, A Bakar, NA Bhatti, MH Alizai, JH SIDDIQUI, ... ACM Transactions on Embedded Computing Systems (TECS)" [ref=e437]:
+                  - link "Demystifying Energy Consumption Dynamics in Transiently-powered Computers" [ref=e438] [cursor=pointer]:
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:uc_IGeMz5qoC
+                  - generic [ref=e439]: S Ahmed, M Nawaz, A Bakar, NA Bhatti, MH Alizai, JH SIDDIQUI, ...
+                  - generic [ref=e440]: ACM Transactions on Embedded Computing Systems (TECS)
+                - cell "20" [ref=e441]:
+                  - link "20" [ref=e442] [cursor=pointer]:
+                    - /url: https://scholar.google.com.pk/scholar?oi=bibs&hl=en&cites=6590049597640119854
+                - cell "2020" [ref=e443]:
+                  - generic [ref=e444]: "2020"
+              - 'row "Sensors with Lasers: Building a WSN power grid NA Bhatti, AA Syed, MH Alizai International Conference on Information Processing in Sensor Networks (IPSN … 19 2014" [ref=e445]':
+                - 'cell "Sensors with Lasers: Building a WSN power grid NA Bhatti, AA Syed, MH Alizai International Conference on Information Processing in Sensor Networks (IPSN …" [ref=e446]':
+                  - 'link "Sensors with Lasers: Building a WSN power grid" [ref=e447] [cursor=pointer]':
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:u5HHmVD_uO8C
+                  - generic [ref=e448]: NA Bhatti, AA Syed, MH Alizai
+                  - generic [ref=e449]: International Conference on Information Processing in Sensor Networks (IPSN …
+                - cell "19" [ref=e450]:
+                  - link "19" [ref=e451] [cursor=pointer]:
+                    - /url: https://scholar.google.com.pk/scholar?oi=bibs&hl=en&cites=6605308052400223259
+                - cell "2014" [ref=e452]:
+                  - generic [ref=e453]: "2014"
+              - 'row "Blind-trust: Raising awareness of the dangers of using unsecured public Wi-Fi networks M Sangeen, NA Bhatti, K Kifayat, AA Alsadhan, H Wang Computer Communications 209, 359-367 18 2023" [ref=e454]':
+                - 'cell "Blind-trust: Raising awareness of the dangers of using unsecured public Wi-Fi networks M Sangeen, NA Bhatti, K Kifayat, AA Alsadhan, H Wang Computer Communications 209, 359-367" [ref=e455]':
+                  - 'link "Blind-trust: Raising awareness of the dangers of using unsecured public Wi-Fi networks" [ref=e456] [cursor=pointer]':
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:vbGhcppDl1QC
+                  - generic [ref=e457]: M Sangeen, NA Bhatti, K Kifayat, AA Alsadhan, H Wang
+                  - generic [ref=e458]: Computer Communications 209, 359-367
+                - cell "18" [ref=e459]:
+                  - link "18" [ref=e460] [cursor=pointer]:
+                    - /url: https://scholar.google.com.pk/scholar?oi=bibs&hl=en&cites=5057100036716297781
+                - cell "2023" [ref=e461]:
+                  - generic [ref=e462]: "2023"
+              - row "A Survey on Program-State Retention for Transiently-Powered Systems S Ahmed, NA Bhatti, M Brachmann, MH Alizai Journal of Systems Architecture 18 2021" [ref=e463]:
+                - cell "A Survey on Program-State Retention for Transiently-Powered Systems S Ahmed, NA Bhatti, M Brachmann, MH Alizai Journal of Systems Architecture" [ref=e464]:
+                  - link "A Survey on Program-State Retention for Transiently-Powered Systems" [ref=e465] [cursor=pointer]:
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:AvfA0Oy_GE0C
+                  - generic [ref=e466]: S Ahmed, NA Bhatti, M Brachmann, MH Alizai
+                  - generic [ref=e467]: Journal of Systems Architecture
+                - cell "18" [ref=e468]:
+                  - link "18" [ref=e469] [cursor=pointer]:
+                    - /url: https://scholar.google.com.pk/scholar?oi=bibs&hl=en&cites=2931430440863607374
+                - cell "2021" [ref=e470]:
+                  - generic [ref=e471]: "2021"
+              - row "SDN-inspired, real-time botnet detection and flow-blocking at ISP and enterprise-level O Haq, Z Abaid, NA Bhatti, Z Ahmed, A Syed IEEE International Conference on Communications (ICC), 5278-5283 17 2015" [ref=e472]:
+                - cell "SDN-inspired, real-time botnet detection and flow-blocking at ISP and enterprise-level O Haq, Z Abaid, NA Bhatti, Z Ahmed, A Syed IEEE International Conference on Communications (ICC), 5278-5283" [ref=e473]:
+                  - link "SDN-inspired, real-time botnet detection and flow-blocking at ISP and enterprise-level" [ref=e474] [cursor=pointer]:
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:9yKSN-GCB0IC
+                  - generic [ref=e475]: O Haq, Z Abaid, NA Bhatti, Z Ahmed, A Syed
+                  - generic [ref=e476]: IEEE International Conference on Communications (ICC), 5278-5283
+                - cell "17" [ref=e477]:
+                  - link "17" [ref=e478] [cursor=pointer]:
+                    - /url: https://scholar.google.com.pk/scholar?oi=bibs&hl=en&cites=4873123832355417887
+                - cell "2015" [ref=e479]:
+                  - generic [ref=e480]: "2015"
+              - row "Towards smaller checkpoints for better intermittent computing S Ahmed, MH Alizai, JH Siddiqui, NA Bhatti, L Mottola International Conference on Information Processing in Sensor Networks (IPSN … 9 2018" [ref=e481]:
+                - cell "Towards smaller checkpoints for better intermittent computing S Ahmed, MH Alizai, JH Siddiqui, NA Bhatti, L Mottola International Conference on Information Processing in Sensor Networks (IPSN …" [ref=e482]:
+                  - link "Towards smaller checkpoints for better intermittent computing" [ref=e483] [cursor=pointer]:
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:z_wVstp3MssC
+                  - generic [ref=e484]: S Ahmed, MH Alizai, JH Siddiqui, NA Bhatti, L Mottola
+                  - generic [ref=e485]: International Conference on Information Processing in Sensor Networks (IPSN …
+                - cell "9" [ref=e486]:
+                  - link "9" [ref=e487] [cursor=pointer]:
+                    - /url: https://scholar.google.com.pk/scholar?oi=bibs&hl=en&cites=8277196163103144220
+                - cell "2018" [ref=e488]:
+                  - generic [ref=e489]: "2018"
+              - 'row "MOPTIC-SM: Sleep mode-enabled multi-optimized intermittent computing for transiently powered systems K Javed, NA Bhatti, M Imran Journal of Systems Architecture, 102850 3 2023" [ref=e490]':
+                - 'cell "MOPTIC-SM: Sleep mode-enabled multi-optimized intermittent computing for transiently powered systems K Javed, NA Bhatti, M Imran Journal of Systems Architecture, 102850" [ref=e491]':
+                  - 'link "MOPTIC-SM: Sleep mode-enabled multi-optimized intermittent computing for transiently powered systems" [ref=e492] [cursor=pointer]':
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:p__nRnzSRKYC
+                  - generic [ref=e493]: K Javed, NA Bhatti, M Imran
+                  - generic [ref=e494]: Journal of Systems Architecture, 102850
+                - cell "3" [ref=e495]:
+                  - link "3" [ref=e496] [cursor=pointer]:
+                    - /url: https://scholar.google.com.pk/scholar?oi=bibs&hl=en&cites=15046097329591108912
+                - cell "2023" [ref=e497]:
+                  - generic [ref=e498]: "2023"
+              - 'row "FLEXFL: Flexible Federated Learning for Customized Network Architectures in 6G SA Khowaja, IH Lee, P Khuwaja, NA Bhatti, K Singh, K Dev IEEE Wireless Communications and Networking Conference (WCNC), 01-06 2 2025" [ref=e499]':
+                - 'cell "FLEXFL: Flexible Federated Learning for Customized Network Architectures in 6G SA Khowaja, IH Lee, P Khuwaja, NA Bhatti, K Singh, K Dev IEEE Wireless Communications and Networking Conference (WCNC), 01-06" [ref=e500]':
+                  - 'link "FLEXFL: Flexible Federated Learning for Customized Network Architectures in 6G" [ref=e501] [cursor=pointer]':
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:lmc2jWPfTJgC
+                  - generic [ref=e502]: SA Khowaja, IH Lee, P Khuwaja, NA Bhatti, K Singh, K Dev
+                  - generic [ref=e503]: IEEE Wireless Communications and Networking Conference (WCNC), 01-06
+                - cell "2" [ref=e504]:
+                  - link "2" [ref=e505] [cursor=pointer]:
+                    - /url: https://scholar.google.com.pk/scholar?oi=bibs&hl=en&cites=12678934971907749610
+                - cell "2025" [ref=e506]:
+                  - generic [ref=e507]: "2025"
+              - row "Embedded Sensing through Energy Harvesting at the Mithræum of Circus Maximus M Afanasov, N Anwar Bhatti, K Dolui, L Mottola EUT Edizioni Università di Trieste 2 2022" [ref=e508]:
+                - cell "Embedded Sensing through Energy Harvesting at the Mithræum of Circus Maximus M Afanasov, N Anwar Bhatti, K Dolui, L Mottola EUT Edizioni Università di Trieste" [ref=e509]:
+                  - link "Embedded Sensing through Energy Harvesting at the Mithræum of Circus Maximus" [ref=e510] [cursor=pointer]:
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:BwyfMAYsbu0C
+                  - generic [ref=e511]: M Afanasov, N Anwar Bhatti, K Dolui, L Mottola
+                  - generic [ref=e512]: EUT Edizioni Università di Trieste
+                - cell "2" [ref=e513]:
+                  - link "2" [ref=e514] [cursor=pointer]:
+                    - /url: https://scholar.google.com.pk/scholar?oi=bibs&hl=en&cites=9526945541587373361
+                - cell "2022" [ref=e515]:
+                  - generic [ref=e516]: "2022"
+              - row "System support for transiently-powered embedded sensing systems NA Bhatti Italy 2 2018" [ref=e517]:
+                - cell "System support for transiently-powered embedded sensing systems NA Bhatti Italy" [ref=e518]:
+                  - link "System support for transiently-powered embedded sensing systems" [ref=e519] [cursor=pointer]:
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:VLnqNzywnoUC
+                  - generic [ref=e520]: NA Bhatti
+                  - generic [ref=e521]: Italy
+                - cell "2" [ref=e522]:
+                  - link "2" [ref=e523] [cursor=pointer]:
+                    - /url: https://scholar.google.com.pk/scholar?oi=bibs&hl=en&cites=14895923901943617925
+                - cell "2018" [ref=e524]:
+                  - generic [ref=e525]: "2018"
+              - 'row "Glitch in Time: Exploiting Temporal Misalignment of IMU For Eavesdropping A Najeeb, A Rafay, NA Bhatti, MH Alizai ACM ASIA Conference on Computer and Communications Security (AsiaCCS) 1 2025" [ref=e526]':
+                - 'cell "Glitch in Time: Exploiting Temporal Misalignment of IMU For Eavesdropping A Najeeb, A Rafay, NA Bhatti, MH Alizai ACM ASIA Conference on Computer and Communications Security (AsiaCCS)" [ref=e527]':
+                  - 'link "Glitch in Time: Exploiting Temporal Misalignment of IMU For Eavesdropping" [ref=e528] [cursor=pointer]':
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:hMsQuOkrut0C
+                  - generic [ref=e529]: A Najeeb, A Rafay, NA Bhatti, MH Alizai
+                  - generic [ref=e530]: ACM ASIA Conference on Computer and Communications Security (AsiaCCS)
+                - cell "1" [ref=e531]:
+                  - link "1" [ref=e532] [cursor=pointer]:
+                    - /url: https://scholar.google.com.pk/scholar?oi=bibs&hl=en&cites=9526671229424390613
+                - cell "2025" [ref=e533]:
+                  - generic [ref=e534]: "2025"
+              - 'row "CheckMate: LLM-Powered Approximate Intermittent Computing ARI Sayyid-Ali, A Rafay, MA Soomro, MH Alizai, NA Bhatti ACM Conference on Embedded Networked Sensor Systems (SenSys) 1 2025" [ref=e535]':
+                - 'cell "CheckMate: LLM-Powered Approximate Intermittent Computing ARI Sayyid-Ali, A Rafay, MA Soomro, MH Alizai, NA Bhatti ACM Conference on Embedded Networked Sensor Systems (SenSys)" [ref=e536]':
+                  - 'link "CheckMate: LLM-Powered Approximate Intermittent Computing" [ref=e537] [cursor=pointer]':
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:kuK5TVdYjLIC
+                  - generic [ref=e538]: ARI Sayyid-Ali, A Rafay, MA Soomro, MH Alizai, NA Bhatti
+                  - generic [ref=e539]: ACM Conference on Embedded Networked Sensor Systems (SenSys)
+                - cell "1" [ref=e540]:
+                  - link "1" [ref=e541] [cursor=pointer]:
+                    - /url: https://scholar.google.com.pk/scholar?oi=bibs&hl=en&cites=14513945067113086951,4711650764675250630
+                - cell "2025" [ref=e542]:
+                  - generic [ref=e543]: "2025"
+              - 'row "Approxify: Automating Energy-Accuracy Trade-offs in Batteryless IoT Devices M Abdullah Soomro, NA Bhatti, M Hamad Alizai IEEE Wireless Communications and Networking Conference (WCNC) 1 2025" [ref=e544]':
+                - 'cell "Approxify: Automating Energy-Accuracy Trade-offs in Batteryless IoT Devices M Abdullah Soomro, NA Bhatti, M Hamad Alizai IEEE Wireless Communications and Networking Conference (WCNC)" [ref=e545]':
+                  - 'link "Approxify: Automating Energy-Accuracy Trade-offs in Batteryless IoT Devices" [ref=e546] [cursor=pointer]':
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:KUbvn5osdkgC
+                  - generic [ref=e547]: M Abdullah Soomro, NA Bhatti, M Hamad Alizai
+                  - generic [ref=e548]: IEEE Wireless Communications and Networking Conference (WCNC)
+                - cell "1" [ref=e549]:
+                  - link "1" [ref=e550] [cursor=pointer]:
+                    - /url: https://scholar.google.com.pk/scholar?oi=bibs&hl=en&cites=7535220845282932587,15668862614166500323
+                - cell "2025" [ref=e551]:
+                  - generic [ref=e552]: "2025"
+              - 'row "Shepard: Dynamic Placement of Microservices in the Edge-Cloud Continuum F Asghar, T Fatima, JH Siddiqui, NA Bhatti, MH Alizai International Conference on Mobile and Ubiquitous Systems (MobiQuitous), 43-62 1 2023" [ref=e553]':
+                - 'cell "Shepard: Dynamic Placement of Microservices in the Edge-Cloud Continuum F Asghar, T Fatima, JH Siddiqui, NA Bhatti, MH Alizai International Conference on Mobile and Ubiquitous Systems (MobiQuitous), 43-62" [ref=e554]':
+                  - 'link "Shepard: Dynamic Placement of Microservices in the Edge-Cloud Continuum" [ref=e555] [cursor=pointer]':
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:ILKRHgRFtOwC
+                  - generic [ref=e556]: F Asghar, T Fatima, JH Siddiqui, NA Bhatti, MH Alizai
+                  - generic [ref=e557]: International Conference on Mobile and Ubiquitous Systems (MobiQuitous), 43-62
+                - cell "1" [ref=e558]:
+                  - link "1" [ref=e559] [cursor=pointer]:
+                    - /url: https://scholar.google.com.pk/scholar?oi=bibs&hl=en&cites=5330582536284575665
+                - cell "2023" [ref=e560]:
+                  - generic [ref=e561]: "2023"
+              - 'row "Kissan-Dost: Bridging the Last Mile in Smallholder Precision Agriculture with Conversational IoT M Saad Ali, DU Khan, L Intizar Ahmad, U Irfan, M Mustafa, NA Bhatti, ... IEEE DCOSS 2026" [ref=e562]':
+                - 'cell "Kissan-Dost: Bridging the Last Mile in Smallholder Precision Agriculture with Conversational IoT M Saad Ali, DU Khan, L Intizar Ahmad, U Irfan, M Mustafa, NA Bhatti, ... IEEE DCOSS" [ref=e563]':
+                  - 'link "Kissan-Dost: Bridging the Last Mile in Smallholder Precision Agriculture with Conversational IoT" [ref=e564] [cursor=pointer]':
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:-FonjvnnhkoC
+                  - generic [ref=e565]: M Saad Ali, DU Khan, L Intizar Ahmad, U Irfan, M Mustafa, NA Bhatti, ...
+                  - generic [ref=e566]: IEEE DCOSS
+                - cell [ref=e567]:
+                  - link:
+                    - /url: ""
+                - cell "2026" [ref=e568]:
+                  - generic [ref=e569]: "2026"
+              - row "Are LLM Web Search Engines Sustainable? A Web-Measurement Study of Real-Time Fetching ARI Sayyid-Ali, DU Khan, NA Bhatti ACM WebConf (WWW) 2026" [ref=e570]:
+                - cell "Are LLM Web Search Engines Sustainable? A Web-Measurement Study of Real-Time Fetching ARI Sayyid-Ali, DU Khan, NA Bhatti ACM WebConf (WWW)" [ref=e571]:
+                  - link "Are LLM Web Search Engines Sustainable? A Web-Measurement Study of Real-Time Fetching" [ref=e572] [cursor=pointer]:
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:k8Z6L05lTy4C
+                  - generic [ref=e573]: ARI Sayyid-Ali, DU Khan, NA Bhatti
+                  - generic [ref=e574]: ACM WebConf (WWW)
+                - cell [ref=e575]:
+                  - link:
+                    - /url: ""
+                - cell "2026" [ref=e576]:
+                  - generic [ref=e577]: "2026"
+              - 'row "See Me If You Can: A Multi-Layer Protocol for Bystander Privacy with Consent-Based Restoration Y Khawaja, S Rehman, A Ponticello, D Bhardwaj, K Krombholz, MH Alizai, ... ACM CHI 2026" [ref=e578]':
+                - 'cell "See Me If You Can: A Multi-Layer Protocol for Bystander Privacy with Consent-Based Restoration Y Khawaja, S Rehman, A Ponticello, D Bhardwaj, K Krombholz, MH Alizai, ... ACM CHI" [ref=e579]':
+                  - 'link "See Me If You Can: A Multi-Layer Protocol for Bystander Privacy with Consent-Based Restoration" [ref=e580] [cursor=pointer]':
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:VaXvl8Fpj5cC
+                  - generic [ref=e581]: Y Khawaja, S Rehman, A Ponticello, D Bhardwaj, K Krombholz, MH Alizai, ...
+                  - generic [ref=e582]: ACM CHI
+                - cell [ref=e583]:
+                  - link:
+                    - /url: ""
+                - cell "2026" [ref=e584]:
+                  - generic [ref=e585]: "2026"
+              - 'row "Now You See Me, Now You Don''t: Consent-Driven Privacy for Smart Glasses Y Khawaja, E Nabeel, S Humayun, E Javed, K Krombholz, MH Alizai, ... IEEE PerCom 2026" [ref=e586]':
+                - 'cell "Now You See Me, Now You Don''t: Consent-Driven Privacy for Smart Glasses Y Khawaja, E Nabeel, S Humayun, E Javed, K Krombholz, MH Alizai, ... IEEE PerCom" [ref=e587]':
+                  - 'link "Now You See Me, Now You Don''t: Consent-Driven Privacy for Smart Glasses" [ref=e588] [cursor=pointer]':
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:kz9GbA2Ns4gC
+                  - generic [ref=e589]: Y Khawaja, E Nabeel, S Humayun, E Javed, K Krombholz, MH Alizai, ...
+                  - generic [ref=e590]: IEEE PerCom
+                - cell [ref=e591]:
+                  - link:
+                    - /url: ""
+                - cell "2026" [ref=e592]:
+                  - generic [ref=e593]: "2026"
+              - 'row "LLM-Enhanced Wearables for Comprehensible Health Guidance in LMICs M Shaharyar Ahsan, A Shahzad Shaikh, M Zahid, U Irfan, M Mustafa, ... arXiv e-prints, arXiv: 2602.08701 2026" [ref=e594]':
+                - 'cell "LLM-Enhanced Wearables for Comprehensible Health Guidance in LMICs M Shaharyar Ahsan, A Shahzad Shaikh, M Zahid, U Irfan, M Mustafa, ... arXiv e-prints, arXiv: 2602.08701" [ref=e595]':
+                  - link "LLM-Enhanced Wearables for Comprehensible Health Guidance in LMICs" [ref=e596] [cursor=pointer]:
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:e_rmSamDkqQC
+                  - generic [ref=e597]: M Shaharyar Ahsan, A Shahzad Shaikh, M Zahid, U Irfan, M Mustafa, ...
+                  - generic [ref=e598]: "arXiv e-prints, arXiv: 2602.08701"
+                - cell [ref=e599]:
+                  - link:
+                    - /url: ""
+                - cell "2026" [ref=e600]:
+                  - generic [ref=e601]: "2026"
+              - 'row "PortScout: A Communication Flow-Based Approach to Detect Port Scanning Evasion Attacks M Sangeen, NA Bhatti, K Kifayat IEEE International Conference on Communications (ICC 2025), 3045-3050 2025" [ref=e602]':
+                - 'cell "PortScout: A Communication Flow-Based Approach to Detect Port Scanning Evasion Attacks M Sangeen, NA Bhatti, K Kifayat IEEE International Conference on Communications (ICC 2025), 3045-3050" [ref=e603]':
+                  - 'link "PortScout: A Communication Flow-Based Approach to Detect Port Scanning Evasion Attacks" [ref=e604] [cursor=pointer]':
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:LI9QrySNdTsC
+                  - generic [ref=e605]: M Sangeen, NA Bhatti, K Kifayat
+                  - generic [ref=e606]: IEEE International Conference on Communications (ICC 2025), 3045-3050
+                - cell [ref=e607]:
+                  - link:
+                    - /url: ""
+                - cell "2025" [ref=e608]:
+                  - generic [ref=e609]: "2025"
+              - 'row "Usage-centered, efficient, and sustainable: an IoT-driven transformation of water heaters HH Chaudhry, RM Raja, MA Zahid, N Zaffar, MH Alizai, NA Bhatti Data Centric Engineering (DCE) 5, 36 2024" [ref=e610]':
+                - 'cell "Usage-centered, efficient, and sustainable: an IoT-driven transformation of water heaters HH Chaudhry, RM Raja, MA Zahid, N Zaffar, MH Alizai, NA Bhatti Data Centric Engineering (DCE) 5, 36" [ref=e611]':
+                  - 'link "Usage-centered, efficient, and sustainable: an IoT-driven transformation of water heaters" [ref=e612] [cursor=pointer]':
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:b1wdh0AR-JQC
+                  - generic [ref=e613]: HH Chaudhry, RM Raja, MA Zahid, N Zaffar, MH Alizai, NA Bhatti
+                  - generic [ref=e614]: Data Centric Engineering (DCE) 5, 36
+                - cell [ref=e615]:
+                  - link:
+                    - /url: ""
+                - cell "2024" [ref=e616]:
+                  - generic [ref=e617]: "2024"
+              - 'row "Poster: Bridging IoT Gaps in Developing Regions with LLMs MS Ali, DU Khan, LA Intazar, A Shahzad, M Zahid, MS Ahsan, NA Bhatti, ... EWSN 2024" [ref=e618]':
+                - 'cell "Poster: Bridging IoT Gaps in Developing Regions with LLMs MS Ali, DU Khan, LA Intazar, A Shahzad, M Zahid, MS Ahsan, NA Bhatti, ... EWSN" [ref=e619]':
+                  - 'link "Poster: Bridging IoT Gaps in Developing Regions with LLMs" [ref=e620] [cursor=pointer]':
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:gsN89kCJA0AC
+                  - generic [ref=e621]: MS Ali, DU Khan, LA Intazar, A Shahzad, M Zahid, MS Ahsan, NA Bhatti, ...
+                  - generic [ref=e622]: EWSN
+                - cell [ref=e623]:
+                  - link:
+                    - /url: ""
+                - cell "2024" [ref=e624]:
+                  - generic [ref=e625]: "2024"
+              - 'row "Poster: Automating Approximations in Batteryless IoT Devices A Soomro, NA Bhatti, MH Alizai EWSN 2024" [ref=e626]':
+                - 'cell "Poster: Automating Approximations in Batteryless IoT Devices A Soomro, NA Bhatti, MH Alizai EWSN" [ref=e627]':
+                  - 'link "Poster: Automating Approximations in Batteryless IoT Devices" [ref=e628] [cursor=pointer]':
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:tYavs44e6CUC
+                  - generic [ref=e629]: A Soomro, NA Bhatti, MH Alizai
+                  - generic [ref=e630]: EWSN
+                - cell [ref=e631]:
+                  - link:
+                    - /url: ""
+                - cell "2024" [ref=e632]:
+                  - generic [ref=e633]: "2024"
+              - 'row "From Waste to Watts: A Self-Sustaining Water Heating System Powered by a Thermoelectric Generator HH Chaudhry, RM Raja, MH Alizai, N Zaffar, NA Bhatti Proceedings of the 10th ACM International Conference on Systems for Energy … 2023" [ref=e634]':
+                - 'cell "From Waste to Watts: A Self-Sustaining Water Heating System Powered by a Thermoelectric Generator HH Chaudhry, RM Raja, MH Alizai, N Zaffar, NA Bhatti Proceedings of the 10th ACM International Conference on Systems for Energy …" [ref=e635]':
+                  - 'link "From Waste to Watts: A Self-Sustaining Water Heating System Powered by a Thermoelectric Generator" [ref=e636] [cursor=pointer]':
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:EYYDruWGBe4C
+                  - generic [ref=e637]: HH Chaudhry, RM Raja, MH Alizai, N Zaffar, NA Bhatti
+                  - generic [ref=e638]: Proceedings of the 10th ACM International Conference on Systems for Energy …
+                - cell [ref=e639]:
+                  - link:
+                    - /url: ""
+                - cell "2023" [ref=e640]:
+                  - generic [ref=e641]: "2023"
+              - 'row "Poster Abstract: Towards Smaller Checkpoints for Better Intermittent Computing S Ahmed, MH Alizai, JH Siddiqui, NA Bhatti, L Mottola Proc. IPSN (Nov. 11–13). ACM/IEEE, Porto, Portugal, 132-133 2018" [ref=e642]':
+                - 'cell "Poster Abstract: Towards Smaller Checkpoints for Better Intermittent Computing S Ahmed, MH Alizai, JH Siddiqui, NA Bhatti, L Mottola Proc. IPSN (Nov. 11–13). ACM/IEEE, Porto, Portugal, 132-133" [ref=e643]':
+                  - 'link "Poster Abstract: Towards Smaller Checkpoints for Better Intermittent Computing" [ref=e644] [cursor=pointer]':
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:tuHXwOkdijsC
+                  - generic [ref=e645]: S Ahmed, MH Alizai, JH Siddiqui, NA Bhatti, L Mottola
+                  - generic [ref=e646]: Proc. IPSN (Nov. 11–13). ACM/IEEE, Porto, Portugal, 132-133
+                - cell [ref=e647]:
+                  - link:
+                    - /url: ""
+                - cell "2018" [ref=e648]:
+                  - generic [ref=e649]: "2018"
+              - 'row "Poster: Compiler-assisted Automatic Checkpointing for Transiently-powered Embedded Devices NA Bhatti International Conference on Embedded Wireless Systems and Networks (EWSN) 2017" [ref=e650]':
+                - 'cell "Poster: Compiler-assisted Automatic Checkpointing for Transiently-powered Embedded Devices NA Bhatti International Conference on Embedded Wireless Systems and Networks (EWSN)" [ref=e651]':
+                  - 'link "Poster: Compiler-assisted Automatic Checkpointing for Transiently-powered Embedded Devices" [ref=e652] [cursor=pointer]':
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:uJ-U7cs_P_0C
+                  - generic [ref=e653]: NA Bhatti
+                  - generic [ref=e654]: International Conference on Embedded Wireless Systems and Networks (EWSN)
+                - cell [ref=e655]:
+                  - link:
+                    - /url: ""
+                - cell "2017" [ref=e656]:
+                  - generic [ref=e657]: "2017"
+              - 'row "Back to the future: Sustainable transiently powered embedded systems: Ph. D. forum abstract NA Bhatti International Conference on Information Processing in Sensor Networks (IPSN), 24 2016" [ref=e658]':
+                - 'cell "Back to the future: Sustainable transiently powered embedded systems: Ph. D. forum abstract NA Bhatti International Conference on Information Processing in Sensor Networks (IPSN), 24" [ref=e659]':
+                  - 'link "Back to the future: Sustainable transiently powered embedded systems: Ph. D. forum abstract" [ref=e660] [cursor=pointer]':
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:35r97b3x0nAC
+                  - generic [ref=e661]: NA Bhatti
+                  - generic [ref=e662]: International Conference on Information Processing in Sensor Networks (IPSN), 24
+                - cell [ref=e663]:
+                  - link:
+                    - /url: ""
+                - cell "2016" [ref=e664]:
+                  - generic [ref=e665]: "2016"
+              - row "Laser based energy distribution architecture for decoupling energy and sensing planes in WSN NA Bhatti, AA Syed, MH Alizai International Journal of Distributed Sensor Networks 11 (9), 526858 2015" [ref=e666]:
+                - cell "Laser based energy distribution architecture for decoupling energy and sensing planes in WSN NA Bhatti, AA Syed, MH Alizai International Journal of Distributed Sensor Networks 11 (9), 526858" [ref=e667]:
+                  - link "Laser based energy distribution architecture for decoupling energy and sensing planes in WSN" [ref=e668] [cursor=pointer]:
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:u-x6o8ySG0sC
+                  - generic [ref=e669]: NA Bhatti, AA Syed, MH Alizai
+                  - generic [ref=e670]: International Journal of Distributed Sensor Networks 11 (9), 526858
+                - cell [ref=e671]:
+                  - link:
+                    - /url: ""
+                - cell "2015" [ref=e672]:
+                  - generic [ref=e673]: "2015"
+              - 'row "Long range RF-based ID (LRFID) System: Decoupling sensing and energy in sensor networks using energy transference NA Bhatti National University of Computer and Emerging Sciences 2013" [ref=e674]':
+                - 'cell "Long range RF-based ID (LRFID) System: Decoupling sensing and energy in sensor networks using energy transference NA Bhatti National University of Computer and Emerging Sciences" [ref=e675]':
+                  - 'link "Long range RF-based ID (LRFID) System: Decoupling sensing and energy in sensor networks using energy transference" [ref=e676] [cursor=pointer]':
+                    - /url: /citations?view_op=view_citation&hl=en&user=6ZB86uYAAAAJ&pagesize=100&citation_for_view=6ZB86uYAAAAJ:d1gkVwhDpl0C
+                  - generic [ref=e677]: NA Bhatti
+                  - generic [ref=e678]: National University of Computer and Emerging Sciences
+                - cell [ref=e679]:
+                  - link:
+                    - /url: ""
+                - cell "2013" [ref=e680]:
+                  - generic [ref=e681]: "2013"
+          - generic [ref=e682]:
+            - generic [ref=e683]: Articles 1–40
+            - button "Show more" [disabled] [ref=e685]:
+              - generic [ref=e688]: Show more
+  - contentinfo [ref=e689]:
+    - generic [ref=e690]:
+      - link "Privacy" [ref=e691] [cursor=pointer]:
+        - /url: //www.google.com.pk/intl/en/policies/privacy/
+      - link "Terms" [ref=e692] [cursor=pointer]:
+        - /url: //www.google.com.pk/intl/en/policies/terms/
+      - button "Help" [ref=e693] [cursor=pointer]

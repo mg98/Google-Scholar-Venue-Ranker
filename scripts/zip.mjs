@@ -1,20 +1,39 @@
-import fs from "fs";
-import path from "path";
-import archiver from "archiver";
+import fs from "node:fs";
+import path from "node:path";
+import { spawnSync } from "node:child_process";
 
 const outDir = "release";
 const inputDir = "dist";
 const outFile = path.join(outDir, "GSVR.zip");
 
+if (!fs.existsSync(inputDir)) {
+  throw new Error(`Expected build output at ${inputDir}. Run npm run build first.`);
+}
+
 fs.mkdirSync(outDir, { recursive: true });
+fs.rmSync(outFile, { force: true });
 
-const output = fs.createWriteStream(outFile);
-const archive = archiver("zip", { zlib: { level: 9 } });
+const run = (command, args, options = {}) => {
+  const result = spawnSync(command, args, { stdio: "inherit", shell: false, ...options });
+  if (result.error) {
+    throw result.error;
+  }
+  if (result.status !== 0) {
+    throw new Error(`${command} exited with status ${result.status}`);
+  }
+};
 
-archive.pipe(output);
-archive.directory(inputDir, false);
-await archive.finalize();
+if (process.platform === "win32") {
+  run("powershell.exe", [
+    "-NoProfile",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-Command",
+    `Compress-Archive -Path '${inputDir}\\*' -DestinationPath '${outFile}' -Force`,
+  ]);
+} else {
+  run("zip", ["-r", path.resolve(outFile), "."], { cwd: inputDir });
+}
 
-output.on("close", () => {
-  console.log(`Created ${outFile} (${archive.pointer()} bytes)`);
-});
+const size = fs.statSync(outFile).size;
+console.log(`Created ${outFile} (${size} bytes)`);

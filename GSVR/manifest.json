@@ -1,11 +1,17 @@
 {
   "manifest_version": 3,
   "name": "Google Scholar Venue Ranker (GSVR)",
-  "description": "Adds CORE conference tiers and SJR journal quartiles to Google Scholar publications using strict DBLP-only verification.",
-  "version": "1.8.7",
+  "description": "Adds DBLP-verified CORE/SJR venue ranks, raw GSVR scores, completeness diagnostics, and reports to Scholar profiles.",
+  "version": "2.0.2",
   "permissions": [
-    "storage"
+    "storage",
+    "downloads"
   ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Google Scholar Venue Ranker"
+  },
+  "options_page": "options.html",
   "content_scripts": [
     {
       "matches": [
@@ -61,12 +67,22 @@
         "https://scholar.google.si/*",
         "https://scholar.google.sk/*",
         "https://scholar.google.ua/*",
-        "https://scholar.google.us/*",
-        "https://dblp.org/*",
-        "https://sparql.dblp.org/*"
+        "https://scholar.google.us/*"
       ],
       "js": [
+        "venue_data.js",
         "rank_core.js",
+        "settings.js",
+        "core/score_config.js",
+        "core/publication_type.js",
+        "core/authorship.js",
+        "core/temporal_alignment.js",
+        "core/coverage.js",
+        "core/score_model.js",
+        "core/score_sensitivity.js",
+        "core/report_schema.js",
+        "vendor/pdfmake.min.js",
+        "vendor/vfs_fonts.js",
         "content.js"
       ],
       "css": [
@@ -143,6 +159,8 @@
         "core/CORE_2021.json",
         "core/CORE_2023.json",
         "core/CORE_2026.json",
+        "data/sjr-index.json",
+        "icons/dblp-logo.png",
         "sjr/*.csv"
       ],
       "matches": [

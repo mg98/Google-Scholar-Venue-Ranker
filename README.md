@@ -1,11 +1,9 @@
-![Version 1.8.7](https://img.shields.io/badge/version-1.8.7-blue.svg)
+![Version 2.0.2](https://img.shields.io/badge/version-2.0.2-blue.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 # Google Scholar Venue Ranker (GSVR)
 
-**Instantly see CORE conference rankings and SJR journal quartiles directly on Google Scholar profile pages—essential context for researchers in Computer Science, Electrical Engineering, and related fields.**
-
-This Chrome extension enhances your Google Scholar experience by automatically fetching and displaying [CORE Conference Rankings](http://portal.core.edu.au/conf-ranks/) for conference publications alongside [SCImago Journal Rank (SJR)](https://www.scimagojr.com/) quartiles for journals. It helps you quickly assess the prestige of publication venues without leaving the Scholar page.
+Google Scholar Venue Ranker is an open-source Chrome extension developed by [Naveed Bhatti](https://naveedanwarbhatti.github.io/). Its purpose is to make Google Scholar author profiles easier to audit by adding DBLP-verified CORE/SJR venue ranks, a raw fractional GSVR Score, scoring-completeness diagnostics, and downloadable evidence reports. When a paper can be verified, GSVR uses a DBLP-backed ranking pipeline instead of trusting editable Google Scholar venue text alone.
 
 ![Screenshot of Extension in Action](GSVR/images/Screenshot.png)
 
@@ -15,134 +13,307 @@ This Chrome extension enhances your Google Scholar experience by automatically f
   </a>
 </p>
 
-### Why?
+## What's new in 2.0
 
-Google Scholar is great at collecting publications but **terrible at surfacing venue prestige**—a crucial signal in CS and EE. This extension overlays:
+- `GSVR Score` panel with raw fractional venue scoring across eligible DBLP-verified CORE conferences and SJR journals
+- `Scoring Completeness` diagnostics showing how much of the visible Scholar profile could be used in the score
+- `Venue Ranker` sidebar with compact counts, interactive filters, and a cleaner score-first layout
+- automatic two-pass scan: a fast first pass followed by a deeper background upgrade for better accuracy
+- refreshed `Venue Explorer` for local CORE and SJR lookup
+- richer report generation with PDF summary, full PDF audit, standalone HTML, and CSV exports
+- modernized extension UI with tighter cards, clearer status states, and more polished dialogs
 
-- **CORE** tiers for conferences/workshops (historical lists; rank chosen by publication year)
-- **SJR** quartiles (Q1–Q4) for journals (by publication year)
+## 2.0 highlights
 
----
+Version 2.0 is a major usability and workflow upgrade, not just a dataset refresh.
 
-## Features
+- `Scoring mechanism`: GSVR now includes a raw `GSVR Score` computed as the sum of venue-rank values divided by DBLP author counts for eligible ranked publications.
+- `Report generation`: profiles can now be exported as a one-page PDF summary, a full PDF audit report, standalone HTML, or CSV for committees, self-audits, and sharing.
+- `Fast scanning`: the extension now shows a fast first-pass result quickly, then improves the result in the background with a deeper second pass.
+- `Better UI`: the sidebar, dialogs, status banners, score presentation, and download flows were redesigned to feel cleaner, more compact, and easier to use.
 
-| Feature | Description |
-| --- | --- |
-| 🎯 **Historical matching (CORE)** | Selects the appropriate CORE ranking list (2023, 2021, 2020, 2018, 2017, 2014) based on the publication year and applies multiple heuristics for matching. |
-| 🏷 **Rank badges** | Shows color-coded A\*, A, B, C badges inline next to each conference paper title to reflect its historical rank. |
-| 📚 **Journal insights (SJR)** | Adds SJR quartile badges (Q1–Q4) next to journal papers using local SCImago datasets. |
-| 📊 **Summary panel** | Totals conference ranks (A\*, A, B, C, N/A) and SJR quartiles, aggregated across processed publications. |
-| 🧹 **Name cleanup** | Removes trailing titles like "PhD" or "Dr." before DBLP lookup for better matches. |
-| 🔎 **DBLP-assisted venue matching** | Uses DBLP publication metadata to detect venues and disambiguate abbreviated names. |
+## Why GSVR exists
 
-## Quick install
+Google Scholar is excellent at collecting publications, but it does not make venue quality easy to inspect, compare, or audit. In Computer Science, Electrical Engineering, and closely related areas, venue information matters a lot, and it is often the first thing people want to sanity-check when browsing a profile.
 
-### Option A — Chrome Web Store
+GSVR brings that context directly into Scholar with:
 
-Install from the Chrome Web Store (link above).
+- inline conference and journal badges beside papers
+- a score-first sidebar for quick profile assessment
+- a completeness diagnostic that separates scored publications from missing, ambiguous, unranked, or policy-excluded items
+- local venue exploration without leaving Scholar
+- explicit unranked and DBLP-missing states when GSVR abstains
 
-### Option B — Manual install (ZIP / source)
+## What the extension does
 
-1. **Download** a release ZIP from GitHub Releases (or click **Code → Download ZIP** on GitHub and extract).
-2. **Load the extension in Chrome**:
-   - Open `chrome://extensions`
-   - Enable **Developer mode**
-   - Click **Load unpacked**
-   - Select the folder that contains `manifest.json`:
-     - If your ZIP contains a **`GSVR/`** folder, select **`GSVR/`**.
-     - If your ZIP contains a **`dist/`** folder, select **`dist/`**.
-3. **Verify**:
-   - Open a Scholar profile page (e.g., `https://scholar.google.com/citations?user=...`).
-   - The extension should automatically run. You should see the progress bar, then the summary panel, and ranks next to papers.
+- Adds historical CORE conference ranks (`A*`, `A`, `B`, `C`) to conference papers.
+- Adds SJR quartiles (`Q1`, `Q2`, `Q3`, `Q4`) to journal papers.
+- Uses DBLP metadata as the authoritative source for venue extraction and disambiguation.
+- Chooses the most appropriate CORE snapshot by publication year.
+- Uses a compact prebuilt SJR index for faster journal lookup on Scholar pages.
+- Shows a `GSVR Score` card above the ranking summary, using raw fractional venue scoring across eligible DBLP-verified publications.
+- Shows `Scoring Completeness` so users can see what share of the Scholar profile was usable for scoring.
+- Shows a compact `Venue Ranker` panel for conference and journal distribution with a modernized sidebar UI.
+- Runs a fast first-pass scan, then upgrades results in the background with a deeper pass.
+- Includes a local `Venue Explorer` dialog for ad hoc CORE and SJR checks.
+- Includes a `Download Report` flow for one-page PDF summaries, full PDF audits, HTML, and CSV exports.
+- Includes a popup and full settings page for behavior and UI defaults.
+- Includes an in-product About panel and report-bug workflow.
 
----
+## Ranking policy and rules
 
-## Build locally (for development)
+GSVR is intentionally conservative. It prefers abstaining over showing a confident-looking wrong rank.
+
+## GSVR Score
+
+The GSVR Score is a raw fractional venue score. It is computed as the sum of venue-rank values divided by the number of authors for each eligible DBLP-verified publication on a Google Scholar profile. Short papers, workshops, demos, posters, extended abstracts, preprints, ambiguous matches, missing DBLP records, unranked venues, and records without author counts are reported but not scored.
+
+```text
+GSVR = sum_i in E v_i / a_i
+```
+
+Where `E` is eligible DBLP-verified ranked publications, `v_i` is the CORE/SJR venue value, and `a_i` is the DBLP author count.
+
+### Scoring Completeness
+
+Scoring completeness measures the fraction of Scholar-visible publications that satisfy all requirements for inclusion in the GSVR Score: DBLP verification, eligible publication type, available venue rank, and valid author count. It is not a score multiplier; it is a coverage diagnostic that helps readers judge how representative the score is for the visible Scholar profile.
+
+```text
+Completeness = N_scored / N_total
+```
+
+Where `N_total` is the total Scholar publications discovered and `N_scored` is the number that were DBLP-verified, eligible, ranked by CORE/SJR, and had a valid author count.
+
+```text
+N_total =
+N_scored
++ N_dblp_missing
++ N_ambiguous
++ N_rank_not_found
++ N_excluded_type
++ N_missing_author_count
++ N_lookup_unavailable
+```
+
+- DBLP is the trusted source for venue extraction.
+  - Google Scholar profiles are user-editable.
+  - DBLP entries cannot be freely added the same way, so venue metadata is more trustworthy for ranking decisions.
+- CORE is used for conference ranking.
+  - The extension bundles historical CORE datasets for `2014`, `2017`, `2018`, `2020`, `2021`, `2023`, and `2026`.
+  - The publication year determines which ranking snapshot to consult.
+- SJR is used for journal ranking.
+  - The extension bundles official local SCImago CSVs for `2010` through `2024`.
+  - A compact runtime index is generated at `GSVR/data/sjr-index.json` for faster lookup.
+- Short conference papers under 6 pages are excluded.
+  - This follows the same broad heuristic direction used by [CSRankings](https://csrankings.org/).
+- Workshops, demos, posters, and extended abstracts are excluded from rank counting.
+- Preprints, ambiguous matches, missing DBLP records, unranked venues, and records without DBLP author counts are reported but not scored.
+- Ambiguous matches abstain.
+  - If the extension cannot resolve a venue confidently, it prefers `N/A`, `Unranked`, or `DBLP Missing` over a risky guess.
+- Proceedings-style journal cases are handled explicitly.
+  - Some venues such as `PVLDB`, `PACMPL`, `POMACS`, `TOG`, `CGF`, and `TVCG` need venue-specific handling rather than naive string matching.
+
+## Product surfaces
+
+### Scholar profile overlay
+
+On supported Google Scholar profile pages, GSVR injects:
+
+- inline rank chips next to publication titles
+- a `GSVR Score` panel
+- a compact `Venue Ranker` panel with quick filters
+- row highlighting for selected categories
+- links for `DBLP Profile`, `Explore Venues`, `Download Report`, `Report Issue`, and `About`
+
+GSVR intentionally does not inject UI on individual paper detail pages or Scholar search-results pages.
+
+### Popup
+
+The extension popup exposes quick controls for:
+
+- `Run Automatically`
+- `Compact Mode`
+- `Show Unranked`
+- `Default Highlight Mode`
+
+### Full settings page
+
+The options page adds:
+
+- `Show Debug Details`
+- persistent highlight defaults
+- reset and save controls
+
+### Venue Explorer
+
+The built-in Venue Explorer is launched from the profile sidebar and lets you query local CORE and SJR datasets without leaving Google Scholar. This is useful for checking venue acronyms, aliases, merged venues, historical snapshots, or journal quartiles.
+
+### Download Report
+
+The profile-page report workflow exports the current audit in:
+
+- PDF `Summary`
+- PDF `Full Report`
+- standalone HTML
+- CSV
+
+### About panel
+
+The About panel explains the extension's open-source status, authorship, ranking philosophy, and the main rules behind DBLP, CORE, SJR, and paper exclusion logic.
+
+## Installation
+
+### Option A: Chrome Web Store
+
+Install from the Chrome Web Store using the badge above.
+
+### Option B: Manual install from source or ZIP
+
+1. Download a release ZIP from GitHub Releases, or use `Code -> Download ZIP` on GitHub and extract it.
+2. Open `chrome://extensions`.
+3. Enable `Developer mode`.
+4. Click `Load unpacked`.
+5. Select the folder that contains `manifest.json`.
+   - If you built locally, load `dist/`.
+   - If you are loading the raw extension source, load `GSVR/`.
+6. Open a Google Scholar profile page such as `https://scholar.google.com/citations?user=...`.
+
+## Local development
 
 ### Prerequisites
 
-- **Node.js 18+**
+- Node.js 18 or newer
 
-### Build
+### Build the extension
 
-From the repo root:
+From the repository root:
 
 ```bash
 npm install
 npm run build
 ```
 
-This creates a clean, loadable extension at `./dist/`.
+This produces a clean unpacked extension in `dist/`.
 
-Load it via **chrome://extensions → Load unpacked → select `dist/`**.
+### Regenerate the compact SJR index
 
-### Test
+```bash
+npm run generate:sjr-index
+```
+
+Use this when official SJR CSVs are updated locally and you want to rebuild `GSVR/data/sjr-index.json`.
+
+### Create a distributable ZIP
+
+```bash
+npm run zip
+```
+
+## Testing
+
+### Fast regression and unit tests
 
 ```bash
 npm test
 ```
 
----
+These tests cover key ranking behavior such as:
+
+- deterministic DBLP title matching
+- workshop vs parent-conference disambiguation
+- demo/poster detection
+- short-paper exclusion from page ranges
+- venue normalization and alias cleanup
+
+### Accuracy benchmark suite
+
+GSVR also includes a separate ground-truth benchmark pipeline for ranking accuracy and latency evaluation.
+
+Generate or refresh fixtures:
+
+```bash
+npm run benchmark:accuracy:fixtures
+```
+
+Run the gold benchmark suite:
+
+```bash
+npm run benchmark:accuracy -- --suite gold
+```
+
+Run all suites and refresh the stored baseline:
+
+```bash
+npm run benchmark:accuracy -- --suite all --write-baseline
+```
+
+Fail on benchmark regressions relative to the committed baseline:
+
+```bash
+npm run benchmark:accuracy -- --suite all --fail-on-regression
+```
+
+The benchmark system emits:
+
+- per-family accuracy, precision, recall, abstain rate, ambiguity rate, and latency
+- confusion matrices for status, conference rank, and journal quartile decisions
+- JSON, Markdown, and HTML reports under `GSVR/tests/fixtures/accuracy/reports/`
+- regression checks against `GSVR/tests/fixtures/accuracy/baseline.json`
 
 ## Repository layout
 
-- `GSVR/` — extension source (contains `manifest.json`, scripts, datasets)
-- `dist/` — build output produced by `npm run build` (safe to load unpacked)
-- `scripts/` — build/clean scripts used by npm
+- `GSVR/` - extension source
+- `GSVR/content.js` - Scholar page logic, ranking flow, summary panel, search dialog, About dialog
+- `GSVR/inject.css` - injected Scholar UI styling
+- `GSVR/rank_core.js` - shared ranking and matching logic
+- `GSVR/venue_data.js` - venue aliases and proceedings/journal mapping data
+- `GSVR/popup.*` - popup UI
+- `GSVR/options.*` - full settings UI
+- `GSVR/core/` - bundled CORE snapshots
+- `GSVR/sjr/` - yearly official SCImago CSV files
+- `GSVR/data/sjr-index.json` - compact generated SJR lookup index
+- `GSVR/tests/` - unit tests, benchmark runner, fixtures, and reports
+- `scripts/` - build, clean, zip, and SJR-index generation scripts
+- `dist/` - build output created by `npm run build`
 
----
+## Data sources
 
-## Limitations & troubleshooting
+The extension relies on three main authority sources:
 
-- **DBLP coverage** — publications missing from DBLP may not be ranked.
-- **Short papers** — conference papers under six pages are excluded as short papers.
-- **Name mismatches** — DBLP may list your papers under a different name, leading to profile mismatches.
+- [DBLP](https://dblp.org/) for publication and venue metadata
+- [CORE Conference Rankings](https://portal.core.edu.au/conf-ranks/) for conference ranks
+- [SCImago Journal Rank](https://www.scimagojr.com/journalrank.php) for journal quartiles
 
-Tips:
+Current bundled data coverage in this repository:
 
-- Verify your DBLP profile is correct and matches your Scholar name.
-- Use the extension’s **Report Bug** link (in the summary panel) and include:
-  - The Google Scholar profile URL
-  - The specific paper/venue that was mismatched or not detected
-  - The expected rank/behavior
-  - Any console errors (if applicable)
+- CORE snapshots: `2014`, `2017`, `2018`, `2020`, `2021`, `2023`, `2026`
+- SJR CSVs: `2010` through `2024`
 
-If you’re debugging locally, open Chrome DevTools → **Console** on the Scholar page to see matching logs.
+As of April 2026, this repository does not bundle an official `2025` SJR CSV.
 
----
+## Limitations
 
-## Data sources & acknowledgements
+- Papers missing from DBLP may remain unranked or appear as `DBLP Missing`.
+- Some venues are genuinely ambiguous and are intentionally left unresolved.
+- Ranking policies in research are field-specific; GSVR focuses on DBLP plus CORE plus SJR rather than trying to aggregate every ranking system.
+- The extension is designed for Google Scholar profile pages, not as a general-purpose citation-site rank overlay.
 
-This extension uses historical **CORE Conference Rankings** from **2023, 2021, 2020, 2018, 2017, and 2014**, and **SCImago Journal Rank (SJR)** data from [scimagojr.com](https://www.scimagojr.com/) (stored locally under `GSVR/sjr/`). It also uses **DBLP** metadata to identify venues and expand abbreviated journal names.
+## Contributing and bug reports
 
-Please refer to the official [CORE portal](http://portal.core.edu.au/conf-ranks/) and [SCImago portal](https://www.scimagojr.com/journalrank.php) for the most authoritative data.
+Issues and pull requests are welcome.
 
----
+If you report a ranking problem, please include:
 
-## Contributing & bug reports (BETA)
+- the Google Scholar profile URL
+- the specific paper title
+- the expected venue/rank behavior
+- screenshots if the UI is involved
+- console output if you are debugging locally
 
-This extension is currently in BETA. Your feedback is invaluable!
-
-- **Report a bug:** use the **Report Bug** link in the summary panel or open an issue on GitHub. When reporting, please include:
-  - The Google Scholar profile URL
-  - The specific paper/venue that was mismatched or not detected
-  - The expected rank/behavior
-  - Any console errors (if applicable)
-- **Feature requests:** open an issue.
-- **Pull requests:** contributions are welcome—please open an issue first to discuss significant changes.
-
----
-
-## Future ideas
-
-- Support for other ranking systems (e.g., Qualis, CCF).
-- User-configurable settings (e.g., preferred ranking system, option to hide N/A).
-- More advanced venue name disambiguation.
-
----
+You can also use the in-product `Report` action from the summary panel.
 
 ## License
 
 This project is licensed under the MIT License.
 
-⭐ **Like it?** Give the repo a star—helps other researchers discover the extension!
+If the extension is useful to you, starring the repository helps more researchers find it.

@@ -1,0 +1,20 @@
+{
+  "serviceWorkers": [
+    "chrome-extension://fignfifoniblkonapihmkfakmlgkbkcf/service_worker.js"
+  ],
+  "profiles": [
+    {
+      "label": "first-profile",
+      "pageTitle": "‪Wolfgang Stuerzlinger‬ - ‪Google Scholar‬",
+      "url": "https://scholar.google.com/citations?hl=en&user=78KBaPsAAAAJ&view_op=list_works",
+      "hasSummary": false,
+      "hasStatus": false,
+      "summaryText": "",
+      "statusText": "",
+      "dblpLink": null,
+      "hasRobotText": true,
+      "coauthorHref": "/citations?user=o9h0dRsAAAAJ&hl=en",
+      "screenshot": "C:\\Users\\Naveed Bhatti\\Documents\\Google-Scholar-Venue-Ranker - CODEX\\output\\playwright\\live-chrome-cdp-rerun-1776280583455\\first-profile.png"
+    }
+  ]
+}

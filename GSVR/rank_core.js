@@ -1,24 +1,45 @@
 /*
  * rank_core.js
- * Pure utilities shared by the content script and Node tests.
- *
- * UMD export:
- *   - Browser: window.GSVRUtils
- *   - Node: module.exports
+ * Shared ranking utilities used by the content script and Node tests.
  */
 
 (function (root, factory) {
+  const venueData = (typeof module === 'object' && module.exports)
+    ? require('./venue_data.js')
+    : (root.GSVRVenueData || {});
+
   if (typeof module === 'object' && module.exports) {
-    module.exports = factory();
+    module.exports = factory(venueData);
   } else {
-    root.GSVRUtils = factory();
+    root.GSVRUtils = factory(venueData);
   }
-})(typeof self !== 'undefined' ? self : this, function () {
+})(typeof self !== 'undefined' ? self : this, function (venueData) {
   'use strict';
 
-  // ---------------------------
-  // Text normalization
-  // ---------------------------
+  const DECISION_VERSION = 2;
+  const DECISION_STATUS = Object.freeze({
+    MATCHED: 'matched',
+    UNRANKED: 'unranked',
+    AMBIGUOUS: 'ambiguous',
+    MISSING: 'missing',
+  });
+
+  const RANKING_CONFIG = Object.freeze({
+    profileNameSimilarityThreshold: 0.72,
+    profileMinOverlapCount: 2,
+    profileMatchScoreThreshold: 3.6,
+    profileStrongScoreThreshold: 5.4,
+    profileAmbiguityGap: 0.45,
+    publicationSimilarityThreshold: 0.88,
+    publicationStrongSimilarityThreshold: 0.94,
+    publicationMaxYearDiff: 2,
+    publicationStrongYearDiff: 4,
+    publicationAmbiguityGap: 0.018,
+    coreFuzzyThreshold: 0.92,
+    coreAmbiguityGap: 0.02,
+    sjrFuzzyThreshold: 0.92,
+    sjrAmbiguityGap: 0.015,
+  });
 
   const TRACK_PREFIXES = [
     /^ph\.?d\.?\s+forum\s+abstract\s*:\s*/i,
@@ -33,83 +54,175 @@
     /^work\s*-?\s*in\s*-?\s*progress\s*:\s*/i,
   ];
 
+  const WORKSHOP_RX = /(\bworkshop\b|\bws\b|\bworkshop\s+on\b|\bworkshop\s+proceedings\b|\bco\s*-?located\b|\bco\s*-?located\s+with\b|\bcolocated\b|\bsatellite\b|\bassociated\s+workshop\b|\baffiliated\s+workshop\b|\bworkshop\s+track\b|@|\bproceedings\s+of\s+the\s+[\s\S]*\bworkshop\b)/i;
+  const EXTENDED_ABSTRACT_RX = /(\bextended\s+abstracts?\b)/i;
+  const DEMO_POSTER_VENUE_RX = /(\bposter\b|\bposters\b|\bdemo\b|\bdemos\b|\bdemonstration\b|\bdemonstrations\b|\bcompanion\b|\badjunct\b|\bsupplement\b|\bdoctoral\s+(consortium|symposium)\b|\bph\.?d\.?\s+forum\b|\bforum\s+abstract\b|\bstudent\s+research\b|\bwork\s*-?\s*in\s*-?\s*progress\b|\bwip\b|\bindustry\s+track\b|\btool\s+demonstration\b)/i;
+  const DEMO_POSTER_TITLE_RX = /(\bposter\b|\bdemo\b|\blate\s+breaking\b|\bwork\s*-?\s*in\s*-?\s*progress\b|\bwip\b|\bdoctoral\s+(consortium|symposium)\b|\bph\.?d\.?\s+forum\b|\bcompanion\b|\badjunct\b|\btool\s+demonstration\b)/i;
+
+  function normalizeSpaces(value) {
+    return String(value || '').replace(/\s+/g, ' ').trim();
+  }
+
   function stripTrackPrefixes(title) {
     if (!title) return '';
-    let t = String(title);
+    let result = String(title);
     for (const rx of TRACK_PREFIXES) {
-      t = t.replace(rx, '');
+      result = result.replace(rx, '');
     }
-    return t;
+    return result;
   }
 
-  function normalizeSpaces(s) {
-    return String(s || '').replace(/\s+/g, ' ').trim();
-  }
-
-  function normalizeForMatch(s) {
-    const t = stripTrackPrefixes(s);
+  function normalizeForMatch(value) {
+    const stripped = stripTrackPrefixes(value);
     return normalizeSpaces(
-      t
+      stripped
         .toLowerCase()
         .replace(/&/g, ' and ')
-        // Include '+' so titles like "LEAF + AIO" match "LEAF+AIO".
         .replace(/[\.,\/#!$%\^&\*;:{}=\_`~?"“”'’\(\)\[\]\+＋]/g, ' ')
         .replace(/[-\u2010-\u2015]/g, ' ')
     );
   }
 
   function normalizeVenueCandidate(venue) {
-    // Remove common Scholar/DBLP suffixes like "(2)", "(Part 2)", "Vol. 2", etc.
-    let v = normalizeForMatch(venue);
-    // remove "(2)" style already converted to spaces; handle trailing numbers
-    v = v.replace(/\b(part|volume|vol|issue|no|number)\s*\d+\b/g, ' ');
-    v = v.replace(/\b\d{1,3}\b\s*$/g, '');
-    return normalizeSpaces(v);
+    let normalized = normalizeForMatch(venue);
+    normalized = normalized.replace(/\b(part|volume|vol|issue|no|number)\s*\d+\b/g, ' ');
+    normalized = normalized.replace(/\b\d{1,3}\b\s*$/g, '');
+    return normalizeSpaces(normalized);
+  }
+
+  function normalizeProfileName(name) {
+    return normalizeSpaces(
+      String(name || '')
+        .toLowerCase()
+        .replace(/[\.,'’"]/g, ' ')
+        .replace(/\s+/g, ' ')
+    );
+  }
+
+  function stripParenNumberSuffix(value) {
+    return String(value || '').replace(/\s*\(\s*\d+\s*\)\s*$/g, '').trim();
+  }
+
+  function normalizeKey(value) {
+    return normalizeSpaces(String(value || '')).toLowerCase();
+  }
+
+  function buildJournalLookupCacheKey(normalizedQuery, queryIssns) {
+    const base = normalizeSpaces(String(normalizedQuery || '')).toLowerCase();
+    const issns = Array.isArray(queryIssns)
+      ? Array.from(new Set(
+          queryIssns
+            .map((value) => String(value || '').replace(/[^0-9Xx]/g, '').toUpperCase())
+            .filter(Boolean)
+        )).sort()
+      : [];
+    return issns.length ? `${base}::issn:${issns.join(',')}` : base;
+  }
+
+  function tokenizeNormalizedText(value, minLength) {
+    const min = Number.isFinite(minLength) ? minLength : 2;
+    return normalizeSpaces(String(value || ''))
+      .split(' ')
+      .map((token) => token.trim())
+      .filter((token) => token.length >= min);
+  }
+
+  function tokenJaccard(a, b) {
+    const ta = new Set(tokenizeNormalizedText(a, 2));
+    const tb = new Set(tokenizeNormalizedText(b, 2));
+    if (ta.size === 0 || tb.size === 0) return 0;
+    let intersection = 0;
+    for (const token of ta) {
+      if (tb.has(token)) intersection++;
+    }
+    const union = ta.size + tb.size - intersection;
+    return union > 0 ? intersection / union : 0;
+  }
+
+  function hybridSimilarity(a, b) {
+    return 0.72 * jaroWinkler(a, b) + 0.28 * tokenJaccard(a, b);
+  }
+
+  function buildRareTokenIndex(items, getValue, minTokenLength) {
+    const tokenToItems = new Map();
+    const tokenFrequency = new Map();
+    items.forEach((item, index) => {
+      const value = typeof getValue === 'function' ? getValue(item) : item;
+      const tokens = Array.from(new Set(tokenizeNormalizedText(value, minTokenLength || 3)));
+      for (const token of tokens) {
+        if (!tokenToItems.has(token)) tokenToItems.set(token, new Set());
+        tokenToItems.get(token).add(index);
+        tokenFrequency.set(token, (tokenFrequency.get(token) || 0) + 1);
+      }
+    });
+    return { tokenToItems, tokenFrequency };
+  }
+
+  function intersectSets(left, right) {
+    const out = new Set();
+    for (const value of left) {
+      if (right.has(value)) out.add(value);
+    }
+    return out;
+  }
+
+  function getCandidateIndexesFromTokens(tokens, tokenIndex) {
+    if (!Array.isArray(tokens) || !tokens.length || !tokenIndex) return null;
+    const rankedTokens = tokens
+      .map((token) => ({ token, count: tokenIndex.tokenFrequency.get(token) || Number.POSITIVE_INFINITY }))
+      .filter((entry) => Number.isFinite(entry.count))
+      .sort((a, b) => a.count - b.count || a.token.localeCompare(b.token));
+
+    if (!rankedTokens.length) return null;
+
+    let candidateSet = null;
+    for (const entry of rankedTokens.slice(0, 3)) {
+      const indexes = tokenIndex.tokenToItems.get(entry.token);
+      if (!indexes || !indexes.size) continue;
+      candidateSet = candidateSet ? intersectSets(candidateSet, indexes) : new Set(indexes);
+      if (candidateSet.size > 0 && candidateSet.size <= 32) {
+        break;
+      }
+    }
+
+    if (candidateSet && candidateSet.size) return candidateSet;
+    return new Set(tokenIndex.tokenToItems.get(rankedTokens[0].token) || []);
   }
 
   function expandVenueCandidates(rawVenue, opts) {
     const options = opts && typeof opts === 'object' ? opts : {};
-    // When analyzing workshop/track venues like "X@Y", callers may want to
-    // *avoid* expanding the parent venue (Y) to prevent rank inheritance.
     const includeAtParent = options.includeAtParent !== false;
     const out = new Set();
-    const v = String(rawVenue || '').trim();
-    if (!v) return [];
+    const value = String(rawVenue || '').trim();
+    if (!value) return [];
 
-    out.add(v);
-
-    // If it has "X@Y" (co-located workshop), add X and (optionally) Y.
-    const atMatch = v.match(/\b([A-Za-z][A-Za-z0-9\-]{1,20})\s*@\s*([A-Za-z][A-Za-z0-9\-]{1,20})\b/);
+    out.add(value);
+    const atMatch = value.match(/\b([A-Za-z][A-Za-z0-9\-]{1,20})\s*@\s*([A-Za-z][A-Za-z0-9\-]{1,20})\b/);
     if (atMatch) {
       out.add(atMatch[1]);
       if (includeAtParent) out.add(atMatch[2]);
     }
 
-    // In workshop/track mode, try to strip explicit parent-conference mentions.
     if (!includeAtParent) {
-      const coloc = v.match(/^(.*?)(?:\bco\s*-?located\s+with\b|\bcolocated\s+with\b|\bin\s+conjunction\s+with\b|\baffiliated\s+with\b|\bassociated\s+with\b)\s+.*$/i);
+      const coloc = value.match(/^(.*?)(?:\bco\s*-?located\s+with\b|\bcolocated\s+with\b|\bin\s+conjunction\s+with\b|\baffiliated\s+with\b|\bassociated\s+with\b)\s+.*$/i);
       if (coloc && coloc[1]) {
         const prefix = coloc[1].trim();
         if (prefix) out.add(prefix);
       }
     }
 
-    // Add normalized removal of trailing "(2)" / "2" suffixes.
-    const normalized = normalizeVenueCandidate(v);
-    if (normalized && normalized !== normalizeForMatch(v)) {
+    const normalized = normalizeVenueCandidate(value);
+    if (normalized && normalized !== normalizeForMatch(value)) {
       out.add(normalized);
     }
 
-    // If the original ends with "(n)", also add without it.
-    const parenNum = v.replace(/\s*\(\s*\d{1,3}\s*\)\s*$/g, '').trim();
-    if (parenNum && parenNum !== v) out.add(parenNum);
+    const noParenNumber = value.replace(/\s*\(\s*\d{1,3}\s*\)\s*$/g, '').trim();
+    if (noParenNumber && noParenNumber !== value) {
+      out.add(noParenNumber);
+    }
 
     return Array.from(out);
   }
-
-  // ---------------------------
-  // Similarity (Jaro-Winkler)
-  // ---------------------------
 
   function jaroWinkler(s1, s2) {
     if (!s1 || !s2) return 0;
@@ -145,8 +258,8 @@
       }
     }
     transpositions /= 2;
-    const jaro = (matches / a.length + matches / b.length + (matches - transpositions) / matches) / 3;
 
+    const jaro = (matches / a.length + matches / b.length + (matches - transpositions) / matches) / 3;
     let prefix = 0;
     for (let i = 0; i < Math.min(4, a.length, b.length); i++) {
       if (a[i] === b[i]) prefix++;
@@ -155,170 +268,147 @@
     return jaro + prefix * 0.1 * (1 - jaro);
   }
 
-  // ---------------------------
-  // Page count parsing
-  // ---------------------------
-
   function getPageCountFromPagesString(pageStr) {
     if (!pageStr) return null;
-    let s = String(pageStr).trim();
-    if (!s) return null;
+    const value = String(pageStr).trim();
+    if (!value) return null;
 
-    // Ignore single "article 12", roman numerals, or a lone number without a range.
-    if (/^(article\s+\d+|\d+$|[ivxlcdm]+$)/i.test(s) && !s.includes('-') && !s.includes(':')) {
+    if (/^(article\s+\d+|\d+$|[ivxlcdm]+$)/i.test(value) && !value.includes('-') && !value.includes(':')) {
       return null;
     }
 
-    // Patterns like S1-S8, e123-e130, A12-A18
-    let m = s.match(/^([a-z]+)\s*(\d+)\s*[-‑–—]\s*([a-z]+)\s*(\d+)$/i);
-    if (m) {
-      const start = parseInt(m[2], 10);
-      const end = parseInt(m[4], 10);
+    let match = value.match(/^([a-z]+)\s*(\d+)\s*[-‑–—]\s*([a-z]+)\s*(\d+)$/i);
+    if (match) {
+      const start = parseInt(match[2], 10);
+      const end = parseInt(match[4], 10);
       if (!isNaN(start) && !isNaN(end) && end >= start) return end - start + 1;
     }
 
-        // Patterns like 123-128 or a:123-a:128
-    m = s.match(/^(?:[a-z\d]+:)?(\d+)\s*[-‑–—]\s*(?:[a-z\d]+:)?(\d+)$/i);
-    if (m) {
-      const start = parseInt(m[1], 10);
-      const end = parseInt(m[2], 10);
+    match = value.match(/^(?:[a-z\d]+:)?(\d+)\s*[-‑–—]\s*(?:[a-z\d]+:)?(\d+)$/i);
+    if (match) {
+      const start = parseInt(match[1], 10);
+      const end = parseInt(match[2], 10);
       if (!isNaN(start) && !isNaN(end) && end >= start) return end - start + 1;
     }
 
-    // Patterns like 24:1-24:2
-    m = s.match(/^(?:(\d+):)?(\d+)\s*[-‑–—]\s*(?:(\d+):)?(\d+)$/i);
-    if (m) {
-      const startPage = parseInt(m[2], 10);
-      const endPage = parseInt(m[4], 10);
+    match = value.match(/^(?:(\d+):)?(\d+)\s*[-‑–—]\s*(?:(\d+):)?(\d+)$/i);
+    if (match) {
+      const startPage = parseInt(match[2], 10);
+      const endPage = parseInt(match[4], 10);
       if (!isNaN(startPage) && !isNaN(endPage) && endPage >= startPage) return endPage - startPage + 1;
     }
     return null;
   }
 
-  // ---------------------------
-  // Track classification
-  // ---------------------------
-
-  // NOTE: These are intentionally broad keyword detectors.
-  // The main guard against rank "inheritance" is done by *candidate
-  // construction* (avoid adding parent venues) and strict acronym matching.
-  const WORKSHOP_RX = /(\bworkshop\b|\bws\b|\bworkshop\s+on\b|\bworkshop\s+proceedings\b|\bco\s*-?located\b|\bco\s*-?located\s+with\b|\bcolocated\b|\bsatellite\b|\bassociated\s+workshop\b|\baffiliated\s+workshop\b|\bworkshop\s+track\b|@|\bproceedings\s+of\s+the\s+[\s\S]*\bworkshop\b)/i;
-
-  const EXTENDED_ABSTRACT_RX = /(\bextended\s+abstracts?\b)/i;
-  const DEMO_POSTER_RX = /(\bposter\b|\bposters\b|\bdemo\b|\bdemos\b|\bdemonstration\b|\bdemonstrations\b|\bcompanion\b|\badjunct\b|\bsupplement\b|\bdoctoral\s+(consortium|symposium)\b|\bph\.?d\.?\s+forum\b|\bforum\s+abstract\b|\bstudent\s+research\b|\bwork\s*-?\s*in\s*-?\s*progress\b|\bwip\b|\bindustry\s+track\b|\btool\s+demonstration\b)/i;
+  function addSignal(signals, scores, key, score, detail) {
+    scores[key] = (scores[key] || 0) + score;
+    signals.push(detail ? `${key}:${detail}` : key);
+  }
 
   function classifyVenueTrack({ title, venue, venue_full, acronym, dblpKey, scholarVenue, pageCount, dblpType, crossref }) {
     const signals = [];
-    const t = String(title || '');
-    const v1 = String(venue || '');
-    const v2 = String(venue_full || '');
-    const sv = String(scholarVenue || '');
-    const dk = String(dblpKey || '');
-    const cr = String(crossref || '');
-    const dt = String(dblpType || '');
+    const scores = { workshop: 0, demoPoster: 0, extendedAbstract: 0, shortPaper: 0 };
+    const rawTitle = String(title || '');
+    const rawVenue = String(venue || '');
+    const rawVenueFull = String(venue_full || '');
+    const rawScholarVenue = String(scholarVenue || '');
+    const rawDblpKey = String(dblpKey || '');
+    const rawCrossref = String(crossref || '');
+    const rawType = String(dblpType || '');
 
-    // IMPORTANT: We avoid relying on Google Scholar metadata here. All track
-    // classification should be grounded in DBLP fields (title/venue/key/crossref/type).
-    // The scholarVenue input is retained for backwards compatibility but should
-    // normally be null.
-    const haystack = `${t} \n ${v1} \n ${v2} \n ${sv} \n ${dk} \n ${cr} \n ${dt}`;
-    const venueHaystack = `${v1} \n ${v2} \n ${sv} \n ${dk} \n ${cr} \n ${dt}`;
+    const haystack = `${rawTitle}\n${rawVenue}\n${rawVenueFull}\n${rawScholarVenue}\n${rawDblpKey}\n${rawCrossref}\n${rawType}`;
+    const venueHaystack = `${rawVenue}\n${rawVenueFull}\n${rawDblpKey}\n${rawCrossref}\n${rawType}`;
 
     let resolvedVenue = null;
     let parentVenue = null;
 
-    // X@Y workshop indicator
-    const at = haystack.match(/\b([A-Za-z][A-Za-z0-9\-]{1,20})\s*@\s*([A-Za-z][A-Za-z0-9\-]{1,20})\b/);
-    if (at) {
-      resolvedVenue = at[1];
-      parentVenue = at[2];
-      signals.push('at_notation');
+    const atMatch = haystack.match(/\b([A-Za-z][A-Za-z0-9\-]{1,20})\s*@\s*([A-Za-z][A-Za-z0-9\-]{1,20})\b/);
+    if (atMatch) {
+      resolvedVenue = atMatch[1];
+      parentVenue = atMatch[2];
+      addSignal(signals, scores, 'workshop', 2.4, 'at_notation');
     }
 
-    const isExtendedAbstract = EXTENDED_ABSTRACT_RX.test(haystack);
-    if (isExtendedAbstract) signals.push('extended_abstract_keyword');
+    const hasTrackPrefix = stripTrackPrefixes(rawTitle) !== rawTitle;
+    if (hasTrackPrefix) {
+      addSignal(signals, scores, 'demoPoster', 2.6, 'track_prefix');
+    }
 
-    const hasTrackPrefix = stripTrackPrefixes(t) !== t;
-    // Title-only occurrences of words like "demonstration" are often part of a normal full-paper title.
-    // Treat demo/poster as a title signal only when it appears as an explicit track prefix (e.g., "Demo:")
-    // or when the title contains strong track terms (poster/demo/WiP/etc.).
-    const demoPosterInTitle = hasTrackPrefix || /\b(poster|demo|late\s+breaking|work\s+in\s+progress|doctoral\s+consortium|doctoral\s+symposium|adjunct|companion)\b/i.test(t);
-    const demoPosterInVenue = DEMO_POSTER_RX.test(venueHaystack);
-    let isDemoPoster = demoPosterInTitle || demoPosterInVenue;
-    if (demoPosterInVenue) signals.push('demo_poster_venue_keyword');
-    else if (demoPosterInTitle) signals.push('demo_poster_title_keyword');
+    if (EXTENDED_ABSTRACT_RX.test(haystack)) {
+      addSignal(signals, scores, 'extendedAbstract', 4.0, 'extended_keyword');
+    }
 
-    const isWorkshop = WORKSHOP_RX.test(haystack);
-    if (isWorkshop) signals.push('workshop_keyword');
+    if (WORKSHOP_RX.test(haystack)) {
+      addSignal(signals, scores, 'workshop', 2.2, 'workshop_keyword');
+    }
 
-    // Infer a "series" from dblpKey (conf/<series>/...)
-    const seriesMatch = dk.match(/^(conf|journals)\/([^/]+)\//i);
+    const demoPosterInTitle = hasTrackPrefix || DEMO_POSTER_TITLE_RX.test(rawTitle);
+    if (demoPosterInTitle) {
+      addSignal(signals, scores, 'demoPoster', 2.1, 'title_track_keyword');
+    }
+
+    if (DEMO_POSTER_VENUE_RX.test(venueHaystack)) {
+      addSignal(signals, scores, 'demoPoster', 2.6, 'venue_track_keyword');
+    }
+
+    const seriesMatch = rawDblpKey.match(/^(conf|journals)\/([^/]+)\//i);
     const seriesId = seriesMatch ? seriesMatch[2] : null;
 
-    // Many workshop papers live under the *parent* series in DBLP (e.g., conf/sensys/*)
-    // but the proceedings crossref often contains a track indicator like "2020ensSYS".
     let crossrefDerivedVenue = null;
-    if (cr) {
-      const last = cr.split('/').pop();
+    if (rawCrossref) {
+      const last = rawCrossref.split('/').pop();
       if (last) {
-        // Examples: "2020ensSYS" or "enssys2020"
-        let m = last.match(/^(\d{4})([A-Za-z][A-Za-z0-9\-]{1,25})$/);
-        if (m) {
-          crossrefDerivedVenue = m[2];
+        let match = last.match(/^(\d{4})([A-Za-z][A-Za-z0-9\-]{1,25})$/);
+        if (match) {
+          crossrefDerivedVenue = match[2];
         } else {
-          m = last.match(/^([A-Za-z][A-Za-z0-9\-]{1,25})(\d{4})$/);
-          if (m) crossrefDerivedVenue = m[1];
+          match = last.match(/^([A-Za-z][A-Za-z0-9\-]{1,25})(\d{4})$/);
+          if (match) crossrefDerivedVenue = match[1];
         }
-        if (crossrefDerivedVenue) signals.push('crossref_track');
+        if (crossrefDerivedVenue) {
+          addSignal(signals, scores, 'workshop', 1.2, 'crossref_track');
+        }
       }
     }
+
     if (!parentVenue && crossrefDerivedVenue && seriesId && seriesId.toLowerCase() !== crossrefDerivedVenue.toLowerCase()) {
       parentVenue = seriesId;
       signals.push('parent_from_series');
     }
+
     if (!resolvedVenue) {
       if (crossrefDerivedVenue) {
         resolvedVenue = crossrefDerivedVenue;
-        signals.push('crossref_venue');
-      }
-      // Fall back to the DBLP series id only if we still don't have a better signal.
-      if (!resolvedVenue && seriesId && seriesId.length >= 2) {
+        signals.push('resolved_from_crossref');
+      } else if (seriesId && seriesId.length >= 2) {
         resolvedVenue = seriesId;
-        signals.push('dblp_series');
-      } else if (!resolvedVenue && acronym) {
+        signals.push('resolved_from_series');
+      } else if (acronym) {
         resolvedVenue = acronym;
-        signals.push('acronym');
+        signals.push('resolved_from_acronym');
       }
     }
 
-    // Page-count override (Issue #1): titles may contain the word "demonstration"
-    // as part of the research topic (e.g., "... by demonstration"), but the paper
-    // can still be a full paper. Demo/poster papers are typically 2–3 pages.
-    if (!isExtendedAbstract && isDemoPoster && typeof pageCount === 'number' && Number.isFinite(pageCount)) {
-      // If the only demo signal is in the title and the paper is longer than a
-      // typical demo/poster, treat it as a full paper.
-      if (!demoPosterInVenue && pageCount >= 4) {
-        isDemoPoster = false;
-        signals.push('demo_overridden_by_pages_title_only');
-      }
-      // Even if venue suggests demo/poster, a very large page count is a strong
-      // counter-signal unless it's explicitly an extended abstract.
-      if (demoPosterInVenue && pageCount > 5 && !isExtendedAbstract) {
-        // Keep true only if we have a very explicit signal (poster/demo/companion),
-        // not just "demonstration".
-        const explicitVenueDemo = /(\bposter\b|\bdemo\b|\bcompanion\b|\badjunct\b|\bsupplement\b|\bdoctoral\b|\bph\.?d\.?\b|\bforum\b|\bwip\b|\bindustry\s+track\b)/i.test(venueHaystack);
-        if (!explicitVenueDemo) {
-          isDemoPoster = false;
-          signals.push('demo_overridden_by_pages_weak_venue');
+    if (typeof pageCount === 'number' && Number.isFinite(pageCount)) {
+      if (pageCount < 6) {
+        addSignal(signals, scores, 'shortPaper', 1.2, `pages_${pageCount}`);
+        if (pageCount <= 3) {
+          addSignal(signals, scores, 'demoPoster', 0.75, `very_short_${pageCount}`);
+        }
+      } else if (pageCount >= 6) {
+        scores.demoPoster = Math.max(0, scores.demoPoster - 0.5);
+        if (demoPosterInTitle && !DEMO_POSTER_VENUE_RX.test(venueHaystack)) {
+          scores.demoPoster = Math.max(0, scores.demoPoster - 1.1);
+          signals.push('demo_penalty_long_pages');
         }
       }
     }
 
-    // Short paper by pages: keep separate from demo/poster.
-    const isShortPaper = typeof pageCount === 'number' && Number.isFinite(pageCount) && pageCount < 6;
-    if (isShortPaper) signals.push('short_by_pages');
+    const isExtendedAbstract = scores.extendedAbstract >= 3.0;
+    const isDemoPoster = !isExtendedAbstract && scores.demoPoster >= 2.5;
+    const isWorkshop = !isExtendedAbstract && scores.workshop >= 2.0;
+    const isShortPaper = !isExtendedAbstract && typeof pageCount === 'number' && Number.isFinite(pageCount) && pageCount < 6;
 
-    // Reason precedence: Extended Abstract > Demo/Poster > Workshop > Short-paper
     let reason = null;
     if (isExtendedAbstract) reason = 'Extended Abstract';
     else if (isDemoPoster) reason = 'Demo/Poster';
@@ -335,273 +425,442 @@
       parentVenue: parentVenue ? String(parentVenue) : null,
       seriesId,
       signals,
+      scores,
     };
   }
 
-  // ---------------------------
-  // Deterministic DBLP matching
-  // ---------------------------
+  function createPublicationTitleIndex(dblpPublications) {
+    const items = Array.isArray(dblpPublications) ? dblpPublications : [];
+    const exactTitleMap = new Map();
+    const normalizedTitles = [];
 
-  function tokenJaccard(a, b) {
-    const ta = new Set(String(a || '').split(' ').filter(x => x.length >= 2));
-    const tb = new Set(String(b || '').split(' ').filter(x => x.length >= 2));
-    if (ta.size === 0 || tb.size === 0) return 0;
-    let inter = 0;
-    for (const t of ta) if (tb.has(t)) inter++;
-    const union = ta.size + tb.size - inter;
-    return union > 0 ? inter / union : 0;
+    items.forEach((pub, index) => {
+      const normalizedTitle = normalizeForMatch(pub?.title || '');
+      normalizedTitles[index] = normalizedTitle;
+      if (!normalizedTitle) return;
+      if (!exactTitleMap.has(normalizedTitle)) exactTitleMap.set(normalizedTitle, []);
+      exactTitleMap.get(normalizedTitle).push(index);
+    });
+
+    return {
+      items,
+      exactTitleMap,
+      normalizedTitles,
+      tokenIndex: buildRareTokenIndex(normalizedTitles, (value) => value, 3),
+    };
   }
 
-  function selectBestDblpMatch({ scholarTitle, scholarYear, dblpPublications, similarityThreshold = 0.88, maxYearDiff = 2 }) {
-    const st = normalizeForMatch(scholarTitle);
-    if (!st || !Array.isArray(dblpPublications) || dblpPublications.length === 0) return null;
+  function scorePublicationCandidate(normalizedScholarTitle, scholarYear, pub, normalizedTitle, config) {
+    const similarity = hybridSimilarity(normalizedScholarTitle, normalizedTitle);
+    const pubYear = pub?.year ? parseInt(pub.year, 10) : null;
+    const scholarYearNumber = typeof scholarYear === 'number' ? scholarYear : null;
+    const yearDiff = (scholarYearNumber !== null && Number.isFinite(pubYear))
+      ? Math.abs(scholarYearNumber - pubYear)
+      : 0;
 
-    const sy = typeof scholarYear === 'number' ? scholarYear : null;
+    let score = similarity;
+    if (scholarYearNumber !== null && Number.isFinite(pubYear) && yearDiff > config.publicationMaxYearDiff) {
+      if (similarity < config.publicationStrongSimilarityThreshold || yearDiff > config.publicationStrongYearDiff) {
+        return null;
+      }
+      score *= 0.92 ** Math.min(6, (yearDiff - config.publicationMaxYearDiff));
+    }
+
+    if (score < config.publicationSimilarityThreshold) {
+      return null;
+    }
+
+    return {
+      pub,
+      normalizedTitle,
+      score,
+      rawSimilarity: similarity,
+      yearDiff,
+      hasPages: !!pub.pages,
+      exactTitleMatch: normalizedTitle === normalizedScholarTitle,
+    };
+  }
+
+  function comparePublicationCandidates(left, right) {
+    if (!left) return 1;
+    if (!right) return -1;
+    if (left.score !== right.score) return right.score - left.score;
+    if (left.exactTitleMatch !== right.exactTitleMatch) return left.exactTitleMatch ? -1 : 1;
+    if (left.yearDiff !== right.yearDiff) return left.yearDiff - right.yearDiff;
+    if (left.hasPages !== right.hasPages) return left.hasPages ? -1 : 1;
+    const leftKey = String(left.pub?.dblpKey || '');
+    const rightKey = String(right.pub?.dblpKey || '');
+    return leftKey.localeCompare(rightKey);
+  }
+
+  function summarizePublicationCandidate(candidate) {
+    if (!candidate?.pub) return null;
+    return {
+      dblpKey: candidate.pub.dblpKey || null,
+      title: candidate.pub.title || null,
+      venue: candidate.pub.venue_full || candidate.pub.venue || null,
+      year: candidate.pub.year || null,
+      score: typeof candidate.score === 'number' ? candidate.score : null,
+      exactTitleMatch: candidate.exactTitleMatch === true,
+    };
+  }
+
+  function selectBestDblpMatchDetailed({
+    scholarTitle,
+    scholarYear,
+    dblpPublications,
+    similarityThreshold,
+    maxYearDiff,
+    strongSimilarityThreshold,
+  }) {
+    const config = {
+      ...RANKING_CONFIG,
+      publicationSimilarityThreshold: Number.isFinite(similarityThreshold) ? similarityThreshold : RANKING_CONFIG.publicationSimilarityThreshold,
+      publicationMaxYearDiff: Number.isFinite(maxYearDiff) ? maxYearDiff : RANKING_CONFIG.publicationMaxYearDiff,
+      publicationStrongSimilarityThreshold: Number.isFinite(strongSimilarityThreshold) ? strongSimilarityThreshold : RANKING_CONFIG.publicationStrongSimilarityThreshold,
+    };
+
+    const normalizedScholarTitle = normalizeForMatch(scholarTitle);
+    if (!normalizedScholarTitle || !Array.isArray(dblpPublications) || dblpPublications.length === 0) {
+      return { status: DECISION_STATUS.MISSING, match: null, reason: 'no_candidates' };
+    }
+
+    const index = createPublicationTitleIndex(dblpPublications);
+    const exactMatches = index.exactTitleMap.get(normalizedScholarTitle) || [];
+    let candidateIndexes = exactMatches.length
+      ? new Set(exactMatches)
+      : getCandidateIndexesFromTokens(tokenizeNormalizedText(normalizedScholarTitle, 3), index.tokenIndex);
+
+    if (!candidateIndexes || !candidateIndexes.size) {
+      candidateIndexes = new Set(index.items.map((_, itemIndex) => itemIndex));
+    }
 
     let best = null;
     let second = null;
-    for (const pub of dblpPublications) {
-      if (!pub || !pub.title || !pub.dblpKey) continue;
-      const dt = normalizeForMatch(pub.title);
-      const jw = jaroWinkler(st, dt);
-      const jac = tokenJaccard(st, dt);
-      // Weighted hybrid similarity improves robustness to punctuation/spacing
-      // differences (Issue #2) while keeping precision high.
-      let sim = 0.7 * jw + 0.3 * jac;
+    for (const candidateIndex of candidateIndexes) {
+      const pub = index.items[candidateIndex];
+      const normalizedTitle = index.normalizedTitles[candidateIndex];
+      const scored = scorePublicationCandidate(normalizedScholarTitle, scholarYear, pub, normalizedTitle, config);
+      if (!scored) continue;
 
-      const dy = pub.year ? parseInt(pub.year, 10) : null;
-      const yearDiff = (sy !== null && dy !== null && Number.isFinite(dy)) ? Math.abs(sy - dy) : 0;
-      // Soft year penalty (journals often have online/print year discrepancies).
-      if (sy !== null && dy !== null && yearDiff > maxYearDiff) {
-        sim *= 0.92 ** Math.min(6, (yearDiff - maxYearDiff));
+      if (!best || comparePublicationCandidates(best, scored) > 0) {
+        second = best;
+        best = scored;
+      } else if (!second || comparePublicationCandidates(second, scored) > 0) {
+        second = scored;
+      }
+    }
+
+    if (!best) {
+      return { status: DECISION_STATUS.MISSING, match: null, reason: 'no_match_above_threshold' };
+    }
+
+    const gap = second ? best.score - second.score : Number.POSITIVE_INFINITY;
+    if (!best.exactTitleMatch && second && best.score < 0.96 && gap < config.publicationAmbiguityGap) {
+      return {
+        status: DECISION_STATUS.AMBIGUOUS,
+        match: null,
+        confidence: best.score,
+        scoreGap: gap,
+        runnerUpScore: second.score,
+        reason: 'publication_ambiguous',
+        topCandidates: [summarizePublicationCandidate(best), summarizePublicationCandidate(second)].filter(Boolean),
+      };
+    }
+
+    return {
+      status: DECISION_STATUS.MATCHED,
+      confidence: best.score,
+      rawSimilarity: best.rawSimilarity,
+      runnerUpScore: second ? second.score : null,
+      scoreGap: gap,
+      exactTitleMatch: best.exactTitleMatch,
+      match: { ...best.pub, matchScore: best.score, matchRawSimilarity: best.rawSimilarity },
+      topCandidates: [summarizePublicationCandidate(best), summarizePublicationCandidate(second)].filter(Boolean),
+    };
+  }
+
+  function selectBestDblpMatch(args) {
+    const result = selectBestDblpMatchDetailed(args);
+    return result.status === DECISION_STATUS.MATCHED ? result.match : null;
+  }
+
+  function scoreDblpProfileCandidate({ scholarName, scholarSamplePubs, candidateName, dblpPublications }) {
+    const normalizedScholarName = normalizeProfileName(scholarName);
+    const normalizedCandidateName = normalizeProfileName(candidateName);
+    const scholarNameScore = hybridSimilarity(normalizedScholarName, normalizedCandidateName);
+
+    if (scholarNameScore < RANKING_CONFIG.profileNameSimilarityThreshold) {
+      return {
+        status: DECISION_STATUS.MISSING,
+        confidence: scholarNameScore,
+        score: scholarNameScore,
+        overlapCount: 0,
+        exactOverlapCount: 0,
+        reason: 'profile_name_too_far',
+      };
+    }
+
+    const publications = Array.isArray(scholarSamplePubs) ? scholarSamplePubs : [];
+    let overlapCount = 0;
+    let exactOverlapCount = 0;
+    let yearAlignedCount = 0;
+    let overlapScore = 0;
+
+    for (const pub of publications) {
+      const match = selectBestDblpMatchDetailed({
+        scholarTitle: pub?.title || '',
+        scholarYear: Number.isFinite(pub?.year) ? pub.year : null,
+        dblpPublications,
+      });
+      if (match.status !== DECISION_STATUS.MATCHED || !match.match) continue;
+      overlapCount++;
+      overlapScore += match.confidence || 0;
+      if (match.exactTitleMatch) exactOverlapCount++;
+      if (Number.isFinite(pub?.year) && match.match.year && Math.abs(pub.year - parseInt(match.match.year, 10)) <= 1) {
+        yearAlignedCount++;
+      }
+    }
+
+    const score =
+      scholarNameScore * 2.4 +
+      overlapCount * 1.1 +
+      exactOverlapCount * 0.55 +
+      yearAlignedCount * 0.25 +
+      overlapScore * 0.25;
+
+    const matched = overlapCount >= RANKING_CONFIG.profileMinOverlapCount && score >= RANKING_CONFIG.profileMatchScoreThreshold;
+    return {
+      status: matched ? DECISION_STATUS.MATCHED : DECISION_STATUS.MISSING,
+      confidence: Math.min(1, Math.max(scholarNameScore, overlapCount ? overlapScore / Math.max(1, overlapCount) : 0)),
+      score,
+      overlapCount,
+      exactOverlapCount,
+      yearAlignedCount,
+      reason: matched ? 'profile_overlap' : 'profile_overlap_too_low',
+    };
+  }
+
+  function createCoreAliasIndex(coreData) {
+    const entries = Array.isArray(coreData) ? coreData : [];
+    const exactAcronymMap = new Map();
+    const exactAliasMap = new Map();
+    const titleLookup = [];
+    const canonicalTitles = [];
+
+    const registerAlias = (map, key, index) => {
+      const normalizedKey = normalizeVenueCandidate(key);
+      if (!normalizedKey) return;
+      if (!map.has(normalizedKey)) map.set(normalizedKey, []);
+      map.get(normalizedKey).push(index);
+    };
+
+    entries.forEach((entry, index) => {
+      const title = normalizeSpaces(entry?.title || '');
+      const acronym = normalizeSpaces(entry?.acronym || '');
+      const canonicalTitle = normalizeVenueCandidate(title);
+      const aliases = new Set();
+
+      if (title) aliases.add(title);
+      if (acronym) aliases.add(acronym);
+
+      const canonicalVenue = canonicalizeCsrankingsVenueName(title);
+      if (canonicalVenue) aliases.add(canonicalVenue);
+
+      for (const alias of expandVenueCandidates(title)) aliases.add(alias);
+      if (acronym) aliases.add(acronym.toUpperCase());
+
+      if (acronym) {
+        const acronymKey = normalizeKey(acronym);
+        if (!exactAcronymMap.has(acronymKey)) exactAcronymMap.set(acronymKey, []);
+        exactAcronymMap.get(acronymKey).push(index);
       }
 
-      if (sim < similarityThreshold) continue;
-
-      const key = String(pub.dblpKey);
-      const hasPages = !!pub.pages;
-      const candidate = { pub, sim, yearDiff, key, hasPages };
-
-      if (!best) {
-        best = candidate;
-        continue;
+      for (const alias of aliases) {
+        registerAlias(exactAliasMap, alias, index);
       }
 
-      // Track runner-up for ambiguity rejection.
-      if (!second) second = best;
+      titleLookup[index] = title;
+      canonicalTitles[index] = canonicalTitle;
+    });
 
-      // Deterministic ordering:
-      // 1) Higher similarity
-      // 2) Smaller year diff
-      // 3) Prefer entries with pages (helps short-paper detection)
-      // 4) Lexicographically smallest dblpKey
-      if (
-        candidate.sim > best.sim + 1e-12 ||
-        (Math.abs(candidate.sim - best.sim) <= 1e-12 && candidate.yearDiff < best.yearDiff) ||
-        (Math.abs(candidate.sim - best.sim) <= 1e-12 && candidate.yearDiff === best.yearDiff && candidate.hasPages && !best.hasPages) ||
-        (Math.abs(candidate.sim - best.sim) <= 1e-12 && candidate.yearDiff === best.yearDiff && candidate.hasPages === best.hasPages && candidate.key < best.key)
-      ) {
-        // Maintain second-best.
+    return {
+      entries,
+      exactAcronymMap,
+      exactAliasMap,
+      titleLookup,
+      canonicalTitles,
+      tokenIndex: buildRareTokenIndex(canonicalTitles, (value) => value, 3),
+    };
+  }
+
+  function disambiguateCoreCandidates(query, indexes, aliasIndex) {
+    const normalizedQuery = normalizeVenueCandidate(query);
+    let best = null;
+    let second = null;
+    for (const index of indexes) {
+      const candidateTitle = aliasIndex.titleLookup[index] || aliasIndex.entries[index]?.title || '';
+      const candidateNormalized = aliasIndex.canonicalTitles[index] || normalizeVenueCandidate(candidateTitle);
+      const score = hybridSimilarity(normalizedQuery, candidateNormalized);
+      const candidate = { index, score };
+      if (!best || candidate.score > best.score) {
         second = best;
         best = candidate;
-      }
-      else if (!second || candidate.sim > second.sim + 1e-12 || (Math.abs(candidate.sim - second.sim) <= 1e-12 && candidate.key < second.key)) {
+      } else if (!second || candidate.score > second.score) {
         second = candidate;
       }
     }
 
     if (!best) return null;
+    const gap = second ? best.score - second.score : Number.POSITIVE_INFINITY;
+    if (second && best.score < 0.96 && gap < RANKING_CONFIG.coreAmbiguityGap) {
+      return { status: DECISION_STATUS.AMBIGUOUS, score: best.score, gap, bestIndex: best.index, secondIndex: second.index };
+    }
+    return { status: DECISION_STATUS.MATCHED, score: best.score, entry: aliasIndex.entries[best.index] };
+  }
 
-    // If the match is ambiguous (very close top-2 scores) and not an almost-exact
-    // match, prefer returning null to avoid false positives.
-    if (second && best.sim < 0.93 && (best.sim - second.sim) < 0.02) {
-      return null;
+  function summarizeCoreEntries(indexes, aliasIndex) {
+    const uniqueIndexes = Array.from(new Set(indexes || []));
+    return uniqueIndexes.slice(0, 4).map((index) => {
+      const entry = aliasIndex.entries[index];
+      if (!entry) return null;
+      return {
+        acronym: entry.acronym || null,
+        title: entry.title || null,
+        rank: entry.rank || 'N/A',
+        rawRankLabel: entry.rawRank || null,
+      };
+    }).filter(Boolean);
+  }
+
+  function resolveCoreVenue({ venueKey, fullVenueTitle, coreData, aliasIndex }) {
+    const data = Array.isArray(coreData) ? coreData : [];
+    const index = aliasIndex && aliasIndex.entries === data ? aliasIndex : createCoreAliasIndex(data);
+    const buildEntryResolution = (entry, fallbackCandidate, confidence, matchType, matchedKeyOverride = null) => {
+      const canonicalMatch = canonicalizeCsrankingsVenueName(
+        entry.acronym || entry.title || fallbackCandidate || venueKey || fullVenueTitle || ''
+      );
+      const topVenueFallback = (!entry.rank || entry.rank === 'N/A') && !entry.rawRank && isCsrankingsTopVenue(canonicalMatch);
+      const resolvedRank = topVenueFallback ? 'A*' : (entry.rank || 'N/A');
+      return {
+        status: resolvedRank !== 'N/A' ? DECISION_STATUS.MATCHED : DECISION_STATUS.UNRANKED,
+        rank: resolvedRank,
+        matchedVenue: entry.title || fallbackCandidate || canonicalMatch || venueKey || fullVenueTitle || null,
+        confidence: typeof confidence === 'number' ? confidence : null,
+        matchedKey: matchedKeyOverride || entry.acronym || entry.title || canonicalMatch || fallbackCandidate || null,
+        rawRankLabel: entry.rawRank || null,
+        matchType: topVenueFallback ? 'top_venue_fallback' : matchType,
+        reason: topVenueFallback ? 'top_venue_fallback' : (entry.rawRank && entry.rank === 'N/A' ? String(entry.rawRank) : null),
+      };
+    };
+    const rawCandidates = Array.from(new Set([venueKey, fullVenueTitle].filter((value) => !!value && String(value).trim().length > 0)));
+    const expandedCandidates = Array.from(new Set(
+      rawCandidates.flatMap((candidate) => {
+        const variants = [candidate];
+        const canonical = canonicalizeCsrankingsVenueName(candidate);
+        if (canonical) variants.push(canonical);
+        return variants;
+      }).filter(Boolean)
+    ));
+    if (!rawCandidates.length) {
+      return { status: DECISION_STATUS.MISSING, rank: 'N/A', reason: 'no_venue_candidate' };
     }
 
-    return { ...best.pub, matchScore: best.sim };
+    for (const candidate of expandedCandidates) {
+      const acronymKey = normalizeKey(candidate);
+      const acronymMatches = index.exactAcronymMap.get(acronymKey) || [];
+      if (acronymMatches.length === 1) {
+        const entry = index.entries[acronymMatches[0]];
+        return buildEntryResolution(entry, candidate, 1, 'acronym_exact', entry.acronym || entry.title || candidate);
+      }
+      if (acronymMatches.length > 1) {
+        const disambiguated = disambiguateCoreCandidates(fullVenueTitle || candidate, acronymMatches, index);
+        if (disambiguated?.status === DECISION_STATUS.MATCHED && disambiguated.entry) {
+          const entry = disambiguated.entry;
+          return buildEntryResolution(entry, candidate, disambiguated.score, 'acronym_disambiguated', entry.acronym || entry.title || candidate);
+        }
+        return {
+          status: DECISION_STATUS.AMBIGUOUS,
+          rank: 'N/A',
+          reason: 'ambiguous_acronym',
+          confidence: disambiguated?.score || null,
+          topCandidates: summarizeCoreEntries(acronymMatches, index),
+        };
+      }
+    }
+
+    for (const candidate of expandedCandidates) {
+      const normalizedCandidate = normalizeVenueCandidate(candidate);
+      const aliasMatches = index.exactAliasMap.get(normalizedCandidate) || [];
+      if (aliasMatches.length === 1) {
+        const entry = index.entries[aliasMatches[0]];
+        return buildEntryResolution(entry, candidate, 1, 'alias_exact', entry.title || candidate);
+      }
+      if (aliasMatches.length > 1) {
+        const disambiguated = disambiguateCoreCandidates(fullVenueTitle || candidate, aliasMatches, index);
+        if (disambiguated?.status === DECISION_STATUS.MATCHED && disambiguated.entry) {
+          const entry = disambiguated.entry;
+          return buildEntryResolution(entry, candidate, disambiguated.score, 'alias_disambiguated', entry.title || candidate);
+        }
+        return {
+          status: DECISION_STATUS.AMBIGUOUS,
+          rank: 'N/A',
+          reason: 'ambiguous_title_alias',
+          confidence: disambiguated?.score || null,
+          topCandidates: summarizeCoreEntries(aliasMatches, index),
+        };
+      }
+    }
+
+    const fuzzyQueries = expandedCandidates.map((candidate) => normalizeVenueCandidate(candidate)).filter(Boolean);
+    let best = null;
+    let second = null;
+    for (const normalizedQuery of fuzzyQueries) {
+      const candidateIndexes = getCandidateIndexesFromTokens(tokenizeNormalizedText(normalizedQuery, 3), index.tokenIndex) || new Set(index.entries.map((_, itemIndex) => itemIndex));
+      for (const candidateIndex of candidateIndexes) {
+        const candidateTitle = index.canonicalTitles[candidateIndex];
+        if (!candidateTitle || candidateTitle.length < 6 || normalizedQuery.length < 6) continue;
+        const score = hybridSimilarity(normalizedQuery, candidateTitle);
+        if (score < RANKING_CONFIG.coreFuzzyThreshold) continue;
+        const candidate = { index: candidateIndex, score };
+        if (!best || candidate.score > best.score) {
+          second = best;
+          best = candidate;
+        } else if (!second || candidate.score > second.score) {
+          second = candidate;
+        }
+      }
+    }
+
+    if (!best) {
+      return { status: DECISION_STATUS.MISSING, rank: 'N/A', reason: 'no_core_match' };
+    }
+
+    const gap = second ? best.score - second.score : Number.POSITIVE_INFINITY;
+    if (second && best.score < 0.97 && gap < RANKING_CONFIG.coreAmbiguityGap) {
+      return {
+        status: DECISION_STATUS.AMBIGUOUS,
+        rank: 'N/A',
+        reason: 'ambiguous_fuzzy_core',
+        confidence: best.score,
+        gap,
+        topCandidates: summarizeCoreEntries([best.index, second.index], index),
+      };
+    }
+
+    const entry = index.entries[best.index];
+    return buildEntryResolution(entry, venueKey || fullVenueTitle || null, best.score, 'fuzzy', entry.acronym || entry.title || null);
   }
 
-  // ---------------------------
-  // CSRankings-style venue overrides (top venues, proceedings-as-journals)
-  // ---------------------------
-  // CSRankings maintains a curated list of "top" venues and performs a few
-  // deterministic remappings for proceedings published as journal special issues
-  // (e.g., SIGGRAPH papers in ACM TOG). We adopt the same philosophy here:
-  //  - Prefer deterministic normalization for known top venues.
-  //  - Treat well-known "proceedings-as-journals" as conferences when we can
-  //    unambiguously identify the conference issue.
-
-  function stripParenNumberSuffix(s) {
-    return String(s || '').replace(/\s*\(\s*\d+\s*\)\s*$/g, '').trim();
-  }
-
-  function normalizeKey(s) {
-    return normalizeSpaces(String(s || '')).toLowerCase();
-  }
-
-  // Base venue names (with "(1)", "(2)", etc. removed) derived from CSRankings' areadict.
-  // We keep this list intentionally limited to CSRankings' venue universe.
   const CSRANKINGS_TOP_VENUE_BASES = new Set(
-    [
-      "AAAI",
-      "AAAI/IAAI",
-      "ACL",
-      "ACL/IJCNLP",
-      "ACM Conference on Computer and Communications Security",
-      "ACM Trans. Embed. Comput. Syst.",
-      "ACM Trans. Embedded Comput. Syst.",
-      "ACM Trans. Graph.",
-      "ASE",
-      "ASPLOS",
-      "Bioinform.",
-      "Bioinformatics",
-      "Bioinformatics [ISMB/ECCB]",
-      "CAV",
-      "CCS",
-      "CHI",
-      "COLING-ACL",
-      "Comput. Graph. Forum",
-      "CRYPTO",
-      "CSL-LICS",
-      "CVPR",
-      "DAC",
-      "EC",
-      "ECCV",
-      "EMNLP",
-      "EMNLP-CoNLL",
-      "EMNLP-IJCNLP",
-      "EMNLP/IJCNLP",
-      "EMSOFT",
-      "ESEC/SIGSOFT FSE",
-      "EUROCRYPT",
-      "EUROGRAPHICS",
-      "FAST",
-      "FOCS",
-      "FSE",
-      "HRI",
-      "HPCA",
-      "HLT-NAACL",
-      "ICCAD",
-      "ICCV",
-      "ICDE",
-      "ICFP",
-      "ICML",
-      "ICMLA",
-      "ICRA",
-      "ICSE",
-      "ICST",
-      "ICS",
-      "IJCNN",
-      "IJCAI",
-      "INFOCOM",
-      "IPSN",
-      "ISCA",
-      "ISMB",
-      "ISMB (Supplement of Bioinformatics)",
-      "ISMB/ECCB (Supplement of Bioinformatics)",
-      "ISSTA",
-      "KDD",
-      "LICS",
-      "MICRO",
-      "MOBICOM",
-      "MOBIHOC",
-      "MobiSys",
-      "NAACL",
-      "NAACL-HLT",
-      "NAACL (Long Papers)",
-      "NDSS",
-      "NeurIPS",
-      "NIPS",
-      "OSDI",
-      "OOPSLA",
-      "OOPSLA/ECOOP",
-      "OOPSLA1",
-      "OOPSLA2",
-      "PACMPL",
-      "PODS",
-      "POPL",
-      "PPoPP",
-      "PPOPP",
-      "PVLDB",
-      "PLDI",
-      "Proc. ACM Interact. Mob. Wearable Ubiquitous Technol.",
-      "Proc. ACM Manag. Data",
-      "Proc. ACM Meas. Anal. Comput. Syst.",
-      "SIGMETRICS",
-      "Proc. ACM Program. Lang.",
-      "Proc. ACM Softw. Eng.",
-      "Proc. VLDB Endow.",
-      "RECOMB",
-      "Robotics: Science and Systems",
-      "RTAS",
-      "RTSS",
-      "S&P",
-      "SOSP",
-      "SIGCOMM",
-      "SIGCSE",
-      "SIGGRAPH",
-      "SIGGRAPH Asia",
-      "SIGMOD",
-      "SIGMOD Conference",
-      "SIGSOFT FSE",
-      "SP",
-      "SPLASH",
-      "STOC",
-      "TACAS",
-      "TCC",
-      "USENIX Annual Technical Conference",
-      "USENIX Annual Technical Conference, General Track",
-      "USENIX ATC",
-      "USENIX Security",
-      "USENIX Security Symposium",
-      "UbiComp",
-      "Ubicomp",
-      "VLDB",
-      "VR",
-      "WINE",
-      "WWW",
-      "IEEE Trans. Vis. Comput. Graph.",
-      "IEEE Visualization",
-      "VIS",
-    ].map((x) => normalizeKey(stripParenNumberSuffix(x)))
+    (venueData.topVenueBases || []).map((value) => normalizeKey(stripParenNumberSuffix(value)))
   );
-
-  // Deterministic aliasing for common DBLP/CSRankings venue variants.
-  // Keys are normalized (lowercase) and apply after stripping "(n)" suffixes.
-  const CSRANKINGS_VENUE_ALIASES = new Map(
-    Object.entries({
-      // Variants / branding
-      'nips': 'NeurIPS',
-      'neurips': 'NeurIPS',
-      'mobicom': 'MobiCom',
-      'ubicomp': 'UbiComp',
-      'sigmod conference': 'SIGMOD',
-      's&p': 'S&P',
-      'sp': 'S&P',
-      'usenix security symposium': 'USENIX Security',
-      'usenix annual technical conference': 'USENIX ATC',
-      'usenix annual technical conference, general track': 'USENIX ATC',
-      'acm conference on computer and communications security': 'CCS',
-      'ieee visualization': 'VIS',
-
-      // Proceedings-as-journals (handled below) still benefit from canonical names.
-      'pvldb': 'VLDB',
-      'proc. vldb endow.': 'VLDB',
-      'proc. acm softw. eng.': 'FSE',
-      'sigsoft fse': 'FSE',
-      'esec/sigsoft fse': 'FSE',
-      'oopsla1': 'OOPSLA',
-      'oopsla2': 'OOPSLA',
-      'proc. acm meas. anal. comput. syst.': 'SIGMETRICS',
-      'pomacs': 'SIGMETRICS',
-      'proc. acm interact. mob. wearable ubiquitous technol.': 'UbiComp',
-    })
-  );
+  const CSRANKINGS_VENUE_ALIASES = new Map(Object.entries(venueData.venueAliases || {}));
+  const PROCEEDINGS_BY_JOURNAL = venueData.proceedingsByJournal || {};
 
   function isCsrankingsTopVenue(venue) {
     const base = normalizeKey(stripParenNumberSuffix(venue));
-    if (!base) return false;
-    return CSRANKINGS_TOP_VENUE_BASES.has(base);
+    return !!base && CSRANKINGS_TOP_VENUE_BASES.has(base);
   }
 
   function canonicalizeCsrankingsVenueName(venue) {
@@ -609,282 +868,124 @@
     if (!raw) return null;
     const stripped = stripParenNumberSuffix(raw);
     const key = normalizeKey(stripped);
-    const alias = CSRANKINGS_VENUE_ALIASES.get(key);
-    return alias || stripped;
+    return CSRANKINGS_VENUE_ALIASES.get(key) || stripped;
   }
-
-  // ---- Proceedings-as-journals mappings (ported from CSRankings regenerate_data.py) ----
-  // The goal is not to be comprehensive for all possible venues, but to be
-  // *precise* for well-known top conferences whose papers appear as journal
-  // issues in DBLP.
-
-  // Bioinformatics special issues (ISMB proceedings).
-  const ISMB_BIOINFORMATICS = {
-    2024: { volume: '40', number: 'Supplement_1' },
-    2023: { volume: '39', number: 'Supplement-1' },
-    2022: { volume: '38', number: 'Supplement_1' },
-    2021: { volume: '37', number: 'Supplement' },
-    2020: { volume: '36', number: 'Supplement-1' },
-    2019: { volume: '35', number: '14' },
-    2018: { volume: '34', number: '13' },
-    2017: { volume: '33', number: '14' },
-    2016: { volume: '32', number: '12' },
-    2015: { volume: '31', number: '12' },
-    2014: { volume: '30', number: '12' },
-    2013: { volume: '29', number: '13' },
-    2012: { volume: '28', number: '12' },
-    2011: { volume: '27', number: '13' },
-    2010: { volume: '26', number: '12' },
-    2009: { volume: '25', number: '12' },
-    2008: { volume: '24', number: '13' },
-    2007: { volume: '23', number: '13' },
-  };
-
-  // ACM Transactions on Graphics special issues (SIGGRAPH / SIGGRAPH Asia proceedings).
-  const TOG_SIGGRAPH_VOLUME = {
-    2024: { volume: '43', number: '4' },
-    2023: { volume: '42', number: '4' },
-    2022: { volume: '41', number: '4' },
-    2021: { volume: '40', number: '4' },
-    2020: { volume: '39', number: '4' },
-    2019: { volume: '38', number: '4' },
-    2018: { volume: '37', number: '4' },
-    2017: { volume: '36', number: '4' },
-    2016: { volume: '35', number: '4' },
-    2015: { volume: '34', number: '4' },
-    2014: { volume: '33', number: '4' },
-    2013: { volume: '32', number: '4' },
-    2012: { volume: '31', number: '4' },
-    2011: { volume: '30', number: '4' },
-    2010: { volume: '29', number: '4' },
-    2009: { volume: '28', number: '3' },
-    2008: { volume: '27', number: '3' },
-    2007: { volume: '26', number: '3' },
-    2006: { volume: '25', number: '3' },
-    2005: { volume: '24', number: '3' },
-    2004: { volume: '23', number: '3' },
-    2003: { volume: '22', number: '3' },
-    2002: { volume: '21', number: '3' },
-  };
-
-  const TOG_SIGGRAPH_ASIA_VOLUME = {
-    2024: { volume: '43', number: '6' },
-    2023: { volume: '42', number: '6' },
-    2022: { volume: '41', number: '6' },
-    2021: { volume: '40', number: '6' },
-    2020: { volume: '39', number: '6' },
-    2019: { volume: '38', number: '6' },
-    2018: { volume: '37', number: '6' },
-    2017: { volume: '36', number: '6' },
-    2016: { volume: '35', number: '6' },
-    2015: { volume: '34', number: '6' },
-    2014: { volume: '33', number: '6' },
-    2013: { volume: '32', number: '6' },
-    2012: { volume: '31', number: '6' },
-    2011: { volume: '30', number: '6' },
-    2010: { volume: '29', number: '6' },
-    2009: { volume: '28', number: '5' },
-    2008: { volume: '27', number: '5' },
-  };
-
-  // Computer Graphics Forum special issues (EUROGRAPHICS proceedings).
-  const CGF_EUROGRAPHICS_VOLUME = {
-    2024: { volume: '43', number: '2' },
-    2023: { volume: '42', number: '2' },
-    2022: { volume: '41', number: '2' },
-    2021: { volume: '40', number: '2' },
-    2020: { volume: '39', number: '2' },
-    2019: { volume: '38', number: '2' },
-    2018: { volume: '37', number: '2' },
-    2017: { volume: '36', number: '2' },
-    2016: { volume: '35', number: '2' },
-    2015: { volume: '34', number: '2' },
-    2014: { volume: '33', number: '2' },
-    2013: { volume: '32', number: '2' },
-    2012: { volume: '31', number: '2' },
-    2011: { volume: '30', number: '2' },
-    2010: { volume: '29', number: '2' },
-    2009: { volume: '28', number: '2' },
-    2008: { volume: '27', number: '2' },
-    2007: { volume: '26', number: '3' },
-    2006: { volume: '25', number: '3' },
-    2005: { volume: '24', number: '3' },
-    2004: { volume: '23', number: '3' },
-    2003: { volume: '22', number: '3' },
-    2002: { volume: '21', number: '3' },
-    2001: { volume: '20', number: '3' },
-    2000: { volume: '19', number: '3' },
-    1999: { volume: '18', number: '3' },
-    1998: { volume: '17', number: '3' },
-    1997: { volume: '16', number: '3' },
-    1996: { volume: '15', number: '3' },
-    1995: { volume: '14', number: '3' },
-    1994: { volume: '13', number: '3' },
-    1993: { volume: '12', number: '3' },
-    1992: { volume: '11', number: '3' },
-  };
-
-  // TVCG special issues (VIS / VR proceedings).
-  const TVCG_VIS_VOLUME = {
-    2025: { volume: '31', number: '1' },
-    2024: { volume: '30', number: '1' },
-    2023: { volume: '29', number: '1' },
-    2022: { volume: '28', number: '1' },
-    2021: { volume: '27', number: '2' },
-    2020: { volume: '26', number: '1' },
-    2019: { volume: '25', number: '1' },
-    2018: { volume: '24', number: '1' },
-    2017: { volume: '23', number: '1' },
-    2016: { volume: '22', number: '1' },
-    2014: { volume: '20', number: '12' },
-    2013: { volume: '19', number: '12' },
-    2012: { volume: '18', number: '12' },
-    2011: { volume: '17', number: '12' },
-    2010: { volume: '16', number: '6' },
-    2009: { volume: '15', number: '6' },
-    2008: { volume: '14', number: '6' },
-    2007: { volume: '13', number: '6' },
-    2006: { volume: '12', number: '5' },
-  };
-
-  const TVCG_VR_VOLUME = {
-    2025: { volume: '31', number: '5' },
-    2024: { volume: '30', number: '5' },
-    2023: { volume: '29', number: '5' },
-    2022: { volume: '28', number: '5' },
-    2021: { volume: '27', number: '5' },
-    2020: { volume: '26', number: '5' },
-    2019: { volume: '25', number: '5' },
-    2018: { volume: '24', number: '4' },
-    2017: { volume: '23', number: '4' },
-    2016: { volume: '22', number: '4' },
-    2015: { volume: '21', number: '4' },
-    2014: { volume: '20', number: '4' },
-    2013: { volume: '19', number: '4' },
-    2012: { volume: '18', number: '4' },
-  };
 
   function volumeIssueMatch(expected, volume, number) {
     if (!expected || !volume || !number) return false;
     return String(volume).trim() === String(expected.volume).trim() && String(number).trim() === String(expected.number).trim();
   }
 
-  // Primary entry point: map DBLP (venue, year, volume/number) to a better canonical
-  // venue name and ranking system hint.
   function resolveCsrankingsVenueOverride({ dblpKey, venue, year, volume, number, dblpType }) {
-    const vRaw = normalizeSpaces(String(venue || '')).trim();
-    if (!vRaw) return null;
+    const rawVenue = normalizeSpaces(String(venue || '')).trim();
+    if (!rawVenue) return null;
 
     const keyLower = String(dblpKey || '').toLowerCase();
     const isJournalish = keyLower.startsWith('journals/') || String(dblpType || '').toLowerCase() === 'article';
-
-    const vCanon = canonicalizeCsrankingsVenueName(vRaw) || vRaw;
-    const vCanonKey = normalizeKey(vCanon);
-    const y = typeof year === 'number' && Number.isFinite(year) ? year : (year ? parseInt(String(year), 10) : null);
+    const canonicalVenue = canonicalizeCsrankingsVenueName(rawVenue) || rawVenue;
+    const canonicalKey = normalizeKey(canonicalVenue);
+    const publicationYear = typeof year === 'number' && Number.isFinite(year) ? year : (year ? parseInt(String(year), 10) : null);
     const vol = volume ? String(volume).trim() : null;
     const num = number ? String(number).trim() : null;
 
-    // 1) Proceedings-as-journals (only apply if this looks like a journal entry)
     if (isJournalish) {
-      // PACMPL: Proc. ACM Program. Lang. (number encodes conference like POPL/OOPSLA/ICFP)
-      if (vCanonKey === 'proc. acm program. lang.' || vCanonKey === 'pacmpl') {
+      if (canonicalKey === 'proc. acm program. lang.' || canonicalKey === 'pacmpl') {
         if (num && /^[A-Za-z][A-Za-z0-9\-]{1,12}$/.test(num)) {
-          const conf = canonicalizeCsrankingsVenueName(num) || num;
-          return { system: 'CORE', canonicalVenue: conf, year: y ?? null, reason: 'PACMPL_number' };
+          const conference = canonicalizeCsrankingsVenueName(num) || num;
+          return { system: 'CORE', canonicalVenue: conference, year: publicationYear ?? null, reason: 'PACMPL_number' };
         }
       }
 
-      // PACMMOD: Proc. ACM Manag. Data (SIGMOD/PODS mapping)
-      if (vCanonKey === 'proc. acm manag. data') {
-        if (y && num) {
-          const n = parseInt(num, 10);
-          if (!isNaN(n)) {
-            // Port of CSRankings map_pacmmod_to_conference
-            if (y === 2023 && (n === 3 || n === 4)) {
-              return { system: 'CORE', canonicalVenue: 'SIGMOD', year: 2024, reason: 'PACMMOD_2023_issue34' };
-            }
-            if (y === 2023 && (n === 1 || n === 2)) {
-              return { system: 'CORE', canonicalVenue: 'SIGMOD', year: 2023, reason: 'PACMMOD_2023_issue12' };
-            }
-            if (n === 2) {
-              return { system: 'CORE', canonicalVenue: 'PODS', year: y, reason: 'PACMMOD_issue2' };
-            }
-            return { system: 'CORE', canonicalVenue: 'SIGMOD', year: y, reason: 'PACMMOD_default' };
+      if (canonicalKey === 'proc. acm manag. data' && publicationYear && num) {
+        const issueNumber = parseInt(num, 10);
+        if (!isNaN(issueNumber)) {
+          if (publicationYear === 2023 && (issueNumber === 3 || issueNumber === 4)) {
+            return { system: 'CORE', canonicalVenue: 'SIGMOD', year: 2024, reason: 'PACMMOD_2023_issue34' };
           }
+          if (publicationYear === 2023 && (issueNumber === 1 || issueNumber === 2)) {
+            return { system: 'CORE', canonicalVenue: 'SIGMOD', year: 2023, reason: 'PACMMOD_2023_issue12' };
+          }
+          if (issueNumber === 2) {
+            return { system: 'CORE', canonicalVenue: 'PODS', year: publicationYear, reason: 'PACMMOD_issue2' };
+          }
+          return { system: 'CORE', canonicalVenue: 'SIGMOD', year: publicationYear, reason: 'PACMMOD_default' };
         }
       }
 
-      // VLDB: PVLDB / Proc. VLDB Endow.
-      if (vCanonKey === 'proc. vldb endow.' || vCanonKey === 'pvldb') {
-        return { system: 'CORE', canonicalVenue: 'VLDB', year: y ?? null, reason: 'PVLDB' };
+      if (canonicalKey === 'proc. vldb endow.' || canonicalKey === 'pvldb') {
+        return { system: 'CORE', canonicalVenue: 'VLDB', year: publicationYear ?? null, reason: 'PVLDB' };
       }
 
-      // FSE proceedings: Proc. ACM Softw. Eng.
-      if (vCanonKey === 'proc. acm softw. eng.') {
-        return { system: 'CORE', canonicalVenue: 'FSE', year: y ?? null, reason: 'PSE' };
+      if (canonicalKey === 'proc. acm softw. eng.') {
+        return { system: 'CORE', canonicalVenue: 'FSE', year: publicationYear ?? null, reason: 'PSE' };
       }
 
-      // SIGMETRICS proceedings: POMACS
-      if (vCanonKey === 'proc. acm meas. anal. comput. syst.' || vCanonKey === 'pomacs') {
-        return { system: 'CORE', canonicalVenue: 'SIGMETRICS', year: y ?? null, reason: 'POMACS' };
+      if (canonicalKey === 'proc. acm meas. anal. comput. syst.' || canonicalKey === 'pomacs') {
+        return { system: 'CORE', canonicalVenue: 'SIGMETRICS', year: publicationYear ?? null, reason: 'POMACS' };
       }
 
-      // UbiComp proceedings: IMWUT
-      if (vCanonKey === 'proc. acm interact. mob. wearable ubiquitous technol.') {
-        return { system: 'CORE', canonicalVenue: 'UbiComp', year: y ?? null, reason: 'IMWUT' };
+      if (canonicalKey === 'proc. acm interact. mob. wearable ubiquitous technol.') {
+        return { system: 'CORE', canonicalVenue: 'UbiComp', year: publicationYear ?? null, reason: 'IMWUT' };
       }
 
-      // SIGGRAPH / SIGGRAPH Asia (TOG special issues)
-      if (vCanonKey === 'acm trans. graph.' && y && vol && num) {
-        if (volumeIssueMatch(TOG_SIGGRAPH_VOLUME[y], vol, num)) {
-          return { system: 'CORE', canonicalVenue: 'SIGGRAPH', year: y, reason: 'TOG_SIGGRAPH' };
+      if (canonicalKey === 'acm trans. graph.' && publicationYear && vol && num) {
+        if (volumeIssueMatch(PROCEEDINGS_BY_JOURNAL.togSiggraph?.[publicationYear], vol, num)) {
+          return { system: 'CORE', canonicalVenue: 'SIGGRAPH', year: publicationYear, reason: 'TOG_SIGGRAPH' };
         }
-        if (volumeIssueMatch(TOG_SIGGRAPH_ASIA_VOLUME[y], vol, num)) {
-          return { system: 'CORE', canonicalVenue: 'SIGGRAPH Asia', year: y, reason: 'TOG_SIGGRAPH_ASIA' };
+        if (volumeIssueMatch(PROCEEDINGS_BY_JOURNAL.togSiggraphAsia?.[publicationYear], vol, num)) {
+          return { system: 'CORE', canonicalVenue: 'SIGGRAPH Asia', year: publicationYear, reason: 'TOG_SIGGRAPH_ASIA' };
         }
       }
 
-      // EUROGRAPHICS (CGF special issues)
-      if (vCanonKey === 'comput. graph. forum' && y && vol && num) {
-        if (volumeIssueMatch(CGF_EUROGRAPHICS_VOLUME[y], vol, num)) {
-          return { system: 'CORE', canonicalVenue: 'EUROGRAPHICS', year: y, reason: 'CGF_EG' };
+      if (canonicalKey === 'comput. graph. forum' && publicationYear && vol && num) {
+        if (volumeIssueMatch(PROCEEDINGS_BY_JOURNAL.cgfEurographics?.[publicationYear], vol, num)) {
+          return { system: 'CORE', canonicalVenue: 'EUROGRAPHICS', year: publicationYear, reason: 'CGF_EG' };
         }
       }
 
-      // VIS / VR (TVCG special issues)
-      if (vCanonKey === 'ieee trans. vis. comput. graph.' && y && vol && num) {
-        if (volumeIssueMatch(TVCG_VIS_VOLUME[y], vol, num)) {
-          return { system: 'CORE', canonicalVenue: 'VIS', year: y, reason: 'TVCG_VIS' };
+      if (canonicalKey === 'ieee trans. vis. comput. graph.' && publicationYear && vol && num) {
+        if (volumeIssueMatch(PROCEEDINGS_BY_JOURNAL.tvcgVis?.[publicationYear], vol, num)) {
+          return { system: 'CORE', canonicalVenue: 'VIS', year: publicationYear, reason: 'TVCG_VIS' };
         }
-        if (volumeIssueMatch(TVCG_VR_VOLUME[y], vol, num)) {
-          return { system: 'CORE', canonicalVenue: 'VR', year: y, reason: 'TVCG_VR' };
+        if (volumeIssueMatch(PROCEEDINGS_BY_JOURNAL.tvcgVr?.[publicationYear], vol, num)) {
+          return { system: 'CORE', canonicalVenue: 'VR', year: publicationYear, reason: 'TVCG_VR' };
         }
       }
 
-      // ISMB (Bioinformatics proceedings)
-      if ((vCanonKey === 'bioinformatics' || vCanonKey === 'bioinform.') && y && vol && num) {
-        if (volumeIssueMatch(ISMB_BIOINFORMATICS[y], vol, num)) {
-          return { system: 'CORE', canonicalVenue: 'ISMB', year: y, reason: 'ISMB_BIOINFORMATICS' };
+      if ((canonicalKey === 'bioinformatics' || canonicalKey === 'bioinform.') && publicationYear && vol && num) {
+        if (volumeIssueMatch(PROCEEDINGS_BY_JOURNAL.ismbBioinformatics?.[publicationYear], vol, num)) {
+          return { system: 'CORE', canonicalVenue: 'ISMB', year: publicationYear, reason: 'ISMB_BIOINFORMATICS' };
         }
       }
     }
 
-    // 2) If this is a CSRankings top venue, canonicalize common variants.
-    if (isCsrankingsTopVenue(vCanon)) {
-      return { system: null, canonicalVenue: vCanon, year: y ?? null, reason: 'TOP_VENUE' };
+    if (isCsrankingsTopVenue(canonicalVenue)) {
+      return { system: null, canonicalVenue, year: publicationYear ?? null, reason: 'TOP_VENUE' };
     }
 
     return null;
   }
 
   return {
+    DECISION_VERSION,
+    DECISION_STATUS,
+    RANKING_CONFIG,
     normalizeForMatch,
     normalizeVenueCandidate,
+    normalizeProfileName,
+    buildJournalLookupCacheKey,
     expandVenueCandidates,
+    tokenizeNormalizedText,
     jaroWinkler,
+    hybridSimilarity,
     getPageCountFromPagesString,
     classifyVenueTrack,
+    createPublicationTitleIndex,
+    selectBestDblpMatchDetailed,
     selectBestDblpMatch,
+    scoreDblpProfileCandidate,
+    createCoreAliasIndex,
+    resolveCoreVenue,
     isCsrankingsTopVenue,
     canonicalizeCsrankingsVenueName,
     resolveCsrankingsVenueOverride,

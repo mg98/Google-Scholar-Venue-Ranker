@@ -1,16 +1,26 @@
 {
   "name": "gsvr",
-  "version": "1.8.6",
+  "version": "2.0.2",
   "private": true,
   "type": "commonjs",
-  "description": "Build tooling for the Google Scholar Venue Ranker (Chrome extension).",
+  "description": "Build tooling for the Google Scholar Venue Ranker Chrome extension.",
   "engines": {
     "node": ">=18"
   },
   "scripts": {
+    "generate:sjr-index": "node scripts/generate_sjr_index.mjs",
     "clean": "node scripts/clean.mjs",
     "build": "node scripts/build.mjs",
     "test": "node GSVR/tests/run_tests.js",
+    "test:unit": "node GSVR/tests/run_tests.js",
+    "test:score": "node GSVR/tests/run_score_tests.js",
+    "test:dblp": "node GSVR/tests/run_dblp_scheduler_tests.js",
+    "benchmark:accuracy:fixtures": "node GSVR/tests/generate_accuracy_fixtures.js",
+    "benchmark:accuracy": "node GSVR/tests/benchmark_accuracy.js",
+    "benchmark:matching": "node GSVR/tests/benchmark_accuracy.js",
+    "benchmark:scoring": "node GSVR/tests/run_score_tests.js",
+    "benchmark:calibration": "node GSVR/tests/run_score_tests.js",
+    "benchmark:all": "npm run benchmark:matching && npm run benchmark:scoring && npm run benchmark:calibration",
 	"zip": "npm run build && node scripts/zip.mjs"
   }
 }
