@@ -5,6 +5,10 @@
 
 Google Scholar Venue Ranker is an open-source Chrome extension developed by [Naveed Bhatti](https://naveedanwarbhatti.github.io/). Its purpose is to make Google Scholar author profiles easier to audit by adding DBLP-verified CORE/SJR venue ranks, a raw fractional GSVR Score, scoring-completeness diagnostics, and downloadable evidence reports. When a paper can be verified, GSVR uses a DBLP-backed ranking pipeline instead of trusting editable Google Scholar venue text alone.
 
+## Demo
+
+![GSVR demo showing the Scholar profile overlay, score panel, rank filters, and report actions](GSVR/images/GSVR_demo.gif)
+
 ![Screenshot of Extension in Action](GSVR/images/Screenshot.png)
 
 <p align="left">
