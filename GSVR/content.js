@@ -291,6 +291,7 @@ const SCORE_CONFIG_API = (typeof window !== 'undefined' && window.GSVRScoreConfi
 const SCORE_MODEL_API = (typeof window !== 'undefined' && window.GSVRScoreModel) ? window.GSVRScoreModel : null;
 const SCORE_SENSITIVITY_API = (typeof window !== 'undefined' && window.GSVRScoreSensitivity) ? window.GSVRScoreSensitivity : null;
 const REPORT_SCHEMA_API = (typeof window !== 'undefined' && window.GSVRReportSchema) ? window.GSVRReportSchema : null;
+const TIMELINE_STATS_API = (typeof window !== 'undefined' && window.GSVRTimelineStats) ? window.GSVRTimelineStats : null;
 const SCORE_MODEL_VERSION = SCORE_CONFIG_API?.SCORE_MODEL_VERSION || 'gsvr-fractional-venue-v1';
 const DEFAULT_SCORE_CONFIG = SCORE_CONFIG_API?.DEFAULT_SCORE_CONFIG || null;
 const VALID_RANKS = ["A*", "A", "B", "C"];
@@ -374,15 +375,15 @@ const DECISION_STATUS = RANKING_UTILS?.DECISION_STATUS ?? {
     AMBIGUOUS: 'ambiguous',
     MISSING: 'missing'
 };
-// Cache schema retained for v2.0.1 (ranking decision pipeline metadata).
+// Cache schema retained for v2.0.3 (ranking decision pipeline metadata).
 const CACHE_VERSION = 11;
 const CACHE_PREFIX = `scholarRanker_profile_v${CACHE_VERSION}_`;
 const DBLP_PID_CACHE_KEY_PREFIX = 'scholarRanker_dblpPid_v1_';
 const MANUAL_DBLP_PID_KEY_PREFIX = 'scholarRanker_manualDblpPid_v1_';
-const BUNDLED_SJR_DATA_VERSION = 2;
+const BUNDLED_SJR_DATA_VERSION = 3;
 const CACHE_DURATION_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
 const DBLP_CACHE_DURATION_MS = Number.POSITIVE_INFINITY; // never expires
-console.log("Google Scholar Ranker: Content script loaded (v2.0.1 - precision ranking pipeline).");
+console.log("Google Scholar Ranker: Content script loaded (v2.0.3 - timeline statistics and historical SJR coverage).");
 
 // --- Strict DBLP-only UI labels ---
 const DBLP_MISSING_BADGE_LABEL = 'DBLP Entry Missing';
@@ -429,6 +430,7 @@ let gsrVenueDatalistPopulated = false;
 let gsrDialogLastFocusedEl = null;
 let currentRankingPacks = [...DEFAULT_RANKING_PACKS];
 let currentSummaryState = null;
+let activeDateRangeMode = TIMELINE_STATS_API?.RANGE_FULL || 'full';
 let currentProfileContext = {
     userId: null,
     authorName: null,
@@ -1768,6 +1770,7 @@ function humanizeEvidenceToken(token) {
         ambiguous_acronym: 'Venue acronym is ambiguous',
         ambiguous_title_alias: 'Venue title alias is ambiguous',
         sjr_ambiguous: 'SJR journal match is ambiguous',
+        sjr_historical_coverage_unavailable: 'SJR historical coverage unavailable',
         short_by_pages: 'Excluded by short-paper page rule',
         extended_abstract: 'Excluded as extended abstract',
         demo_poster: 'Excluded as demo/poster track',
@@ -1790,6 +1793,9 @@ function getReviewReason(info) {
     }
     if (evidence.some((token) => token.includes('ambiguous'))) {
         return 'Ambiguous Match';
+    }
+    if (evidence.includes('sjr_historical_coverage_unavailable')) {
+        return 'SJR Historical Coverage Unavailable';
     }
     if (evidence.includes('short_by_pages')) {
         return 'Short-paper';
@@ -2034,6 +2040,95 @@ function createScoringCompletenessBar(completeness, className = '') {
     }
     return bar;
 }
+function getTimelineCurrentYear() {
+    return new Date().getFullYear();
+}
+function normalizeDateRangeMode(mode) {
+    return TIMELINE_STATS_API?.normalizeRangeMode
+        ? TIMELINE_STATS_API.normalizeRangeMode(mode)
+        : (mode === 'last10' ? 'last10' : 'full');
+}
+function buildTimelineViewState(publicationRanks, rangeMode = activeDateRangeMode) {
+    const source = Array.isArray(publicationRanks) ? publicationRanks : [];
+    const currentYear = getTimelineCurrentYear();
+    if (TIMELINE_STATS_API?.buildTimelineStats) {
+        return TIMELINE_STATS_API.buildTimelineStats(source, {
+            rangeMode: normalizeDateRangeMode(rangeMode),
+            currentYear,
+            recentYears: 8,
+        });
+    }
+    const mode = normalizeDateRangeMode(rangeMode);
+    const range = mode === 'last10'
+        ? { mode, label: 'Last 10 Years', startYear: currentYear - 9, endYear: currentYear }
+        : { mode: 'full', label: 'Full Timeline', startYear: null, endYear: null };
+    const getYear = (info) => getPublicationYear(info);
+    const filtered = range.mode === 'last10'
+        ? source.filter((info) => {
+            const year = getYear(info);
+            return year != null && year >= range.startYear && year <= range.endYear;
+        })
+        : source.slice();
+    const coreRankCounts = createEmptyCoreRankCounts();
+    const sjrRankCounts = createEmptySjrRankCounts();
+    for (const info of filtered) {
+        if (info?.system === 'CORE') {
+            coreRankCounts[VALID_RANKS.includes(info.rank) ? info.rank : 'N/A'] += 1;
+        }
+        else if (info?.system === 'SJR') {
+            sjrRankCounts[SJR_QUARTILES.includes(info.rank) ? info.rank : 'N/A'] += 1;
+        }
+    }
+    const buildWindow = (items, startYear, endYear) => {
+        const buckets = new Map();
+        for (let year = startYear; year <= endYear; year++) {
+            buckets.set(year, {
+                year,
+                ranks: { 'A*': 0, A: 0, B: 0, C: 0, Q1: 0, Q2: 0, Q3: 0, Q4: 0 },
+                conference: 0,
+                journal: 0,
+                total: 0,
+            });
+        }
+        for (const info of items) {
+            const year = getYear(info);
+            const bucket = buckets.get(year);
+            if (!bucket)
+                continue;
+            if (info?.system === 'CORE' && VALID_RANKS.includes(info.rank)) {
+                bucket.ranks[info.rank] += 1;
+                bucket.conference += 1;
+                bucket.total += 1;
+            }
+            else if (info?.system === 'SJR' && SJR_QUARTILES.includes(info.rank)) {
+                bucket.ranks[info.rank] += 1;
+                bucket.journal += 1;
+                bucket.total += 1;
+            }
+        }
+        return Array.from(buckets.values());
+    };
+    const knownYears = source.map(getYear).filter((year) => year != null);
+    const recentHistogram = buildWindow(filtered, currentYear - 7, currentYear);
+    const fullHistogram = knownYears.length ? buildWindow(source, Math.min(...knownYears), Math.max(...knownYears)) : [];
+    return {
+        rangeMode: range.mode,
+        range,
+        currentYear,
+        publications: filtered,
+        allPublications: source,
+        coreRankCounts,
+        sjrRankCounts,
+        recentHistogram,
+        fullHistogram,
+        focusedHistograms: {
+            recent: buildFocusedTimelineHistograms(recentHistogram),
+            full: buildFocusedTimelineHistograms(fullHistogram),
+        },
+        unknownYearCount: filtered.filter((info) => getYear(info) == null).length,
+        allUnknownYearCount: source.filter((info) => getYear(info) == null).length,
+    };
+}
 function buildSummaryInsights(coreRankCounts, sjrRankCounts, publicationRanks) {
     const topRankedVenues = new Map();
     const reviewReasonCounts = new Map();
@@ -2101,15 +2196,25 @@ function buildSummaryInsights(coreRankCounts, sjrRankCounts, publicationRanks) {
     };
 }
 function buildSummaryState(coreRankCounts, sjrRankCounts, publicationRanks, cacheTimestamp, scanLifecycle = null) {
-    const reviewItems = (publicationRanks || []).filter((info) => !isRankedResultInfo(info));
-    const venueProfileIndex = buildFacultyScoreState(publicationRanks);
+    const allPublicationRanks = Array.isArray(publicationRanks) ? publicationRanks.slice() : [];
+    const timeline = buildTimelineViewState(allPublicationRanks, activeDateRangeMode);
+    const filteredPublicationRanks = Array.isArray(timeline.publications) ? timeline.publications : allPublicationRanks;
+    const effectiveCoreRankCounts = timeline.coreRankCounts || coreRankCounts || createEmptyCoreRankCounts();
+    const effectiveSjrRankCounts = timeline.sjrRankCounts || sjrRankCounts || createEmptySjrRankCounts();
+    const reviewItems = filteredPublicationRanks.filter((info) => !isRankedResultInfo(info));
+    const venueProfileIndex = buildFacultyScoreState(filteredPublicationRanks);
     return {
-        coreRankCounts,
-        sjrRankCounts,
-        publicationRanks,
+        coreRankCounts: effectiveCoreRankCounts,
+        sjrRankCounts: effectiveSjrRankCounts,
+        allCoreRankCounts: coreRankCounts || effectiveCoreRankCounts,
+        allSjrRankCounts: sjrRankCounts || effectiveSjrRankCounts,
+        publicationRanks: filteredPublicationRanks,
+        allPublicationRanks,
         cacheTimestamp: cacheTimestamp ?? null,
         reviewItems,
-        insights: buildSummaryInsights(coreRankCounts, sjrRankCounts, publicationRanks),
+        insights: buildSummaryInsights(effectiveCoreRankCounts, effectiveSjrRankCounts, filteredPublicationRanks),
+        timeline,
+        dateRangeMode: timeline.rangeMode || activeDateRangeMode,
         venueProfileIndex,
         facultyScore: venueProfileIndex,
         context: { ...currentProfileContext },
@@ -2280,6 +2385,8 @@ function buildCanonicalProfileReport(summaryState) {
         averageVenueValue: scoreState.averageVenueValue || 0,
     };
     const completeness = normalizeScoringCompleteness(rawProfileScore?.completeness || scoreState.completeness, diagnostics, scores, summaryState?.publicationRanks || []);
+    const fullTimelineState = buildTimelineViewState(summaryState?.allPublicationRanks || summaryState?.publicationRanks || [], 'full');
+    const fullFocusedHistograms = getTimelineFocusedHistograms(fullTimelineState, 'full');
     const reportPayload = {
         scoreModelVersion: scoreState.scoreModelVersion || SCORE_MODEL_VERSION,
         decisionVersion: DECISION_VERSION,
@@ -2316,6 +2423,12 @@ function buildCanonicalProfileReport(summaryState) {
         metadata: {
             cache: buildExpectedCacheMetadata(),
             rateLimitEvents: dblpRateLimitEvents.slice(),
+            timeline: {
+                activeRange: summaryState?.timeline?.range || fullTimelineState.range,
+                fullHistogram: fullTimelineState.fullHistogram || [],
+                fullFocusedHistograms,
+                allUnknownYearCount: fullTimelineState.allUnknownYearCount || 0,
+            },
         },
         publications,
     };
@@ -2352,6 +2465,11 @@ function buildDownloadReportData(summaryState) {
     const facultyScore = summaryState?.venueProfileIndex || summaryState?.facultyScore || buildFacultyScoreState(summaryState?.publicationRanks || []);
     const countSnapshot = buildSummaryCountSnapshot(summaryState);
     const canonicalReport = buildCanonicalProfileReport(summaryState);
+    const fullTimelineState = buildTimelineViewState(summaryState?.allPublicationRanks || summaryState?.publicationRanks || [], 'full');
+    const recentHistogram = summaryState?.timeline?.recentHistogram || [];
+    const fullHistogram = fullTimelineState.fullHistogram || [];
+    const recentFocusedHistograms = getTimelineFocusedHistograms(summaryState?.timeline || { recentHistogram }, 'recent');
+    const fullFocusedHistograms = getTimelineFocusedHistograms(fullTimelineState, 'full');
     return {
         exportedAt: new Date().toISOString(),
         extensionVersion: chrome?.runtime?.getManifest?.().version || 'unknown',
@@ -2383,6 +2501,14 @@ function buildDownloadReportData(summaryState) {
             scores: canonicalReport.scores || null
         },
         completeness: canonicalReport.completeness || facultyScore.completeness || {},
+        timeline: {
+            activeRange: summaryState?.timeline?.range || fullTimelineState.range,
+            recentHistogram,
+            fullHistogram,
+            recentFocusedHistograms,
+            fullFocusedHistograms,
+            allUnknownYearCount: fullTimelineState.allUnknownYearCount || 0,
+        },
         rows,
         canonicalReport,
         countedPublications: Array.isArray(facultyScore.countedPublications) ? facultyScore.countedPublications.map((item) => ({ ...item })) : []
@@ -2441,6 +2567,34 @@ function buildHtmlReport(summaryState) {
         <td>${escapeHtml(row.scoreContribution ?? '')}</td>
         <td>${escapeHtml(row.decisionEvidence || '')}</td>
       </tr>`).join('');
+    const fullTimelineHistogram = Array.isArray(report.timeline?.fullHistogram) ? report.timeline.fullHistogram : [];
+    const fullFocusedHistograms = report.timeline?.fullFocusedHistograms || buildFocusedTimelineHistograms(fullTimelineHistogram);
+    const renderTimelineLegend = (rankOrder) => rankOrder.map((rank) => `<span class="timeline-legend-item"><span class="timeline-legend-swatch timeline-segment-${escapeHtml(normalizeRankKey(rank))}"></span>${escapeHtml(rank)}</span>`).join('');
+    const renderTimelineStrip = (histogram, rankOrder, emptyText) => {
+        const buckets = Array.isArray(histogram) ? histogram : [];
+        if (!buckets.length) {
+            return `<div class="timeline-empty-state">${escapeHtml(emptyText)}</div>`;
+        }
+        const timelineMaxTotal = Math.max(1, ...buckets.map((bucket) => Number(bucket?.total) || 0));
+        const columns = buckets.map((bucket) => {
+            const total = Number(bucket?.total || 0);
+            const details = rankOrder
+                .map((rank) => `${rank}: ${Number(bucket?.ranks?.[rank] || 0)}`)
+                .join(', ');
+            const segments = rankOrder.slice().reverse().map((rank) => {
+                const value = Number(bucket?.ranks?.[rank] || 0);
+                if (!value) {
+                    return '';
+                }
+                const height = Math.max(4, (value / timelineMaxTotal) * 100);
+                return `<span class="timeline-segment timeline-segment-${escapeHtml(normalizeRankKey(rank))}" style="height:${Math.min(height, 100)}%" title="${escapeHtml(`${bucket.year} ${rank}: ${value}`)}"></span>`;
+            }).join('');
+            return `<div class="timeline-year-column" title="${escapeHtml(`${bucket.year}: ${total} (${details})`)}"><span class="timeline-count">${total}</span><div class="timeline-bar">${segments || '<span class="timeline-empty"></span>'}</div><span class="timeline-year"><span class="timeline-year-label">${escapeHtml(bucket.year)}</span></span></div>`;
+        }).join('');
+        return `<div class="timeline-strip" style="grid-template-columns:repeat(${Math.max(1, buckets.length)},minmax(0,1fr))">${columns}</div>`;
+    };
+    const topCoreTimelineStrip = renderTimelineStrip(fullFocusedHistograms.topCoreHistogram, getTopCoreHistogramRankOrder(), 'No known-year A*/A publications.');
+    const q1TimelineStrip = renderTimelineStrip(fullFocusedHistograms.q1Histogram, getQ1HistogramRankOrder(), 'No known-year Q1 journal publications.');
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2455,6 +2609,23 @@ function buildHtmlReport(summaryState) {
     .hero-score{font-size:44px;font-weight:800;line-height:1;margin-top:8px}
     .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:20px 0}
     .panel{border:1px solid #d8e2f5;border-radius:14px;padding:14px 16px}
+    .timeline-grid{display:grid;grid-template-columns:1fr;gap:18px}
+    .timeline-panel{break-inside:avoid;page-break-inside:avoid;border:1px solid #d8e2f5;border-radius:16px;padding:16px 18px;background:linear-gradient(180deg,#ffffff,#f8fbff);box-shadow:0 12px 28px rgba(23,49,95,.07)}
+    .timeline-panel h3{font-size:18px;margin-bottom:8px}
+    .timeline-strip{display:grid;align-items:end;gap:4px;min-height:224px;padding:18px 12px 10px;border:1px solid #dce7fa;border-radius:14px;background:linear-gradient(180deg,#fbfdff 0%,#f4f8ff 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.92)}
+    .timeline-year-column{display:grid;grid-template-rows:16px 126px 64px;align-items:end;gap:4px;min-width:0}
+    .timeline-count{display:block;color:#5e7297;font-size:9px;font-weight:800;line-height:1;text-align:center;white-space:nowrap}
+    .timeline-bar{display:flex;flex-direction:column-reverse;justify-content:flex-start;height:126px;background:linear-gradient(180deg,#f0f5ff,#e6eefb);border-radius:7px 7px 4px 4px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(183,201,236,.72),inset 0 -12px 18px rgba(23,49,95,.04)}
+    .timeline-empty{display:block;width:100%;height:4px;margin-top:auto;background:#cbd7ed}
+    .timeline-segment{display:block;width:100%;min-height:2px}
+    .timeline-year{display:flex;align-items:flex-start;justify-content:center;height:64px;overflow:visible;color:#53688f;font-size:9px;font-weight:800;line-height:1}
+    .timeline-year-label{display:inline-block;writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap}
+    .timeline-empty-state{padding:44px 8px;border:1px solid #e2ebfb;border-radius:14px;background:#f7faff;color:#5e7297;font-size:12px;text-align:center}
+    .timeline-segment-astar{background:#153064}.timeline-segment-a{background:#2f63d8}.timeline-segment-b{background:#7a9b21}.timeline-segment-c{background:#d97836}
+    .timeline-segment-q1{background:#c08c12}.timeline-segment-q2{background:#1f9467}.timeline-segment-q3{background:#8ba728}.timeline-segment-q4{background:#d56f3d}
+    .timeline-legend{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px;color:#4a5e84;font-size:11px}
+    .timeline-legend-item{display:inline-flex;align-items:center;gap:4px}
+    .timeline-legend-swatch{width:10px;height:10px;border-radius:2px;display:inline-block}
     table{width:100%;border-collapse:collapse;font-size:12px}
     th,td{border:1px solid #dbe4f5;padding:8px 9px;text-align:left;vertical-align:top}
     th{background:#f3f7ff;color:#12356f}
@@ -2481,6 +2652,21 @@ function buildHtmlReport(summaryState) {
   <section>
     <h2>Rank Distribution</h2>
     <table><tbody>${distributionRows}</tbody></table>
+  </section>
+  <section>
+    <h2>Full Timeline Highlights</h2>
+    <div class="timeline-grid">
+      <div class="timeline-panel">
+        <h3>A*/A CORE Timeline</h3>
+        <div class="timeline-legend">${renderTimelineLegend(getTopCoreHistogramRankOrder())}</div>
+        ${topCoreTimelineStrip}
+      </div>
+      <div class="timeline-panel">
+        <h3>Q1 Journal Timeline</h3>
+        <div class="timeline-legend">${renderTimelineLegend(getQ1HistogramRankOrder())}</div>
+        ${q1TimelineStrip}
+      </div>
+    </div>
   </section>
   <section>
     <h2>Full Audit</h2>
@@ -2832,6 +3018,128 @@ function buildPdfReportDefinition(summaryState, reportVariant = 'full') {
             margin: [0, 2, 0, 0]
         };
     }
+    function escapeSvgText(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&apos;');
+    }
+    function createPdfFocusedTimelineChartSvg(histogram, rankOrder, { compact = false, emptyText = 'No known-year publications.' } = {}) {
+        const buckets = Array.isArray(histogram) ? histogram : [];
+        const ranks = Array.isArray(rankOrder) && rankOrder.length ? rankOrder : getHistogramRankOrder();
+        const chartWidth = compact ? 500 : 498;
+        const chartHeight = compact ? 174 : 188;
+        const plotLeft = compact ? 14 : 16;
+        const plotRight = compact ? 10 : 12;
+        const plotTop = compact ? 22 : 24;
+        const plotHeight = compact ? 92 : 104;
+        const labelBaseline = plotTop + plotHeight + (compact ? 46 : 50);
+        const axisY = plotTop + plotHeight;
+        const plotWidth = chartWidth - plotLeft - plotRight;
+        if (!buckets.length) {
+            return {
+                svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${chartWidth}" height="${chartHeight}" viewBox="0 0 ${chartWidth} ${chartHeight}"><rect x="0" y="0" width="${chartWidth}" height="${chartHeight}" rx="8" fill="#f7faff" stroke="#e2ebfb"/><text x="${chartWidth / 2}" y="${chartHeight / 2}" text-anchor="middle" font-family="Roboto, Arial, sans-serif" font-size="${compact ? 7 : 8}" fill="#6d7f9e">${escapeSvgText(emptyText)}</text></svg>`,
+                width: chartWidth,
+                margin: [0, 2, 0, 0]
+            };
+        }
+        const maxTotal = Math.max(1, ...buckets.map((bucket) => Number(bucket?.total) || 0));
+        const columnWidth = plotWidth / Math.max(1, buckets.length);
+        const barGap = buckets.length > 24 ? 1.2 : 2.4;
+        const barWidth = Math.max(2.4, Math.min(compact ? 9 : 10, columnWidth - barGap));
+        const parts = [
+            `<svg xmlns="http://www.w3.org/2000/svg" width="${chartWidth}" height="${chartHeight}" viewBox="0 0 ${chartWidth} ${chartHeight}">`,
+            `<rect x="0.5" y="0.5" width="${chartWidth - 1}" height="${chartHeight - 1}" rx="12" fill="#f8fbff" stroke="#dce7fa"/>`,
+            `<line x1="${plotLeft}" y1="${plotTop + plotHeight * 0.25}" x2="${chartWidth - plotRight}" y2="${plotTop + plotHeight * 0.25}" stroke="#e7eefb" stroke-width="0.8"/>`,
+            `<line x1="${plotLeft}" y1="${plotTop + plotHeight * 0.5}" x2="${chartWidth - plotRight}" y2="${plotTop + plotHeight * 0.5}" stroke="#e7eefb" stroke-width="0.8"/>`,
+            `<line x1="${plotLeft}" y1="${plotTop + plotHeight * 0.75}" x2="${chartWidth - plotRight}" y2="${plotTop + plotHeight * 0.75}" stroke="#e7eefb" stroke-width="0.8"/>`,
+            `<line x1="${plotLeft}" y1="${axisY}" x2="${chartWidth - plotRight}" y2="${axisY}" stroke="#c9d7f2" stroke-width="1.1"/>`,
+            `<text x="${plotLeft}" y="${plotTop - 7}" font-family="Roboto, Arial, sans-serif" font-size="${compact ? 6 : 7}" fill="#6d7f9e">Max ${maxTotal}</text>`
+        ];
+        for (const [index, bucket] of buckets.entries()) {
+            const x = plotLeft + index * columnWidth + (columnWidth - barWidth) / 2;
+            let y = axisY;
+            let rendered = false;
+            for (const rank of ranks) {
+                const value = Number(bucket?.ranks?.[rank] || 0);
+                if (!value) {
+                    continue;
+                }
+                const height = Math.max(1.4, (value / maxTotal) * plotHeight);
+                y -= height;
+                parts.push(`<rect x="${x.toFixed(2)}" y="${Math.max(plotTop, y).toFixed(2)}" width="${barWidth.toFixed(2)}" height="${Math.min(height, axisY - plotTop).toFixed(2)}" rx="2" fill="${getRankColors(rank).fillColor}"/><rect x="${x.toFixed(2)}" y="${Math.max(plotTop, y).toFixed(2)}" width="${barWidth.toFixed(2)}" height="1" rx="0.5" fill="#ffffff" opacity="0.28"/>`);
+                rendered = true;
+            }
+            if (!rendered) {
+                parts.push(`<rect x="${x.toFixed(2)}" y="${(axisY - 2.4).toFixed(2)}" width="${barWidth.toFixed(2)}" height="2.4" rx="1.2" fill="#cfdaee"/>`);
+            }
+            const total = Number(bucket?.total || 0);
+            if (total > 0 && columnWidth >= 12) {
+                parts.push(`<text x="${(x + barWidth / 2).toFixed(2)}" y="${Math.max(10, y - 4).toFixed(2)}" text-anchor="middle" font-family="Roboto, Arial, sans-serif" font-size="${compact ? 5.5 : 6.3}" font-weight="700" fill="#52688f">${total}</text>`);
+            }
+            const labelX = x + barWidth / 2;
+            parts.push(`<text x="${labelX.toFixed(2)}" y="${labelBaseline}" text-anchor="start" font-family="Roboto, Arial, sans-serif" font-size="${compact ? 6.2 : 6.8}" font-weight="700" fill="#52688f" transform="rotate(-90 ${labelX.toFixed(2)} ${labelBaseline})">${escapeSvgText(bucket.year)}</text>`);
+        }
+        parts.push('</svg>');
+        return {
+            svg: parts.join(''),
+            width: chartWidth,
+            margin: [0, 2, 0, compact ? 2 : 4]
+        };
+    }
+    function createPdfFocusedTimelineLegend(rankOrder, compact = false) {
+        const ranks = Array.isArray(rankOrder) && rankOrder.length ? rankOrder : getHistogramRankOrder();
+        return {
+            columns: ranks.map((rank) => ({
+                width: '*',
+                columns: [
+                    {
+                        width: 8,
+                        canvas: [{ type: 'rect', x: 0, y: 2, w: 7, h: 7, color: getRankColors(rank).fillColor }]
+                    },
+                    { width: '*', text: rank, style: compact ? 'summaryLegendTight' : 'metricNote' }
+                ],
+                columnGap: 3
+            })),
+            columnGap: compact ? 3 : 5,
+            margin: [0, 0, 0, compact ? 6 : 8]
+        };
+    }
+    function createPdfFocusedTimelineChart(title, histogram, rankOrder, { compact = false, label = 'Papers' } = {}) {
+        return {
+            unbreakable: true,
+            stack: [
+                { text: title, style: compact ? 'summarySubsectionTitle' : 'tableKey', margin: [0, 0, 0, 5] },
+                createPdfFocusedTimelineLegend(rankOrder, compact),
+                createPdfFocusedTimelineChartSvg(histogram, rankOrder, {
+                    compact,
+                    emptyText: `No known-year ${label.toLowerCase()}.`
+                })
+            ]
+        };
+    }
+    function createPdfFocusedTimelineChartsNode({ compact = false } = {}) {
+        const fullFocusedHistograms = report.timeline?.fullFocusedHistograms || buildFocusedTimelineHistograms(report.timeline?.fullHistogram || []);
+        return {
+            stack: [
+                createPdfFocusedTimelineChart('A*/A CORE Timeline', fullFocusedHistograms.topCoreHistogram || [], getTopCoreHistogramRankOrder(), {
+                    compact,
+                    label: 'A*/A papers'
+                }),
+                {
+                    margin: [0, compact ? 10 : 14, 0, 0],
+                    stack: [
+                        createPdfFocusedTimelineChart('Q1 Journal Timeline', fullFocusedHistograms.q1Histogram || [], getQ1HistogramRankOrder(), {
+                            compact,
+                            label: 'Q1 papers'
+                        })
+                    ]
+                }
+            ]
+        };
+    }
     const conferenceRankedTotal = (Number(report.counts.conferences?.['A*']) || 0)
         + (Number(report.counts.conferences?.A) || 0)
         + (Number(report.counts.conferences?.B) || 0)
@@ -2977,6 +3285,7 @@ function buildPdfReportDefinition(summaryState, reportVariant = 'full') {
             columnGap: 10,
             margin: [0, 0, 0, 10]
         },
+        createSummaryCard('Full Timeline Highlights', createPdfFocusedTimelineChartsNode({ compact: true }), 'A*/A CORE and Q1 journal papers across the complete dataset'),
         createSummaryCard('Top Contributors', {
             table: {
                 widths: ['*', 56],
@@ -3164,6 +3473,7 @@ function buildPdfReportDefinition(summaryState, reportVariant = 'full') {
             columnGap: 14,
             margin: [0, 0, 0, 16]
         },
+        wrapCard('Full Timeline Highlights', 'Annual A*/A CORE and Q1 journal counts across the complete dataset.', createPdfFocusedTimelineChartsNode({ compact: false })),
         wrapCard('Scoring Model', 'The primary score is raw, unbounded, and fractional.', {
             stack: [
                 {
@@ -3494,6 +3804,8 @@ function buildSnapshotFromSummary(summaryState) {
         cacheTimestamp: summaryState.cacheTimestamp ?? null,
         coreRankCounts: { ...(summaryState.coreRankCounts || {}) },
         sjrRankCounts: { ...(summaryState.sjrRankCounts || {}) },
+        dateRangeMode: summaryState.dateRangeMode || activeDateRangeMode,
+        allPublicationRanks: Array.isArray(summaryState.allPublicationRanks) ? summaryState.allPublicationRanks.map((item) => ({ ...item })) : [],
         insights: summaryState.insights ? JSON.parse(JSON.stringify(summaryState.insights)) : null,
         publicationRanks: Array.isArray(summaryState.publicationRanks) ? summaryState.publicationRanks.map((item) => ({ ...item })) : [],
         counts,
@@ -3629,6 +3941,180 @@ function sortReviewItems(items, sortBy) {
             || getPaperTitle(left).localeCompare(getPaperTitle(right));
     });
     return list;
+}
+function setActiveDateRangeMode(nextMode) {
+    const normalized = normalizeDateRangeMode(nextMode);
+    if (normalized === activeDateRangeMode) {
+        return;
+    }
+    const previousSummaryState = currentSummaryState;
+    activeDateRangeMode = normalized;
+    if (!previousSummaryState) {
+        return;
+    }
+    const allPublicationRanks = previousSummaryState.allPublicationRanks || previousSummaryState.publicationRanks || [];
+    displaySummaryPanel(
+        previousSummaryState.allCoreRankCounts || previousSummaryState.coreRankCounts || createEmptyCoreRankCounts(),
+        previousSummaryState.allSjrRankCounts || previousSummaryState.sjrRankCounts || createEmptySjrRankCounts(),
+        previousSummaryState.context?.userId || currentProfileContext.userId,
+        allPublicationRanks,
+        previousSummaryState.cacheTimestamp,
+        previousSummaryState.context?.dblpAuthorPid || currentProfileContext.dblpAuthorPid,
+        previousSummaryState.scanLifecycle || null,
+        previousSummaryState.context || currentProfileContext
+    );
+}
+function createDateRangeToggle(summaryState) {
+    const range = summaryState?.timeline?.range || buildTimelineViewState([], activeDateRangeMode).range;
+    const currentYear = summaryState?.timeline?.currentYear || getTimelineCurrentYear();
+    const last10Start = currentYear - 9;
+    const control = document.createElement('div');
+    control.className = 'gsr-date-range-toggle';
+    control.setAttribute('role', 'group');
+    control.setAttribute('aria-label', 'Statistics date range');
+    const options = [
+        {
+            mode: 'full',
+            label: 'Full Timeline',
+            title: 'Use the complete Scholar profile timeline for all statistics'
+        },
+        {
+            mode: 'last10',
+            label: 'Last 10 Years',
+            title: `Use ${last10Start}-${currentYear} for all statistics`
+        }
+    ];
+    for (const option of options) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'gsr-date-range-toggle__button';
+        button.dataset.gsrDateRangeMode = option.mode;
+        button.textContent = option.label;
+        button.title = option.title;
+        const isActive = range.mode === option.mode;
+        button.classList.toggle('is-active', isActive);
+        button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        button.addEventListener('click', () => setActiveDateRangeMode(option.mode));
+        control.appendChild(button);
+    }
+    return control;
+}
+function getHistogramRankOrder() {
+    return TIMELINE_STATS_API?.HISTOGRAM_RANKS || ['A*', 'A', 'B', 'C', 'Q1', 'Q2', 'Q3', 'Q4'];
+}
+function getTopCoreHistogramRankOrder() {
+    return TIMELINE_STATS_API?.TOP_CORE_HISTOGRAM_RANKS || ['A*', 'A'];
+}
+function getQ1HistogramRankOrder() {
+    return TIMELINE_STATS_API?.Q1_HISTOGRAM_RANKS || ['Q1'];
+}
+function buildFocusedTimelineHistogram(histogram, rankOrder) {
+    const ranks = Array.isArray(rankOrder) ? rankOrder : [];
+    return (Array.isArray(histogram) ? histogram : []).map((bucket) => {
+        const focusedRanks = {};
+        let total = 0;
+        for (const rank of ranks) {
+            const value = Number(bucket?.ranks?.[rank] || 0);
+            focusedRanks[rank] = value;
+            total += value;
+        }
+        return {
+            year: bucket?.year,
+            ranks: focusedRanks,
+            total,
+        };
+    });
+}
+function buildFocusedTimelineHistograms(histogram) {
+    if (TIMELINE_STATS_API?.buildFocusedHistograms) {
+        return TIMELINE_STATS_API.buildFocusedHistograms(histogram);
+    }
+    return {
+        topCoreHistogram: buildFocusedTimelineHistogram(histogram, getTopCoreHistogramRankOrder()),
+        q1Histogram: buildFocusedTimelineHistogram(histogram, getQ1HistogramRankOrder()),
+    };
+}
+function getTimelineFocusedHistograms(timelineState, scope = 'recent') {
+    const normalizedScope = scope === 'full' ? 'full' : 'recent';
+    const focused = timelineState?.focusedHistograms?.[normalizedScope];
+    if (focused?.topCoreHistogram && focused?.q1Histogram) {
+        return focused;
+    }
+    const histogram = normalizedScope === 'full'
+        ? timelineState?.fullHistogram
+        : timelineState?.recentHistogram;
+    return buildFocusedTimelineHistograms(histogram || []);
+}
+function createTimelineHistogramSection(histogram, { titleText, subtitleText, rankOrder, variant } = {}) {
+    const buckets = Array.isArray(histogram) ? histogram : [];
+    const ranks = Array.isArray(rankOrder) && rankOrder.length ? rankOrder : getHistogramRankOrder();
+    const section = document.createElement('div');
+    section.className = `gsr-timeline-histogram${variant ? ` gsr-timeline-histogram--${variant}` : ''}`;
+    const header = document.createElement('div');
+    header.className = 'gsr-timeline-histogram__header';
+    const title = document.createElement('div');
+    title.className = 'gsr-timeline-histogram__title';
+    title.textContent = titleText || 'Yearly Timeline';
+    header.appendChild(title);
+    if (subtitleText) {
+        const subtitle = document.createElement('span');
+        subtitle.className = 'gsr-timeline-histogram__subtitle';
+        subtitle.textContent = subtitleText;
+        header.appendChild(subtitle);
+    }
+    section.appendChild(header);
+    const maxTotal = Math.max(1, ...buckets.map((bucket) => Number(bucket?.total) || 0));
+    const chart = document.createElement('div');
+    chart.className = 'gsr-timeline-histogram__chart';
+    for (const bucket of buckets) {
+        const column = document.createElement('div');
+        column.className = 'gsr-timeline-histogram__column';
+        const bar = document.createElement('div');
+        bar.className = 'gsr-timeline-histogram__bar';
+        bar.title = `${bucket.year}: ${Number(bucket.total || 0)} ranked paper${Number(bucket.total || 0) === 1 ? '' : 's'}`;
+        const count = document.createElement('span');
+        count.className = 'gsr-timeline-histogram__count';
+        count.textContent = String(Number(bucket.total || 0));
+        column.appendChild(count);
+        for (const rank of ranks.slice().reverse()) {
+            const value = Number(bucket?.ranks?.[rank] || 0);
+            if (!value) {
+                continue;
+            }
+            const segment = document.createElement('span');
+            segment.className = 'gsr-timeline-histogram__segment';
+            segment.dataset.gsrRank = normalizeRankKey(rank);
+            segment.style.height = `${Math.max(4, (value / maxTotal) * 100)}%`;
+            segment.title = `${bucket.year} ${rank}: ${value}`;
+            bar.appendChild(segment);
+        }
+        if (!bar.children.length) {
+            const empty = document.createElement('span');
+            empty.className = 'gsr-timeline-histogram__empty';
+            bar.appendChild(empty);
+        }
+        column.appendChild(bar);
+        const yearLabel = document.createElement('span');
+        yearLabel.className = 'gsr-timeline-histogram__year';
+        yearLabel.textContent = String(bucket.year);
+        column.appendChild(yearLabel);
+        chart.appendChild(column);
+    }
+    section.appendChild(chart);
+    const legend = document.createElement('div');
+    legend.className = 'gsr-timeline-histogram__legend';
+    for (const rank of ranks) {
+        const item = document.createElement('span');
+        item.className = 'gsr-timeline-histogram__legend-item';
+        const swatch = document.createElement('span');
+        swatch.className = 'gsr-timeline-histogram__legend-swatch';
+        swatch.dataset.gsrRank = normalizeRankKey(rank);
+        item.appendChild(swatch);
+        item.appendChild(document.createTextNode(rank));
+        legend.appendChild(item);
+    }
+    section.appendChild(legend);
+    return section;
 }
 function groupReviewItems(items, groupBy) {
     const source = Array.isArray(items) ? items : [];
@@ -4058,7 +4544,7 @@ async function buildConferenceSearchHistory(venueQuery) {
 }
 async function buildJournalSearchHistory(journalName) {
     const history = [];
-    for (let year = 2024; year >= 2010; year--) {
+    for (let year = SJR_DATASET_END_YEAR; year >= SJR_DATASET_START_YEAR; year--) {
         const result = await resolveSjrQuartile(journalName, year);
         if (result.status === 'success' && result.quartile) {
             history.push({
@@ -4413,7 +4899,7 @@ function isArxivLikeVenue(info) {
     }
     return false;
 }
-const SJR_DATASET_START_YEAR = 2010;
+const SJR_DATASET_START_YEAR = 1999;
 const SJR_DATASET_END_YEAR = 2024;
 const sjrLookupCache = new Map();
 let sjrDatasetPromise = null;
@@ -4670,7 +5156,15 @@ function selectQuartileForYear(data, publicationYear) {
         return { quartile: null, year: null };
     }
     if (publicationYear) {
-        const targetYear = Math.max(SJR_DATASET_START_YEAR, publicationYear);
+        if (publicationYear < SJR_DATASET_START_YEAR) {
+            return {
+                quartile: null,
+                year: null,
+                sourceYearFallback: false,
+                historicalCoverageUnavailable: true
+            };
+        }
+        const targetYear = publicationYear;
         const matchingYear = entries.find(entry => entry.year === targetYear);
         if (matchingYear) {
             return { quartile: matchingYear.quartile, year: matchingYear.year, sourceYearFallback: false };
@@ -4686,6 +5180,31 @@ function selectQuartileForYear(data, publicationYear) {
     }
     const latestEntry = entries[0];
     return { quartile: latestEntry.quartile, year: latestEntry.year, sourceYearFallback: true };
+}
+function buildSjrQuartileSelectionResult(data, selection, extra = {}) {
+    if (selection?.historicalCoverageUnavailable) {
+        return {
+            status: 'historical_coverage_unavailable',
+            reason: 'sjr_historical_coverage_unavailable',
+            quartile: null,
+            year: null,
+            resolvedTitle: data?.resolvedTitle ?? null,
+            matchScore: extra.matchScore ?? null,
+            matchedNormalizedTitle: extra.matchedNormalizedTitle ?? null,
+            matchedSourceId: data?.sourceId ?? extra.matchedSourceId ?? null,
+            sourceYearFallback: false
+        };
+    }
+    return {
+        status: 'success',
+        quartile: selection?.quartile ?? null,
+        year: selection?.year ?? null,
+        resolvedTitle: data?.resolvedTitle ?? null,
+        matchScore: extra.matchScore ?? null,
+        matchedNormalizedTitle: extra.matchedNormalizedTitle ?? null,
+        matchedSourceId: data?.sourceId ?? extra.matchedSourceId ?? null,
+        sourceYearFallback: selection?.sourceYearFallback === true
+    };
 }
 function selectSjrCandidateIndexes(queryTokens, dataset) {
     if (!queryTokens.length || !dataset?.tokenIndex)
@@ -4724,6 +5243,42 @@ function findBestSjrMatch({ normalizedQuery, queryIssns, dataset }) {
         return { status: DECISION_STATUS.MATCHED, entry: exactIssnMatches[0], score: 1.0, matchedBy: 'issn' };
     }
     if (exactIssnMatches.length > 1) {
+        const exactTitleMatch = exactIssnMatches.find((entry) => entry.normalizedTitle === normalizedQuery);
+        if (exactTitleMatch) {
+            return { status: DECISION_STATUS.MATCHED, entry: exactTitleMatch, score: 1.0, matchedBy: 'issn' };
+        }
+        const sourceIds = new Set(exactIssnMatches.map((entry) => entry.sourceId).filter(Boolean));
+        if (sourceIds.size === 1) {
+            const latestSourceEntry = exactIssnMatches
+                .slice()
+                .sort((left, right) => {
+                const rightYear = Math.max(0, ...Object.keys(right.quartilesByYear || {}).map((year) => Number(year)).filter(Number.isFinite));
+                const leftYear = Math.max(0, ...Object.keys(left.quartilesByYear || {}).map((year) => Number(year)).filter(Number.isFinite));
+                return rightYear - leftYear;
+            })[0];
+            if (latestSourceEntry) {
+                return { status: DECISION_STATUS.MATCHED, entry: latestSourceEntry, score: 1.0, matchedBy: 'issn' };
+            }
+        }
+        let bestIssnMatch = null;
+        let secondIssnMatch = null;
+        for (const entry of exactIssnMatches) {
+            const score = RANKING_UTILS?.hybridSimilarity
+                ? RANKING_UTILS.hybridSimilarity(normalizedQuery, entry.normalizedTitle)
+                : (0.72 * jaroWinkler(normalizedQuery, entry.normalizedTitle));
+            const candidate = { entry, score };
+            if (!bestIssnMatch || score > bestIssnMatch.score) {
+                secondIssnMatch = bestIssnMatch;
+                bestIssnMatch = candidate;
+            }
+            else if (!secondIssnMatch || score > secondIssnMatch.score) {
+                secondIssnMatch = candidate;
+            }
+        }
+        const issnGap = secondIssnMatch ? bestIssnMatch.score - secondIssnMatch.score : Number.POSITIVE_INFINITY;
+        if (bestIssnMatch && (bestIssnMatch.score >= 0.97 || issnGap >= RANKING_CONFIG.sjrAmbiguityGap)) {
+            return { status: DECISION_STATUS.MATCHED, entry: bestIssnMatch.entry, score: bestIssnMatch.score, matchedBy: 'issn' };
+        }
         return { status: DECISION_STATUS.AMBIGUOUS, score: 1.0, matchedBy: 'issn' };
     }
     const directMatch = dataset.byNormalized.get(normalizedQuery);
@@ -4779,31 +5334,19 @@ async function resolveSjrQuartile(journalName, publicationYear, journalMeta = {}
         const genericCacheKey = buildSjrLookupCacheKey(normalizedQuery, []);
         const scopedEntry = sjrLookupCache.get(scopedCacheKey);
         if (scopedEntry?.kind === 'success') {
-            const { quartile, year, sourceYearFallback } = selectQuartileForYear(scopedEntry.data, publicationYear ?? null);
-            return {
-                status: 'success',
-                quartile,
-                year,
-                resolvedTitle: scopedEntry.data.resolvedTitle,
+            const selection = selectQuartileForYear(scopedEntry.data, publicationYear ?? null);
+            return buildSjrQuartileSelectionResult(scopedEntry.data, selection, {
                 matchScore: scopedEntry.matchScore ?? null,
-                matchedNormalizedTitle: scopedEntry.matchedNormalizedTitle ?? null,
-                matchedSourceId: scopedEntry.data.sourceId ?? null,
-                sourceYearFallback
-            };
+                matchedNormalizedTitle: scopedEntry.matchedNormalizedTitle ?? null
+            });
         }
         const genericEntry = genericCacheKey !== scopedCacheKey ? sjrLookupCache.get(genericCacheKey) : null;
         if (genericEntry?.kind === 'success') {
-            const { quartile, year, sourceYearFallback } = selectQuartileForYear(genericEntry.data, publicationYear ?? null);
-            return {
-                status: 'success',
-                quartile,
-                year,
-                resolvedTitle: genericEntry.data.resolvedTitle,
+            const selection = selectQuartileForYear(genericEntry.data, publicationYear ?? null);
+            return buildSjrQuartileSelectionResult(genericEntry.data, selection, {
                 matchScore: genericEntry.matchScore ?? null,
-                matchedNormalizedTitle: genericEntry.matchedNormalizedTitle ?? null,
-                matchedSourceId: genericEntry.data.sourceId ?? null,
-                sourceYearFallback
-            };
+                matchedNormalizedTitle: genericEntry.matchedNormalizedTitle ?? null
+            });
         }
         if (scopedEntry?.kind === 'not_found') {
             sawNotFound = true;
@@ -4844,17 +5387,11 @@ async function resolveSjrQuartile(journalName, publicationYear, journalMeta = {}
                     matchedNormalizedTitle: entry.normalizedTitle
                 });
             }
-            const { quartile, year, sourceYearFallback } = selectQuartileForYear(data, publicationYear ?? null);
-            return {
-                status: 'success',
-                quartile,
-                year,
-                resolvedTitle: data.resolvedTitle,
+            const selection = selectQuartileForYear(data, publicationYear ?? null);
+            return buildSjrQuartileSelectionResult(data, selection, {
                 matchScore: match.score,
-                matchedNormalizedTitle: entry.normalizedTitle,
-                matchedSourceId: entry.sourceId ?? null,
-                sourceYearFallback
-            };
+                matchedNormalizedTitle: entry.normalizedTitle
+            });
         }
         if (sawAmbiguous) {
             return { status: 'ambiguous' };
@@ -5610,7 +6147,7 @@ function ensureSearchUtilityOverlay() {
     yearAuto.value = '';
     yearAuto.textContent = 'Year (Auto)';
     yearSelect.appendChild(yearAuto);
-    for (let y = 2026; y >= 2010; y--) {
+    for (let y = 2026; y >= SJR_DATASET_START_YEAR; y--) {
         const opt = document.createElement('option');
         opt.value = String(y);
         opt.textContent = String(y);
@@ -7943,25 +8480,12 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
         scholarProfileUrl: window.location?.href || null,
     };
     currentSummaryState = buildSummaryState(coreRankCounts, sjrRankCounts, initialCachedPubRanks || [], cacheTimestamp, scanLifecycle);
-    const statusCounts = { 'DBLP Entry Missing': 0, 'Unranked': 0 };
-    for (const item of initialCachedPubRanks || []) {
-        if (!item || item.system === 'UNKNOWN') {
-            continue;
-        }
-        const kind = getRowStatusKind(item);
-        if (kind === 'dblp-missing') {
-            statusCounts['DBLP Entry Missing'] += 1;
-        }
-        else if (kind === 'unranked') {
-            statusCounts['Unranked'] += 1;
-        }
-    }
     const countSnapshot = buildSummaryCountSnapshot(currentSummaryState);
     const totalConferencePapers = countSnapshot.conferenceCount;
     const totalJournalPapers = countSnapshot.journalCount;
-    const totalReviewPapers = countSnapshot.reviewCount || currentSummaryState?.reviewItems?.length || sumSummaryCountMap(statusCounts);
+    const totalReviewPapers = countSnapshot.reviewCount;
     const totalRankedPapers = countSnapshot.rankedCount;
-    const totalProcessedPapers = countSnapshot.totalPapers || (Array.isArray(initialCachedPubRanks) ? initialCachedPubRanks.length : totalRankedPapers + totalReviewPapers);
+    const totalProcessedPapers = countSnapshot.totalPapers;
     const panel = document.createElement('div');
     panel.id = SUMMARY_PANEL_ID;
     panel.className = 'gsc_rsb_s gsc_prf_pnl gsr-card gsr-summary-card';
@@ -7988,9 +8512,14 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
     titleGroup.appendChild(titleLine);
     const summarySubtitle = document.createElement('span');
     summarySubtitle.className = 'gsr-card__subtitle';
-    summarySubtitle.textContent = `${totalConferencePapers} CORE conference | ${totalJournalPapers} SJR journal | ${totalProcessedPapers} processed`;
+    const activeRange = currentSummaryState.timeline?.range || { label: 'Full Timeline' };
+    const rangeLabel = activeRange.mode === 'last10' && activeRange.startYear && activeRange.endYear
+        ? `${activeRange.startYear}-${activeRange.endYear}`
+        : activeRange.label;
+    summarySubtitle.textContent = `${totalConferencePapers} CORE conference | ${totalJournalPapers} SJR journal | ${totalProcessedPapers} processed | ${rangeLabel}`;
     titleGroup.appendChild(summarySubtitle);
     headerDiv.appendChild(titleGroup);
+    headerDiv.appendChild(createDateRangeToggle(currentSummaryState));
     if (currentUserId) {
         const headerActions = document.createElement('div');
         headerActions.className = 'gsr-summary-header__actions';
@@ -8213,7 +8742,7 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
     summarySectionsContainer.appendChild(createSummarySection({
         titleText: 'CORE Conference Profile',
         metaText: '',
-        counts: coreRankCounts,
+        counts: currentSummaryState.coreRankCounts || createEmptyCoreRankCounts(),
         orderedRanks: ['A*', 'A', 'B', 'C'],
         system: 'CORE',
         getFilter: (rank) => ({ type: 'rank', system: 'core', rank: normalizeRankKey(rank) }),
@@ -8222,13 +8751,27 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
     summarySectionsContainer.appendChild(createSummarySection({
         titleText: 'SJR Journal Profile',
         metaText: '',
-        counts: sjrRankCounts,
+        counts: currentSummaryState.sjrRankCounts || createEmptySjrRankCounts(),
         orderedRanks: ['Q1', 'Q2', 'Q3', 'Q4'],
         system: 'SJR',
         getFilter: (rank) => ({ type: 'rank', system: 'sjr', rank: normalizeRankKey(rank) }),
         getLabel: (rank) => rank
     }));
     panel.appendChild(summarySectionsContainer);
+    const timelineYear = currentSummaryState.timeline?.currentYear || getTimelineCurrentYear();
+    const recentFocusedHistograms = getTimelineFocusedHistograms(currentSummaryState.timeline, 'recent');
+    panel.appendChild(createTimelineHistogramSection(recentFocusedHistograms.topCoreHistogram || [], {
+        titleText: 'Top CORE Timeline',
+        subtitleText: `A*/A papers, recent 8 years (${timelineYear - 7}-${timelineYear})`,
+        rankOrder: getTopCoreHistogramRankOrder(),
+        variant: 'top-core'
+    }));
+    panel.appendChild(createTimelineHistogramSection(recentFocusedHistograms.q1Histogram || [], {
+        titleText: 'Q1 Journal Timeline',
+        subtitleText: `Q1 papers, recent 8 years (${timelineYear - 7}-${timelineYear})`,
+        rankOrder: getQ1HistogramRankOrder(),
+        variant: 'q1'
+    }));
     const finalFooterDiv = document.createElement('div');
     finalFooterDiv.className = 'gsr-card__footer gsr-summary-footer';
     const footerMeta = document.createElement('div');
@@ -9731,6 +10274,7 @@ async function evaluatePublicationRanks(publicationLinkElements, dblpPublication
                     let sjrLookupTransientFailure = false;
                     let bestSjr = null;
                     let sawAmbiguousSjr = false;
+                    let sawHistoricalSjrUnavailable = false;
                     for (const candidate of candidateNames) {
                         const sjrResult = await resolveSjrQuartile(candidate, publicationYear ?? null, {
                             issns: dblpInfo.journalIssns
@@ -9745,6 +10289,9 @@ async function evaluatePublicationRanks(publicationLinkElements, dblpPublication
                         }
                         if (sjrResult.status === 'ambiguous') {
                             sawAmbiguousSjr = true;
+                        }
+                        if (sjrResult.status === 'historical_coverage_unavailable') {
+                            sawHistoricalSjrUnavailable = true;
                         }
                         if (sjrResult.status === 'error' && sjrResult.transient) {
                             sjrLookupTransientFailure = true;
@@ -9770,6 +10317,14 @@ async function evaluatePublicationRanks(publicationLinkElements, dblpPublication
                             decisionStatus: DECISION_STATUS.AMBIGUOUS,
                             matchedKey: venueName ?? null,
                             decisionEvidence: ['sjr_ambiguous']
+                        });
+                    }
+                    else if (sawHistoricalSjrUnavailable) {
+                        naReason = 'SJR Historical Coverage Unavailable';
+                        decisionMeta = mergeDecisionMeta(decisionMeta, {
+                            decisionStatus: DECISION_STATUS.UNRANKED,
+                            matchedKey: venueName ?? null,
+                            decisionEvidence: ['sjr_historical_coverage_unavailable']
                         });
                     }
                     if (currentRank === 'N/A' && sjrLookupTransientFailure) {
@@ -10621,6 +11176,7 @@ async function legacyMainSinglePass_DoNotUse() {
                         let sjrLookupTransientFailure = false;
                         let bestSjr = null;
                         let sawAmbiguousSjr = false;
+                        let sawHistoricalSjrUnavailable = false;
                         for (const candidate of candidateNames) {
                             const sjrResult = await resolveSjrQuartile(candidate, publicationYear ?? null, {
                                 issns: dblpInfo.journalIssns
@@ -10635,6 +11191,9 @@ async function legacyMainSinglePass_DoNotUse() {
                             }
                             if (sjrResult.status === 'ambiguous') {
                                 sawAmbiguousSjr = true;
+                            }
+                            if (sjrResult.status === 'historical_coverage_unavailable') {
+                                sawHistoricalSjrUnavailable = true;
                             }
                             if (sjrResult.status === 'error' && sjrResult.transient) {
                                 sjrLookupTransientFailure = true;
@@ -10660,6 +11219,14 @@ async function legacyMainSinglePass_DoNotUse() {
                                 decisionStatus: DECISION_STATUS.AMBIGUOUS,
                                 matchedKey: venueName ?? null,
                                 decisionEvidence: ['sjr_ambiguous']
+                            });
+                        }
+                        else if (sawHistoricalSjrUnavailable) {
+                            naReason = 'SJR Historical Coverage Unavailable';
+                            decisionMeta = mergeDecisionMeta(decisionMeta, {
+                                decisionStatus: DECISION_STATUS.UNRANKED,
+                                matchedKey: venueName ?? null,
+                                decisionEvidence: ['sjr_historical_coverage_unavailable']
                             });
                         }
                         if (currentRank === 'N/A' && sjrLookupTransientFailure) {

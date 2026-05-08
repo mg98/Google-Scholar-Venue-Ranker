@@ -12,6 +12,26 @@ These tests cover:
 - Demo/Poster track detection (e.g., PhD Forum abstracts)
 - Short-paper detection from page ranges (<6 pages)
 - Venue normalization (e.g., `MobiQuitous (2)` → `mobiquitous`)
+- Timeline range filtering for `Full Timeline` and `Last 10 Years`
+- CORE/SJR rank-count recomputation from filtered publication sets
+- Fixed-window and full-timeline histogram year filling
+- Focused `A*/A` CORE and `Q1` journal histogram generation
+- Stacked horizontal report chart layout with uncropped rotated year labels
+- Historical SJR coverage behavior for pre-1999 journal papers
+
+Score-model tests can also be run directly:
+
+```bash
+npm run test:score
+```
+
+Before packaging a GitHub or Chrome Web Store release, run:
+
+```bash
+npm test
+npm run test:score
+npm run build
+```
 
 Accuracy benchmark workflow:
 

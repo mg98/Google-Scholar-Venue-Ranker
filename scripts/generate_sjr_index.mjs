@@ -205,16 +205,24 @@ export async function generateSjrIndex({ root = process.cwd() } = {}) {
           quartilesByYear: {},
           tokens: createTokenSet(normalizedTitle),
           sourceId,
+          sourceIdYear: sourceId ? year : null,
           issns,
-          coverage
+          coverage,
+          coverageYear: coverage ? year : null
         };
         byNormalized.set(normalizedTitle, entry);
       } else if (title.length > entry.resolvedTitle.length) {
         entry.resolvedTitle = title;
       }
 
-      if (!entry.sourceId && sourceId) entry.sourceId = sourceId;
-      if (!entry.coverage && coverage) entry.coverage = coverage;
+      if (sourceId && (!entry.sourceId || ((entry.sourceIdYear || 0) < 2010 && year >= 2010))) {
+        entry.sourceId = sourceId;
+        entry.sourceIdYear = year;
+      }
+      if (coverage && (!entry.coverage || ((entry.coverageYear || 0) < 2010 && year >= 2010))) {
+        entry.coverage = coverage;
+        entry.coverageYear = year;
+      }
       for (const issn of issns) {
         if (!entry.issns.includes(issn)) entry.issns.push(issn);
       }

@@ -1,4 +1,4 @@
-![Version 2.0.2](https://img.shields.io/badge/version-2.0.2-blue.svg)
+![Version 2.0.3](https://img.shields.io/badge/version-2.0.3-blue.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 # Google Scholar Venue Ranker (GSVR)
@@ -17,7 +17,27 @@ Google Scholar Venue Ranker is an open-source Chrome extension developed by [Nav
   </a>
 </p>
 
-## What's new in 2.0
+## Changelog
+
+### 2.0.3
+
+All changes from this update are part of the `2.0.3` release.
+
+- `Versioning`: extension metadata, package metadata, build output, and README badges now use `2.0.3`.
+- `Timeline range switch`: added a polished `Full Timeline` / `Last 10 Years` sidebar control. `Full Timeline` remains the default.
+- `Filtered statistics`: switching date range now updates the score, completeness, CORE rank bars, SJR journal-rank bars, contributors, report payloads, and exports from the same filtered publication set.
+- `Date windows`: `Last 10 Years` is anchored to the current calendar year; unknown-year publications are excluded from `Last 10 Years` statistics but retained in full-timeline aggregate counts.
+- `Sidebar histograms`: replaced the old mixed rank histogram with two focused recent charts: stacked `A*/A` CORE papers and separate `Q1` journal papers.
+- `Report histograms`: PDF Summary, PDF Full Report, and standalone HTML reports now include full-timeline `A*/A` CORE and `Q1` journal charts.
+- `Report layout`: report charts are stacked vertically, with conference first and journal below. Each chart is full width, horizontal, and uses rotated year labels that stay inside the chart.
+- `PDF page breaks`: report chart title, legend, and graph now move together as one block so the second graph title is not stranded on the previous page.
+- `Visual polish`: restyled the sidebar toggle and timeline charts with cleaner spacing, stronger chart structure, improved bars, grid lines, count labels, and better report readability.
+- `Historical SJR data`: added official SCImago journal CSV backfill for `1999` through `2009`, extending bundled SJR coverage to `1999` through `2024`.
+- `Pre-1999 journals`: journal papers before `1999` are reported as historical SJR coverage unavailable instead of receiving an inferred 1999 quartile.
+- `Tests`: added regression coverage for timeline filtering, CORE/SJR count recomputation, focused histograms, report chart layout, page-break behavior, historical SJR coverage, and unknown-year handling.
+- `Docs`: README now serves as the release changelog going forward, starting with this `2.0.3` entry.
+
+### 2.0.0
 
 - `GSVR Score` panel with raw fractional venue scoring across eligible DBLP-verified CORE conferences and SJR journals
 - `Scoring Completeness` diagnostics showing how much of the visible Scholar profile could be used in the score
@@ -56,8 +76,10 @@ GSVR brings that context directly into Scholar with:
 - Chooses the most appropriate CORE snapshot by publication year.
 - Uses a compact prebuilt SJR index for faster journal lookup on Scholar pages.
 - Shows a `GSVR Score` card above the ranking summary, using raw fractional venue scoring across eligible DBLP-verified publications.
+- Switches profile statistics between full-timeline and last-10-years views without rescanning cached publications.
 - Shows `Scoring Completeness` so users can see what share of the Scholar profile was usable for scoring.
 - Shows a compact `Venue Ranker` panel for conference and journal distribution with a modernized sidebar UI.
+- Shows focused yearly `A*/A` and `Q1` histograms in the sidebar and downloadable reports.
 - Runs a fast first-pass scan, then upgrades results in the background with a deeper pass.
 - Includes a local `Venue Explorer` dialog for ad hoc CORE and SJR checks.
 - Includes a `Download Report` flow for one-page PDF summaries, full PDF audits, HTML, and CSV exports.
@@ -106,8 +128,9 @@ N_scored
   - The extension bundles historical CORE datasets for `2014`, `2017`, `2018`, `2020`, `2021`, `2023`, and `2026`.
   - The publication year determines which ranking snapshot to consult.
 - SJR is used for journal ranking.
-  - The extension bundles official local SCImago CSVs for `2010` through `2024`.
+  - The extension bundles official local SCImago CSVs for `1999` through `2024`.
   - A compact runtime index is generated at `GSVR/data/sjr-index.json` for faster lookup.
+  - Journal papers before `1999` are marked as historical SJR coverage unavailable.
 - Short conference papers under 6 pages are excluded.
   - This follows the same broad heuristic direction used by [CSRankings](https://csrankings.org/).
 - Workshops, demos, posters, and extended abstracts are excluded from rank counting.
@@ -160,6 +183,8 @@ The profile-page report workflow exports the current audit in:
 - PDF `Full Report`
 - standalone HTML
 - CSV
+
+PDF and standalone HTML reports include full-width stacked `A*/A` CORE and `Q1` journal histograms with rotated year labels, while top-line report statistics follow the active sidebar date range.
 
 ### About panel
 
@@ -228,6 +253,8 @@ These tests cover key ranking behavior such as:
 - demo/poster detection
 - short-paper exclusion from page ranges
 - venue normalization and alias cleanup
+- timeline range filtering and CORE/SJR count recomputation
+- focused `A*/A` and `Q1` histogram generation
 
 ### Accuracy benchmark suite
 
@@ -280,6 +307,18 @@ The benchmark system emits:
 - `scripts/` - build, clean, zip, and SJR-index generation scripts
 - `dist/` - build output created by `npm run build`
 
+## Release and deployment checklist
+
+For a GitHub or Chrome Web Store release:
+
+1. Run `npm test`.
+2. Run `npm run test:score`.
+3. Run `npm run build`.
+4. Load `dist/` from `chrome://extensions` with Developer mode enabled.
+5. Manually verify that `Full Timeline` and `Last 10 Years` update the score, CORE bars, SJR bars, and focused sidebar histograms.
+6. Export PDF Summary, PDF Full Report, and standalone HTML, then confirm the full-timeline `A*/A` and `Q1` histograms are stacked horizontal charts with uncropped rotated year labels.
+7. Run `npm run zip` and upload the generated release ZIP.
+
 ## Data sources
 
 The extension relies on three main authority sources:
@@ -291,9 +330,9 @@ The extension relies on three main authority sources:
 Current bundled data coverage in this repository:
 
 - CORE snapshots: `2014`, `2017`, `2018`, `2020`, `2021`, `2023`, `2026`
-- SJR CSVs: `2010` through `2024`
+- SJR CSVs: `1999` through `2024`
 
-As of April 2026, this repository does not bundle an official `2025` SJR CSV.
+As of May 2026, this repository does not bundle an official `2025` SJR CSV.
 
 ## Limitations
 

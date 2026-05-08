@@ -427,7 +427,7 @@ function loadSjrDataset() {
 
   sjrDatasetCache = {
     version: payload.version || 2,
-    startYear: payload.startYear || 2010,
+    startYear: payload.startYear || 1999,
     endYear: payload.endYear || 2024,
     entries,
     byNormalized,
@@ -476,6 +476,44 @@ function findBestSjrMatch({ normalizedQuery, queryIssns, dataset }) {
     return { status: DECISION_STATUS.MATCHED, entry: exactIssnMatches[0], score: 1, matchedBy: 'issn' };
   }
   if (exactIssnMatches.length > 1) {
+    const exactTitleMatch = exactIssnMatches.find((entry) => entry.normalizedTitle === normalizedQuery);
+    if (exactTitleMatch) {
+      return { status: DECISION_STATUS.MATCHED, entry: exactTitleMatch, score: 1, matchedBy: 'issn' };
+    }
+    const sourceIds = new Set(exactIssnMatches.map((entry) => entry.sourceId).filter(Boolean));
+    if (sourceIds.size === 1) {
+      const latestSourceEntry = exactIssnMatches
+        .slice()
+        .sort((left, right) => {
+          const rightYear = Math.max(0, ...Object.keys(right.quartilesByYear || {}).map((year) => Number(year)).filter(Number.isFinite));
+          const leftYear = Math.max(0, ...Object.keys(left.quartilesByYear || {}).map((year) => Number(year)).filter(Number.isFinite));
+          return rightYear - leftYear;
+        })[0];
+      if (latestSourceEntry) {
+        return { status: DECISION_STATUS.MATCHED, entry: latestSourceEntry, score: 1, matchedBy: 'issn' };
+      }
+    }
+    let bestIssnMatch = null;
+    let secondIssnMatch = null;
+    for (const entry of exactIssnMatches) {
+      const score = core.hybridSimilarity(normalizedQuery, entry.normalizedTitle);
+      const candidate = { entry, score };
+      if (!bestIssnMatch || score > bestIssnMatch.score) {
+        secondIssnMatch = bestIssnMatch;
+        bestIssnMatch = candidate;
+      } else if (!secondIssnMatch || score > secondIssnMatch.score) {
+        secondIssnMatch = candidate;
+      }
+    }
+    const issnGap = secondIssnMatch ? bestIssnMatch.score - secondIssnMatch.score : Number.POSITIVE_INFINITY;
+    if (bestIssnMatch && (bestIssnMatch.score >= 0.97 || issnGap >= core.RANKING_CONFIG.sjrAmbiguityGap)) {
+      return {
+        status: DECISION_STATUS.MATCHED,
+        entry: bestIssnMatch.entry,
+        score: bestIssnMatch.score,
+        matchedBy: 'issn',
+      };
+    }
     return { status: DECISION_STATUS.AMBIGUOUS, score: 1, matchedBy: 'issn' };
   }
 
@@ -535,7 +573,16 @@ function selectQuartileForYear(data, publicationYear) {
   }
 
   if (publicationYear) {
-    const targetYear = Math.max(loadSjrDataset().startYear, publicationYear);
+    const datasetStartYear = loadSjrDataset().startYear;
+    if (Number.isFinite(datasetStartYear) && publicationYear < datasetStartYear) {
+      return {
+        quartile: null,
+        year: null,
+        sourceYearFallback: false,
+        historicalCoverageUnavailable: true,
+      };
+    }
+    const targetYear = publicationYear;
     const exact = entries.find((entry) => entry.year === targetYear);
     if (exact) {
       return { quartile: exact.quartile, year: exact.year, sourceYearFallback: false };
@@ -578,6 +625,19 @@ function resolveJournalQuerySync(journalName, publicationYear, journalMeta) {
     }
 
     const selected = selectQuartileForYear(match.entry, publicationYear ?? null);
+    if (selected.historicalCoverageUnavailable) {
+      return {
+        status: DECISION_STATUS.UNRANKED,
+        reason: 'sjr_historical_coverage_unavailable',
+        quartile: 'N/A',
+        sourceYear: null,
+        matchedTitle: match.entry.resolvedTitle,
+        matchedSourceId: match.entry.sourceId || null,
+        sourceYearFallback: false,
+        matchType: match.matchedBy || null,
+        confidence: typeof match.score === 'number' ? match.score : null,
+      };
+    }
     return {
       status: DECISION_STATUS.MATCHED,
       quartile: selected.quartile || 'N/A',
@@ -928,6 +988,7 @@ function resolveJournalResolutionFixture(input) {
     sourceYearFallback: result.sourceYearFallback === true,
     matchedSourceId: result.matchedSourceId || null,
     matchType: result.matchType || null,
+    reason: result.reason || null,
   };
 }
 
@@ -989,7 +1050,7 @@ function buildPipelineJournalResult(input, matchedPublication, publicationYear) 
     decisionStatus: result.status,
     sourceYear: result.sourceYear,
     sourceYearFallback: result.sourceYearFallback === true,
-    reason: null,
+    reason: result.reason || null,
     confidence: null,
     matchedSourceId: result.matchedSourceId || null,
   };

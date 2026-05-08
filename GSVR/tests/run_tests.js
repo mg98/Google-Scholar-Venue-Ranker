@@ -4,6 +4,7 @@ const path = require('path');
 
 const core = require('../rank_core.js');
 const settings = require('../settings.js');
+const timelineStats = require('../core/timeline_stats.js');
 const accuracyLib = require('./accuracy_benchmark_lib.js');
 const { runScoreTests } = require('./run_score_tests.js');
 const { runDblpSchedulerTests } = require('./run_dblp_scheduler_tests.js');
@@ -341,13 +342,220 @@ function testGeneratedSjrIndex() {
 
   const payload = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
   assert.strictEqual(payload.version, 2);
+  assert.strictEqual(payload.startYear, 1999);
+  assert.strictEqual(payload.endYear, 2024);
   assert.ok(Array.isArray(payload.entries), 'Expected compact SJR entries array');
   assert.ok(payload.entries.length > 30000, 'Expected compact SJR index to contain the bundled journals');
 
   const tpami = payload.entries.find((entry) => entry.n === 'ieee transaction pattern analysi machine intelligence');
   assert.ok(tpami, 'Expected TPAMI normalized journal entry to exist');
+  assert.strictEqual(tpami.q['1999'], 'Q1');
   assert.strictEqual(tpami.q['2024'], 'Q1');
   assert.ok(Array.isArray(tpami.i), 'Expected SJR entries to include ISSN metadata');
+}
+
+function testTimelineFilteringAndCounts() {
+  const publications = [
+    { publicationYear: 2016, system: 'CORE', rank: 'A*' },
+    { publicationYear: 2017, system: 'CORE', rank: 'A' },
+    { publicationYear: 2024, system: 'SJR', rank: 'Q1' },
+    { publicationYear: 2026, system: 'CORE', rank: 'C' },
+    { publicationYear: 2027, system: 'CORE', rank: 'B' },
+    { system: 'SJR', rank: 'Q2' },
+  ];
+
+  const full = timelineStats.buildTimelineStats(publications, {
+    rangeMode: timelineStats.RANGE_FULL,
+    currentYear: 2026,
+  });
+  assert.strictEqual(full.publications.length, publications.length);
+  assert.strictEqual(full.coreRankCounts['A*'], 1);
+  assert.strictEqual(full.coreRankCounts.A, 1);
+  assert.strictEqual(full.coreRankCounts.B, 1);
+  assert.strictEqual(full.coreRankCounts.C, 1);
+  assert.strictEqual(full.sjrRankCounts.Q1, 1);
+  assert.strictEqual(full.sjrRankCounts.Q2, 1);
+  assert.strictEqual(full.allUnknownYearCount, 1);
+
+  const recent = timelineStats.buildTimelineStats(publications, {
+    rangeMode: timelineStats.RANGE_LAST_10_YEARS,
+    currentYear: 2026,
+  });
+  assert.deepStrictEqual(
+    recent.publications.map((item) => item.publicationYear ?? null),
+    [2017, 2024, 2026]
+  );
+  assert.deepStrictEqual(recent.range, {
+    mode: timelineStats.RANGE_LAST_10_YEARS,
+    label: 'Last 10 Years',
+    startYear: 2017,
+    endYear: 2026,
+  });
+  assert.strictEqual(recent.coreRankCounts['A*'], 0);
+  assert.strictEqual(recent.coreRankCounts.A, 1);
+  assert.strictEqual(recent.coreRankCounts.C, 1);
+  assert.strictEqual(recent.sjrRankCounts.Q1, 1);
+  assert.strictEqual(recent.sjrRankCounts.Q2, 0);
+  assert.strictEqual(recent.unknownYearCount, 0);
+}
+
+function testTimelineRankCountRecomputation() {
+  const counts = timelineStats.recomputeRankCounts([
+    { system: 'CORE', rank: 'A*' },
+    { system: 'CORE', rank: 'unknown' },
+    { system: 'SJR', rank: 'Q3' },
+    { system: 'SJR', rank: 'Q9' },
+    { system: 'DBLP', rank: 'A' },
+  ]);
+
+  assert.strictEqual(counts.coreRankCounts['A*'], 1);
+  assert.strictEqual(counts.coreRankCounts['N/A'], 1);
+  assert.strictEqual(counts.sjrRankCounts.Q3, 1);
+  assert.strictEqual(counts.sjrRankCounts['N/A'], 1);
+}
+
+function testFixedWindowTimelineHistogram() {
+  const histogram = timelineStats.buildFixedWindowHistogram([
+    { publicationYear: 2018, system: 'CORE', rank: 'A*' },
+    { publicationYear: 2019, system: 'CORE', rank: 'A*' },
+    { publicationYear: 2020, system: 'SJR', rank: 'Q2' },
+    { publicationYear: 2026, system: 'SJR', rank: 'Q4' },
+    { publicationYear: null, system: 'CORE', rank: 'A' },
+  ], {
+    currentYear: 2026,
+    years: 8,
+  });
+
+  assert.deepStrictEqual(histogram.map((bucket) => bucket.year), [2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026]);
+  assert.strictEqual(histogram[0].ranks['A*'], 1);
+  assert.strictEqual(histogram[1].ranks.Q2, 1);
+  assert.strictEqual(histogram[7].ranks.Q4, 1);
+  assert.strictEqual(histogram.reduce((total, bucket) => total + bucket.total, 0), 3);
+}
+
+function testFullTimelineHistogramFillsKnownYearGaps() {
+  const histogram = timelineStats.buildFullTimelineHistogram([
+    { publicationYear: 2019, system: 'CORE', rank: 'B' },
+    { publicationYear: 2021, system: 'SJR', rank: 'Q1' },
+    { system: 'CORE', rank: 'A' },
+  ]);
+
+  assert.deepStrictEqual(histogram.map((bucket) => bucket.year), [2019, 2020, 2021]);
+  assert.strictEqual(histogram[0].ranks.B, 1);
+  assert.strictEqual(histogram[1].total, 0);
+  assert.strictEqual(histogram[2].ranks.Q1, 1);
+}
+
+function testFocusedTimelineHistograms() {
+  const histogram = timelineStats.buildYearlyHistogram([
+    { publicationYear: 2019, system: 'CORE', rank: 'A*' },
+    { publicationYear: 2019, system: 'CORE', rank: 'A' },
+    { publicationYear: 2019, system: 'CORE', rank: 'B' },
+    { publicationYear: 2019, system: 'SJR', rank: 'Q1' },
+    { publicationYear: 2020, system: 'SJR', rank: 'Q1' },
+    { publicationYear: 2020, system: 'SJR', rank: 'Q2' },
+  ], {
+    startYear: 2019,
+    endYear: 2020,
+  });
+
+  const focused = timelineStats.buildFocusedHistograms(histogram);
+  assert.deepStrictEqual(focused.topCoreHistogram.map((bucket) => bucket.year), [2019, 2020]);
+  assert.strictEqual(focused.topCoreHistogram[0].ranks['A*'], 1);
+  assert.strictEqual(focused.topCoreHistogram[0].ranks.A, 1);
+  assert.strictEqual(focused.topCoreHistogram[0].ranks.B, undefined);
+  assert.strictEqual(focused.topCoreHistogram[0].total, 2);
+  assert.strictEqual(focused.topCoreHistogram[1].total, 0);
+  assert.deepStrictEqual(focused.q1Histogram.map((bucket) => bucket.year), [2019, 2020]);
+  assert.strictEqual(focused.q1Histogram[0].ranks.Q1, 1);
+  assert.strictEqual(focused.q1Histogram[1].ranks.Q1, 1);
+  assert.strictEqual(focused.q1Histogram[0].ranks.Q2, undefined);
+}
+
+function testTimelineStatsIncludesFocusedWindows() {
+  const publications = [
+    { publicationYear: 2016, system: 'CORE', rank: 'A*' },
+    { publicationYear: 2017, system: 'CORE', rank: 'A' },
+    { publicationYear: 2019, system: 'CORE', rank: 'A*' },
+    { publicationYear: 2020, system: 'SJR', rank: 'Q1' },
+    { publicationYear: 2026, system: 'SJR', rank: 'Q1' },
+    { system: 'SJR', rank: 'Q1' },
+  ];
+
+  const stats = timelineStats.buildTimelineStats(publications, {
+    rangeMode: timelineStats.RANGE_LAST_10_YEARS,
+    currentYear: 2026,
+    recentYears: 8,
+  });
+
+  assert.deepStrictEqual(stats.focusedHistograms.recent.topCoreHistogram.map((bucket) => bucket.year), [2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026]);
+  assert.strictEqual(stats.focusedHistograms.recent.topCoreHistogram.reduce((total, bucket) => total + bucket.total, 0), 1);
+  assert.strictEqual(stats.focusedHistograms.recent.q1Histogram.reduce((total, bucket) => total + bucket.total, 0), 2);
+  assert.strictEqual(stats.focusedHistograms.full.topCoreHistogram.reduce((total, bucket) => total + bucket.total, 0), 3);
+  assert.strictEqual(stats.focusedHistograms.full.q1Histogram.reduce((total, bucket) => total + bucket.total, 0), 2);
+}
+
+function testSummaryDistributionRenderUsesFilteredCounts() {
+  const contentPath = path.join(__dirname, '..', 'content.js');
+  const source = fs.readFileSync(contentPath, 'utf8');
+  assert.ok(
+    source.includes('counts: currentSummaryState.coreRankCounts || createEmptyCoreRankCounts()'),
+    'CORE distribution should render from the filtered currentSummaryState counts'
+  );
+  assert.ok(
+    source.includes('counts: currentSummaryState.sjrRankCounts || createEmptySjrRankCounts()'),
+    'SJR distribution should render from the filtered currentSummaryState counts'
+  );
+  assert.ok(
+    source.includes("getTimelineFocusedHistograms(currentSummaryState.timeline, 'recent')"),
+    'Sidebar should render focused recent histograms from currentSummaryState'
+  );
+}
+
+function testReportTimelineChartsUseStackedHorizontalLayout() {
+  const contentPath = path.join(__dirname, '..', 'content.js');
+  const source = fs.readFileSync(contentPath, 'utf8');
+  assert.ok(
+    source.includes('function createPdfFocusedTimelineChartSvg'),
+    'PDF reports should render focused timeline histograms as chart strips'
+  );
+  assert.ok(
+    source.includes('transform="rotate(-90'),
+    'Report year labels should be rotated to save horizontal space'
+  );
+  assert.ok(
+    source.includes('grid-template-columns:repeat(${Math.max(1, buckets.length)},minmax(0,1fr))'),
+    'HTML reports should fit all timeline years in a single chart row'
+  );
+  assert.ok(
+    source.includes('.timeline-grid{display:grid;grid-template-columns:1fr;gap:18px}'),
+    'HTML reports should stack the conference and journal charts vertically'
+  );
+  assert.ok(
+    source.includes("createPdfFocusedTimelineChart('A*/A CORE Timeline'") &&
+    source.includes("createPdfFocusedTimelineChart('Q1 Journal Timeline'"),
+    'PDF reports should render conference chart before journal chart'
+  );
+  assert.ok(
+    source.includes('unbreakable: true'),
+    'PDF report chart titles, legends, and graphs should move across pages as one block'
+  );
+  assert.ok(
+    source.includes('break-inside:avoid;page-break-inside:avoid'),
+    'Standalone HTML report chart panels should avoid print/page breaks inside a chart'
+  );
+}
+
+function testHistoricalSjrCoverageUnavailable() {
+  const dataset = accuracyLib.loadSjrDataset();
+  assert.strictEqual(dataset.startYear, 1999);
+
+  const result = accuracyLib.resolveJournalQuerySync('IEEE Transactions on Pattern Analysis and Machine Intelligence', 1998, {});
+  assert.strictEqual(result.status, core.DECISION_STATUS.UNRANKED);
+  assert.strictEqual(result.quartile, 'N/A');
+  assert.strictEqual(result.sourceYear, null);
+  assert.strictEqual(result.sourceYearFallback, false);
+  assert.strictEqual(result.reason, 'sjr_historical_coverage_unavailable');
 }
 
 function testProfileCandidateScoring() {
@@ -734,14 +942,14 @@ function testJournalLookupCacheScopesIssnBackedMatches() {
   const publicationYear = 2019;
   const normalizedQuery = accuracyLib.generateJournalNormalizationVariants(journalName)[0];
   const titleOnly = accuracyLib.resolveJournalQuerySync(journalName, publicationYear, {});
-  const issnBacked = accuracyLib.resolveJournalQuerySync(journalName, publicationYear, { issns: ['05461766'] });
+  const issnBacked = accuracyLib.resolveJournalQuerySync(journalName, publicationYear, { issns: ['03899160'] });
 
   assert.strictEqual(titleOnly.status, core.DECISION_STATUS.MISSING);
   assert.strictEqual(issnBacked.status, core.DECISION_STATUS.MATCHED);
   assert.strictEqual(issnBacked.quartile, 'Q4');
   assert.notStrictEqual(
     core.buildJournalLookupCacheKey(normalizedQuery, []),
-    core.buildJournalLookupCacheKey(normalizedQuery, ['0546-1766']),
+    core.buildJournalLookupCacheKey(normalizedQuery, ['0389-9160']),
     'ISSN-backed depth lookups should not reuse a title-only cache miss'
   );
 }
@@ -782,7 +990,16 @@ async function run() {
   testRankingPackNormalization();
   testFeatureStateNormalization();
   testCacheMetadataHelpers();
+  testTimelineFilteringAndCounts();
+  testTimelineRankCountRecomputation();
+  testFixedWindowTimelineHistogram();
+  testFullTimelineHistogramFillsKnownYearGaps();
+  testFocusedTimelineHistograms();
+  testTimelineStatsIncludesFocusedWindows();
+  testSummaryDistributionRenderUsesFilteredCounts();
+  testReportTimelineChartsUseStackedHorizontalLayout();
   testGeneratedSjrIndex();
+  testHistoricalSjrCoverageUnavailable();
   testCoreAliasResolution();
   testAmbiguousCoreAcronymAbstains();
   testProfileCandidateScoring();

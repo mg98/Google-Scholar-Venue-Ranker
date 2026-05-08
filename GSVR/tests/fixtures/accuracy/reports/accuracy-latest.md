@@ -1,6 +1,6 @@
 # Accuracy Benchmark Report
 
-- Generated: 2026-04-06T12:36:50.858Z
+- Generated: 2026-05-07T06:38:59.305Z
 - Suite: `gold`
 - Family: all families
 - Fixtures: 600
@@ -11,13 +11,13 @@
 
 | Family | Total | Pass | Accuracy | Precision | Recall | Abstain | Ambiguous | Mean | P95 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| conference_resolution | 120 | 120 | 100.0% | 100.0% | 100.0% | 2.5% | 1.7% | 0.32ms | 0.15ms |
-| journal_resolution | 120 | 120 | 100.0% | 100.0% | 100.0% | 2.5% | 0.0% | 5.92ms | 0.18ms |
-| pipeline_e2e | 100 | 100 | 100.0% | 100.0% | 100.0% | 10.0% | 5.0% | 0.43ms | 3.13ms |
-| profile_match | 40 | 40 | 100.0% | 100.0% | 100.0% | 50.0% | 0.0% | 0.77ms | 0.92ms |
-| publication_match | 80 | 80 | 100.0% | 100.0% | 100.0% | 50.0% | 25.0% | 0.06ms | 0.12ms |
-| search_queries | 60 | 60 | 100.0% | 100.0% | 100.0% | 68.3% | 1.7% | 7.09ms | 4.50ms |
-| track_classification | 80 | 80 | 100.0% | 100.0% | 100.0% | 0.0% | 0.0% | 0.05ms | 0.05ms |
+| conference_resolution | 120 | 120 | 100.0% | 100.0% | 100.0% | 2.5% | 1.7% | 0.26ms | 0.12ms |
+| journal_resolution | 120 | 120 | 100.0% | 100.0% | 100.0% | 2.5% | 0.0% | 12.01ms | 0.09ms |
+| pipeline_e2e | 100 | 100 | 100.0% | 100.0% | 100.0% | 10.0% | 5.0% | 0.33ms | 2.80ms |
+| profile_match | 40 | 40 | 100.0% | 100.0% | 100.0% | 50.0% | 0.0% | 0.37ms | 0.99ms |
+| publication_match | 80 | 80 | 100.0% | 100.0% | 100.0% | 50.0% | 25.0% | 0.05ms | 0.12ms |
+| search_queries | 60 | 60 | 100.0% | 100.0% | 100.0% | 68.3% | 1.7% | 61.84ms | 5.72ms |
+| track_classification | 80 | 80 | 100.0% | 100.0% | 100.0% | 0.0% | 0.0% | 0.03ms | 0.02ms |
 
 ### conference_resolution
 
