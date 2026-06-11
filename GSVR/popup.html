@@ -13,12 +13,14 @@
           <p class="gsr-popup__eyebrow">Google Scholar Venue Ranker</p>
           <h1 class="gsr-popup__title">Scholar-Native Controls</h1>
         </div>
-        <span class="gsr-popup__badge">v2.0</span>
+        <span id="versionBadge" class="gsr-popup__badge">v…</span>
       </header>
 
-      <p class="gsr-popup__copy">
-        Tune how rankings appear on Scholar without leaving your current page.
-      </p>
+      <section class="gsr-popup__section" aria-labelledby="popup-tab-state">
+        <h2 id="popup-tab-state" class="gsr-popup__section-title">This Tab</h2>
+        <p id="tabState" class="gsr-popup__copy gsr-popup__copy--tight" aria-live="polite">Checking the active tab…</p>
+        <button id="rescanProfile" class="gsr-popup__button gsr-popup__button--secondary" type="button" disabled>Rescan This Profile</button>
+      </section>
 
       <section class="gsr-popup__section" aria-labelledby="popup-quick-settings">
         <h2 id="popup-quick-settings" class="gsr-popup__section-title">Quick Settings</h2>

@@ -1,6 +1,6 @@
 # Accuracy Benchmark Report
 
-- Generated: 2026-06-11T04:44:33.273Z
+- Generated: 2026-06-11T04:54:53.328Z
 - Suite: `all`
 - Family: all families
 - Fixtures: 2271
@@ -11,13 +11,13 @@
 
 | Family | Total | Pass | Accuracy | Precision | Recall | Abstain | Ambiguous | Mean | P95 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| conference_resolution | 120 | 120 | 100.0% | 100.0% | 100.0% | 2.5% | 1.7% | 0.43ms | 0.17ms |
-| journal_resolution | 120 | 120 | 100.0% | 100.0% | 100.0% | 2.5% | 0.0% | 8.02ms | 0.39ms |
-| pipeline_e2e | 100 | 100 | 100.0% | 100.0% | 100.0% | 10.0% | 5.0% | 0.46ms | 2.92ms |
-| profile_match | 40 | 40 | 100.0% | 100.0% | 100.0% | 50.0% | 0.0% | 0.56ms | 1.46ms |
-| publication_match | 80 | 80 | 100.0% | 100.0% | 100.0% | 50.0% | 25.0% | 0.06ms | 0.10ms |
-| search_queries | 60 | 60 | 100.0% | 100.0% | 100.0% | 68.3% | 1.7% | 8.59ms | 7.78ms |
-| track_classification | 80 | 80 | 100.0% | 100.0% | 100.0% | 0.0% | 0.0% | 0.03ms | 0.04ms |
+| conference_resolution | 120 | 120 | 100.0% | 100.0% | 100.0% | 2.5% | 1.7% | 0.29ms | 0.17ms |
+| journal_resolution | 120 | 120 | 100.0% | 100.0% | 100.0% | 2.5% | 0.0% | 8.06ms | 0.67ms |
+| pipeline_e2e | 100 | 100 | 100.0% | 100.0% | 100.0% | 10.0% | 5.0% | 0.50ms | 3.55ms |
+| profile_match | 40 | 40 | 100.0% | 100.0% | 100.0% | 50.0% | 0.0% | 0.51ms | 1.74ms |
+| publication_match | 80 | 80 | 100.0% | 100.0% | 100.0% | 50.0% | 25.0% | 0.04ms | 0.08ms |
+| search_queries | 60 | 60 | 100.0% | 100.0% | 100.0% | 68.3% | 1.7% | 9.51ms | 8.11ms |
+| track_classification | 80 | 80 | 100.0% | 100.0% | 100.0% | 0.0% | 0.0% | 0.03ms | 0.03ms |
 
 ### conference_resolution
 
@@ -116,10 +116,10 @@
 
 | Family | Total | Pass | Accuracy | Precision | Recall | Abstain | Ambiguous | Mean | P95 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| conference_resolution | 900 | 900 | 100.0% | 100.0% | 100.0% | 0.6% | 0.6% | 0.02ms | 0.05ms |
-| journal_resolution | 320 | 320 | 100.0% | 100.0% | 100.0% | 0.3% | 0.3% | 0.07ms | 0.12ms |
-| pipeline_e2e | 240 | 240 | 100.0% | 100.0% | 100.0% | 50.8% | 2.1% | 2.28ms | 5.49ms |
-| search_queries | 120 | 120 | 100.0% | 100.0% | 100.0% | 0.8% | 0.8% | 1.52ms | 4.94ms |
+| conference_resolution | 900 | 900 | 100.0% | 100.0% | 100.0% | 0.6% | 0.6% | 0.04ms | 0.07ms |
+| journal_resolution | 320 | 320 | 100.0% | 100.0% | 100.0% | 0.3% | 0.3% | 0.08ms | 0.12ms |
+| pipeline_e2e | 240 | 240 | 100.0% | 100.0% | 100.0% | 50.8% | 2.1% | 2.21ms | 5.53ms |
+| search_queries | 120 | 120 | 100.0% | 100.0% | 100.0% | 0.8% | 0.8% | 1.70ms | 6.19ms |
 
 ### conference_resolution
 
@@ -185,9 +185,9 @@
 
 | Family | Total | Pass | Accuracy | Precision | Recall | Abstain | Ambiguous | Mean | P95 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| conference_resolution | 27 | 27 | 100.0% | 100.0% | 100.0% | 0.0% | 0.0% | 0.02ms | 0.07ms |
-| journal_resolution | 54 | 54 | 100.0% | 100.0% | 100.0% | 0.0% | 0.0% | 0.26ms | 0.77ms |
-| publication_match | 4 | 4 | 100.0% | 100.0% | 100.0% | 25.0% | 25.0% | 0.09ms | 0.25ms |
+| conference_resolution | 27 | 27 | 100.0% | 100.0% | 100.0% | 0.0% | 0.0% | 0.03ms | 0.13ms |
+| journal_resolution | 54 | 54 | 100.0% | 100.0% | 100.0% | 0.0% | 0.0% | 0.22ms | 0.75ms |
+| publication_match | 4 | 4 | 100.0% | 100.0% | 100.0% | 25.0% | 25.0% | 0.09ms | 0.26ms |
 | track_classification | 6 | 6 | 100.0% | 100.0% | 100.0% | 0.0% | 0.0% | 0.01ms | 0.03ms |
 
 ### conference_resolution

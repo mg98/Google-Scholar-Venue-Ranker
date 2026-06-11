@@ -19,6 +19,14 @@ Google Scholar Venue Ranker is an open-source Chrome extension developed by [Nav
 
 ## Changelog
 
+### Unreleased (phase 4)
+
+- `DBLP match trust line`: the sidebar footer now shows the matched DBLP PID, how it was matched (automatically or set manually), and a one-click "Wrong author?" correction path into the manual override dialog. Automatic matches are re-verified after 45 days instead of being cached forever, so a wrong homonym match can no longer persist indefinitely; manual overrides never expire.
+- `Popup v2`: the toolbar popup reads its version from the manifest (the badge was hardcoded to "v2.0"), shows the live state of the active Scholar tab (author, publications ranked, GSVR score, last update, scan-in-progress), and gains a "Rescan This Profile" button.
+- `Dark mode`: the popup and settings pages now follow the system theme via design tokens (`prefers-color-scheme`). The injected Scholar UI still needs a token migration first (384 hardcoded colors measured in `inject.css`) and is documented as follow-up work rather than shipped blind.
+- `Accessibility`: rank-badge popovers are dismissible with Escape and expose `role="button"` when they open the evidence drawer; muted-text contrast raised in the popup/options palettes.
+- Deferred with rationale: the sidebar three-tier layout restructure and the injected-UI dark theme require visual verification in a live browser session; the out-of-DBLP-scope completeness category is specced in the improvement plan as the next accuracy-diagnostics item.
+
 ### Unreleased (phase 3)
 
 - `Package diet`: the shipped extension dropped from ~254 MB to ~19 MB. Raw SCImago CSVs no longer ship in the package (they remain in the repository to build the compact index); the runtime CSV fallback was removed and an index-load failure now reports "lookup unavailable" instead of silently returning "not found".

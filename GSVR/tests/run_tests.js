@@ -828,7 +828,11 @@ function testManualDblpUiSmoke() {
   assert.ok(contentSource.includes('Add My DBLP Profile'));
   assert.ok(contentSource.includes('Change DBLP'));
   assert.ok(contentSource.includes('Clear Manual DBLP'));
-  assert.ok(contentSource.includes('Using manually selected DBLP profile'));
+  // Trust line: matched PID + provenance + correction affordance.
+  assert.ok(contentSource.includes('matched automatically'));
+  assert.ok(contentSource.includes('set manually'));
+  assert.ok(contentSource.includes('Wrong author?'));
+  assert.ok(contentSource.includes('openManualDblpOverrideOverlay()'));
 }
 
 function testDblpPersonXmlScholarUrlParsing() {

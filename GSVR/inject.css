@@ -1172,6 +1172,30 @@
   color: #355cae;
 }
 
+.gsr-summary-footer__stamp--pid {
+  margin-left: 0;
+  text-align: left;
+  font-weight: 500;
+}
+
+.gsr-summary-footer__pid-change {
+  border: none;
+  padding: 0;
+  background: none;
+  color: #214ca6;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.gsr-summary-footer__pid-change:hover,
+.gsr-summary-footer__pid-change:focus-visible {
+  color: #16336f;
+  outline: 2px solid rgba(74, 103, 161, 0.35);
+  outline-offset: 2px;
+}
+
 .gsr-summary-meta__link {
   display: inline-flex;
   align-items: center;

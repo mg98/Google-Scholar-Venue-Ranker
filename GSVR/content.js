@@ -383,7 +383,9 @@ const DBLP_PID_CACHE_KEY_PREFIX = 'scholarRanker_dblpPid_v1_';
 const MANUAL_DBLP_PID_KEY_PREFIX = 'scholarRanker_manualDblpPid_v1_';
 const BUNDLED_SJR_DATA_VERSION = 3;
 const CACHE_DURATION_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
-const DBLP_CACHE_DURATION_MS = Number.POSITIVE_INFINITY; // never expires
+// Automatic profile matches are re-verified after this TTL so a wrong homonym
+// match cannot persist forever. Manual overrides never expire.
+const DBLP_CACHE_DURATION_MS = 1000 * 60 * 60 * 24 * 45; // 45 days
 console.log("Google Scholar Ranker: Content script loaded (v2.0.3 - timeline statistics and historical SJR coverage).");
 
 // --- Strict DBLP-only UI labels ---
@@ -1044,9 +1046,20 @@ async function loadPersistentDblpPid(userId) {
     const pidCacheKey = getDblpPidCacheKey(userId);
     try {
         const result = await chrome.storage.local.get(pidCacheKey);
-        const cachedPid = result?.[pidCacheKey];
-        if (typeof cachedPid === 'string' && cachedPid.trim()) {
-            return cachedPid.trim();
+        const cached = result?.[pidCacheKey];
+        if (cached && typeof cached === 'object' && typeof cached.pid === 'string' && cached.pid.trim()) {
+            const storedAt = Number(cached.storedAt);
+            if (Number.isFinite(storedAt) && (Date.now() - storedAt) <= DBLP_CACHE_DURATION_MS) {
+                return cached.pid.trim();
+            }
+            // Expired automatic match: force a fresh verification.
+            return null;
+        }
+        if (typeof cached === 'string' && cached.trim()) {
+            // Legacy timestamp-less entry: accept once and start its TTL clock.
+            const pid = cached.trim();
+            savePersistentDblpPid(userId, pid).catch(() => undefined);
+            return pid;
         }
     }
     catch {
@@ -1054,12 +1067,7 @@ async function loadPersistentDblpPid(userId) {
     }
     const legacyPid = await loadLegacyCachedDblpPid(userId);
     if (legacyPid) {
-        try {
-            await chrome.storage.local.set({ [pidCacheKey]: legacyPid });
-        }
-        catch {
-            // Ignore cache write failures; the recovered PID is still usable for this run.
-        }
+        savePersistentDblpPid(userId, legacyPid).catch(() => undefined);
         return legacyPid;
     }
     return null;
@@ -1089,7 +1097,12 @@ async function savePersistentDblpPid(userId, dblpAuthorPid) {
         return;
     }
     try {
-        await chrome.storage.local.set({ [getDblpPidCacheKey(userId)]: String(dblpAuthorPid).trim() });
+        await chrome.storage.local.set({
+            [getDblpPidCacheKey(userId)]: {
+                pid: String(dblpAuthorPid).trim(),
+                storedAt: Date.now()
+            }
+        });
     }
     catch {
         // Ignore cache write failures.
@@ -5461,6 +5474,9 @@ function attachBadgeDetailBehavior(badge, rank, system, reason = null, meta = nu
     }
     badge.removeAttribute('title');
     badge.setAttribute('aria-describedby', BADGE_POPOVER_ID);
+    if (meta) {
+        badge.setAttribute('role', 'button');
+    }
     const show = () => showBadgePopover(badge, items);
     badge.addEventListener('mouseenter', show);
     badge.addEventListener('focus', show);
@@ -5477,6 +5493,9 @@ function attachBadgeDetailBehavior(badge, rank, system, reason = null, meta = nu
         if ((event.key === 'Enter' || event.key === ' ') && meta) {
             event.preventDefault();
             openDetailDrawer(meta);
+        }
+        if (event.key === 'Escape') {
+            hideBadgePopover(true);
         }
     });
 }
@@ -8423,12 +8442,6 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
     finalFooterDiv.className = 'gsr-card__footer gsr-summary-footer';
     const footerMeta = document.createElement('div');
     footerMeta.className = 'gsr-summary-footer__meta';
-    if (currentProfileContext.dblpPidSource === 'manual') {
-        const manualMeta = document.createElement('span');
-        manualMeta.className = 'gsr-summary-footer__stamp gsr-summary-footer__stamp--manual';
-        manualMeta.textContent = 'Using manually selected DBLP profile';
-        footerMeta.appendChild(manualMeta);
-    }
     if (dblpAuthorPid) {
         const dblpProfileLink = document.createElement('a');
         dblpProfileLink.href = `https://dblp.org/pid/${dblpAuthorPid}.html`;
@@ -8448,6 +8461,26 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
         dblpProfileLink.appendChild(dblpLogo);
         dblpProfileLink.appendChild(dblpLabel);
         footerMeta.appendChild(dblpProfileLink);
+
+        // Trust line: every ranking decision hinges on WHICH DBLP author was
+        // matched, so the identity and its provenance stay one glance away,
+        // with a direct correction path for wrong homonym matches.
+        const isManualPid = currentProfileContext.dblpPidSource === 'manual';
+        const pidMeta = document.createElement('span');
+        pidMeta.className = `gsr-summary-footer__stamp gsr-summary-footer__stamp--pid${isManualPid ? ' gsr-summary-footer__stamp--manual' : ''}`;
+        const pidSourceLabel = isManualPid
+            ? 'set manually'
+            : (currentProfileContext.dblpPidSource === 'search' ? 'matched automatically' : 'matched automatically (cached)');
+        pidMeta.textContent = `pid ${dblpAuthorPid} · ${pidSourceLabel}`;
+        footerMeta.appendChild(pidMeta);
+
+        const changePidButton = document.createElement('button');
+        changePidButton.type = 'button';
+        changePidButton.className = 'gsr-summary-footer__pid-change';
+        changePidButton.textContent = isManualPid ? 'Change or reset' : 'Wrong author?';
+        changePidButton.setAttribute('title', 'Set or correct the DBLP profile used for ranking');
+        changePidButton.addEventListener('click', () => openManualDblpOverrideOverlay());
+        footerMeta.appendChild(changePidButton);
     }
     if (cacheTimestamp) {
         const timestampTextElement = document.createElement('span');
@@ -10789,6 +10822,50 @@ if (chrome?.storage?.onChanged && SETTINGS_API?.SETTINGS_KEY) {
         else {
             applyActiveSummaryFilter();
         }
+    });
+}
+// Popup remote control: lets the toolbar popup show the live state of this
+// tab and trigger a rescan without the user hunting for in-page controls.
+if (chrome?.runtime?.onMessage) {
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+        if (!message || typeof message !== 'object') {
+            return;
+        }
+        if (message.type === 'GSVR_POPUP_STATUS') {
+            const surfaceMode = getScholarSurfaceMode();
+            const summary = currentSummaryState;
+            const publicationCount = Array.isArray(summary?.publicationRanks) ? summary.publicationRanks.length : 0;
+            const totalScore = Number(summary?.venueProfileIndex?.totalScore);
+            sendResponse({
+                ok: true,
+                surfaceMode,
+                isScanning: isMainProcessing,
+                authorName: surfaceMode === 'profile' ? (getScholarAuthorName() || null) : null,
+                hasResults: !!summary,
+                publicationCount,
+                gsvrScore: Number.isFinite(totalScore) ? totalScore : null,
+                updatedAt: summary?.cacheTimestamp ?? null,
+                dblpAuthorPid: currentProfileContext?.dblpAuthorPid || null,
+                dblpPidSource: currentProfileContext?.dblpPidSource || null
+            });
+            return false;
+        }
+        if (message.type === 'GSVR_POPUP_RESCAN') {
+            if (getScholarSurfaceMode() !== 'profile') {
+                sendResponse({ ok: false, reason: 'not-profile' });
+                return false;
+            }
+            if (isMainProcessing) {
+                sendResponse({ ok: false, reason: 'busy' });
+                return false;
+            }
+            Promise.resolve()
+                .then(() => rescanCurrentProfile())
+                .catch((error) => console.warn('GSVR: popup-triggered rescan failed.', error));
+            sendResponse({ ok: true });
+            return false;
+        }
+        return undefined;
     });
 }
 function hasLiveRankingHydration() {
