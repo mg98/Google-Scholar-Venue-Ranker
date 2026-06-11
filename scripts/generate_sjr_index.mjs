@@ -1,98 +1,21 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import vm from "node:vm";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
-function escapeRegExp(str) {
-  return String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
+// Use the SAME normalization module as the runtime content script and the
+// Node test mirror, so index keys and query keys can never drift apart.
+const require = createRequire(import.meta.url);
+const journalMatch = require("../GSVR/core/journal_match.js");
 
-function createHelpers(commonAbbreviations) {
-  function cleanTextForComparison(text, isGoogleScholarVenue = false) {
-    if (!text) return "";
-    let cleanedText = String(text).toLowerCase();
-    cleanedText = cleanedText.replace(/&/g, " and ");
-    cleanedText = cleanedText.replace(/[\.,\/#!$%\^;\*:{}=\_`~?"“”()\[\]]/g, " ");
-    cleanedText = cleanedText.replace(/\s-\s/g, " ");
-    if (isGoogleScholarVenue) {
-      cleanedText = cleanedText.replace(/^(\d{4}\s+|\d{1,2}(st|nd|rd|th)\s+)/, "");
-      cleanedText = cleanedText.replace(/,\s*\d{4}$/, "");
-      cleanedText = cleanedText.replace(/\(\d{4}\)$/, "");
-      cleanedText = cleanedText.replace(/\b(part|volume|vol|issue|no|number)\s*\d+\b/g, " ");
-    }
-    cleanedText = cleanedText.replace(/\b\d{1,3}\b\s*$/g, " ");
-    cleanedText = cleanedText.replace(/\s+/g, " ").trim();
-
-    for (const [abbr, expansion] of Object.entries(commonAbbreviations)) {
-      const regex = new RegExp(`\\b${escapeRegExp(abbr)}\\b`, "gi");
-      cleanedText = cleanedText.replace(regex, expansion);
-    }
-
-    return cleanedText.replace(/\s+/g, " ").trim();
-  }
-
-  function normalizeJournalName(name) {
-    if (!name) return "";
-    let cleaned = cleanTextForComparison(name, true);
-    if (!cleaned) return "";
-    cleaned = cleaned.replace(/\b\d{1,6}\b/g, " ");
-    cleaned = cleaned.replace(/\s+/g, " ").trim();
-    if (!cleaned) return "";
-
-    const stop = new Set([
-      "a", "an", "the", "of", "and", "for", "in", "on", "to", "at",
-      "journal", "international", "transactions", "letters"
-    ]);
-
-    const stem = (token) => {
-      if (token.length <= 4) return token;
-      if (token.endsWith("ies") && token.length > 5) return token.slice(0, -3) + "y";
-      if (token.endsWith("sses")) return token;
-      if (token.endsWith("s") && !token.endsWith("ss")) return token.slice(0, -1);
-      return token;
-    };
-
-    return cleaned
-      .split(" ")
-      .map((token) => token.trim())
-      .filter(Boolean)
-      .map(stem)
-      .filter((token) => token.length > 0 && !stop.has(token))
-      .join(" ")
-      .trim();
-  }
-
-  function createTokenSet(normalizedTitle) {
-    const stopWords = new Set(["and", "the", "of", "for", "in", "on", "journal", "international", "transactions", "letters"]);
-    return Array.from(new Set(
-      normalizedTitle
-        .split(" ")
-        .map((token) => token.trim())
-        .filter((token) => token.length >= 3 && !stopWords.has(token))
-    ));
-  }
-
-  return {
-    normalizeJournalName,
-    createTokenSet
-  };
-}
-
-async function readCommonAbbreviations(contentJsPath) {
-  const source = await fs.readFile(contentJsPath, "utf8");
-  const match = source.match(/const\s+COMMON_ABBREVIATIONS\s*=\s*({[\s\S]*?^});/m);
-  if (!match) {
-    throw new Error("Failed to extract COMMON_ABBREVIATIONS from content.js");
-  }
-  return vm.runInNewContext(`(${match[1]})`);
-}
+const { normalizeJournalName, createTokenSet, normalizeIssnList } = journalMatch;
 
 function parseSjrCsv(text) {
   const rows = [];
   let currentField = "";
   let currentRow = [];
   let inQuotes = false;
-  const sanitized = text.replace(/\ufeff/g, "");
+  const sanitized = text.split(String.fromCharCode(0xfeff)).join("");
 
   for (let i = 0; i < sanitized.length; i++) {
     const char = sanitized[i];
@@ -129,17 +52,14 @@ function parseSjrCsv(text) {
   return rows;
 }
 
-function normalizeIssnList(value) {
-  const raw = Array.isArray(value) ? value : String(value || '').split(/[;,]/);
-  const out = [];
-  const seen = new Set();
-  for (const item of raw) {
-    const normalized = String(item || '').replace(/[^0-9Xx]/g, '').toUpperCase();
-    if (!normalized || seen.has(normalized)) continue;
-    seen.add(normalized);
-    out.push(normalized);
-  }
-  return out;
+function chooseBetterQuartile(existing, nextValue) {
+  if (!nextValue) return existing;
+  if (!existing) return nextValue;
+  const parse = (value) => {
+    const match = String(value).match(/^Q(\d)$/i);
+    return match ? parseInt(match[1], 10) : Number.POSITIVE_INFINITY;
+  };
+  return parse(nextValue) < parse(existing) ? nextValue : existing;
 }
 
 export async function generateSjrIndex({ root = process.cwd() } = {}) {
@@ -147,14 +67,15 @@ export async function generateSjrIndex({ root = process.cwd() } = {}) {
   const sjrDir = path.join(srcDir, "sjr");
   const outDir = path.join(srcDir, "data");
   const outPath = path.join(outDir, "sjr-index.json");
-  const commonAbbreviations = await readCommonAbbreviations(path.join(srcDir, "content.js"));
-  const { normalizeJournalName, createTokenSet } = createHelpers(commonAbbreviations);
 
   const files = (await fs.readdir(sjrDir))
     .filter((name) => /^scimagojr \d{4}\.csv$/i.test(name))
     .sort();
 
-  const byNormalized = new Map();
+  // Identity model: one entry per SCImago sourceId. Distinct sourceIds are
+  // never merged, even when their normalized titles collide — colliding keys
+  // become multi-entry buckets that the runtime resolves via ISSN or abstains.
+  const bySourceKey = new Map();
   let startYear = Number.POSITIVE_INFINITY;
   let endYear = Number.NEGATIVE_INFINITY;
 
@@ -197,27 +118,30 @@ export async function generateSjrIndex({ root = process.cwd() } = {}) {
       const normalizedTitle = normalizeJournalName(title);
       if (!normalizedTitle) continue;
 
-      let entry = byNormalized.get(normalizedTitle);
+      const sourceKey = sourceId ? `sid:${sourceId}` : `title:${normalizedTitle}`;
+      let entry = bySourceKey.get(sourceKey);
       if (!entry) {
         entry = {
-          normalizedTitle,
-          resolvedTitle: title,
-          quartilesByYear: {},
-          tokens: createTokenSet(normalizedTitle),
           sourceId,
-          sourceIdYear: sourceId ? year : null,
-          issns,
+          resolvedTitle: title,
+          latestTitle: title,
+          latestTitleYear: year,
+          aliasKeys: new Set(),
+          quartilesByYear: {},
+          issns: [],
           coverage,
-          coverageYear: coverage ? year : null
+          coverageYear: coverage ? year : null,
         };
-        byNormalized.set(normalizedTitle, entry);
-      } else if (title.length > entry.resolvedTitle.length) {
-        entry.resolvedTitle = title;
+        bySourceKey.set(sourceKey, entry);
       }
 
-      if (sourceId && (!entry.sourceId || ((entry.sourceIdYear || 0) < 2010 && year >= 2010))) {
-        entry.sourceId = sourceId;
-        entry.sourceIdYear = year;
+      entry.aliasKeys.add(normalizedTitle);
+      if (title.length > entry.resolvedTitle.length) {
+        entry.resolvedTitle = title;
+      }
+      if (year >= entry.latestTitleYear) {
+        entry.latestTitle = title;
+        entry.latestTitleYear = year;
       }
       if (coverage && (!entry.coverage || ((entry.coverageYear || 0) < 2010 && year >= 2010))) {
         entry.coverage = coverage;
@@ -228,27 +152,40 @@ export async function generateSjrIndex({ root = process.cwd() } = {}) {
       }
 
       const existing = entry.quartilesByYear[year];
-      if (!existing || quartileRaw < existing) {
-        entry.quartilesByYear[year] = quartileRaw;
-      }
+      entry.quartilesByYear[year] = chooseBetterQuartile(existing, quartileRaw);
     }
   }
 
+  const entries = Array.from(bySourceKey.values()).map((entry) => {
+    const primaryKey = normalizeJournalName(entry.latestTitle) || [...entry.aliasKeys][0];
+    const aliases = [...entry.aliasKeys].filter((key) => key && key !== primaryKey).sort();
+    return {
+      n: primaryKey,
+      a: aliases,
+      t: entry.resolvedTitle,
+      q: entry.quartilesByYear,
+      k: [...createTokenSet(primaryKey)],
+      i: entry.issns,
+      s: entry.sourceId,
+      c: entry.coverage,
+    };
+  }).sort((left, right) => left.n.localeCompare(right.n) || String(left.s || "").localeCompare(String(right.s || "")));
+
+  // Collision diagnostics: how many exact keys are shared by >1 sourceId?
+  const keyOwners = new Map();
+  for (const entry of entries) {
+    for (const key of new Set([entry.n, ...entry.a])) {
+      if (!keyOwners.has(key)) keyOwners.set(key, new Set());
+      keyOwners.get(key).add(entry.s || entry.t);
+    }
+  }
+  const collidingKeys = [...keyOwners.values()].filter((owners) => owners.size > 1).length;
+
   const payload = {
-    version: 2,
+    version: 3,
     startYear: Number.isFinite(startYear) ? startYear : null,
     endYear: Number.isFinite(endYear) ? endYear : null,
-    entries: Array.from(byNormalized.values())
-      .sort((a, b) => a.normalizedTitle.localeCompare(b.normalizedTitle))
-      .map((entry) => ({
-        n: entry.normalizedTitle,
-        t: entry.resolvedTitle,
-        q: entry.quartilesByYear,
-        k: entry.tokens,
-        i: entry.issns,
-        s: entry.sourceId,
-        c: entry.coverage
-      }))
+    entries,
   };
 
   await fs.mkdir(outDir, { recursive: true });
@@ -258,7 +195,8 @@ export async function generateSjrIndex({ root = process.cwd() } = {}) {
     outPath,
     count: payload.entries.length,
     startYear: payload.startYear,
-    endYear: payload.endYear
+    endYear: payload.endYear,
+    collidingKeys,
   };
 }
 
@@ -270,4 +208,5 @@ if (entryPath && entryPath === modulePath) {
   console.log(`Generated SJR index: ${result.outPath}`);
   console.log(`Entries: ${result.count}`);
   console.log(`Years: ${result.startYear}–${result.endYear}`);
+  console.log(`Exact keys shared by >1 journal (abstain buckets): ${result.collidingKeys}`);
 }

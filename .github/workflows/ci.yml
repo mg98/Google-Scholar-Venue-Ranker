@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Unit and regression tests
+        run: npm test
+
+      - name: Score model tests
+        run: npm run test:score
+
+      - name: DBLP scheduler tests
+        run: npm run test:dblp
+
+      - name: SJR smoke test (shared matcher, real CSV data)
+        run: node GSVR/tests/sjr_smoke_test.js
+
+      - name: Accuracy benchmark (fail on regression vs committed baseline)
+        run: npm run benchmark:accuracy -- --suite all --fail-on-regression
+
+      - name: Build unpacked extension
+        run: npm run build
+
+      - name: Bundle size budget
+        run: node scripts/check_size_budget.mjs

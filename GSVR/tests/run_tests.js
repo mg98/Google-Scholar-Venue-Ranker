@@ -341,17 +341,68 @@ function testGeneratedSjrIndex() {
   assert.ok(fs.existsSync(indexPath), 'Expected generated SJR index to exist');
 
   const payload = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
-  assert.strictEqual(payload.version, 2);
+  assert.strictEqual(payload.version, 3);
   assert.strictEqual(payload.startYear, 1999);
   assert.strictEqual(payload.endYear, 2024);
   assert.ok(Array.isArray(payload.entries), 'Expected compact SJR entries array');
-  assert.ok(payload.entries.length > 30000, 'Expected compact SJR index to contain the bundled journals');
+  assert.ok(payload.entries.length > 36000, 'Expected compact SJR index to contain the bundled journals');
 
   const tpami = payload.entries.find((entry) => entry.n === 'ieee transaction pattern analysi machine intelligence');
   assert.ok(tpami, 'Expected TPAMI normalized journal entry to exist');
   assert.strictEqual(tpami.q['1999'], 'Q1');
   assert.strictEqual(tpami.q['2024'], 'Q1');
   assert.ok(Array.isArray(tpami.i), 'Expected SJR entries to include ISSN metadata');
+
+  // Identity model: one entry per SCImago sourceId; previously-merged distinct
+  // journals must now be separate entries with their own quartile histories.
+  const diabetes = payload.entries.filter((entry) => entry.n === 'diabete');
+  const journalOfDiabetes = payload.entries.filter((entry) => entry.n === 'journal diabete');
+  assert.strictEqual(diabetes.length, 1, 'Expected "Diabetes" to have its own entry');
+  assert.strictEqual(journalOfDiabetes.length, 1, 'Expected "Journal of Diabetes" to have its own entry');
+  assert.notStrictEqual(diabetes[0].s, journalOfDiabetes[0].s, 'Distinct journals must keep distinct sourceIds');
+  assert.strictEqual(diabetes[0].q['2022'], 'Q1');
+  assert.strictEqual(journalOfDiabetes[0].q['2022'], 'Q2', 'Journal of Diabetes must not inherit Q1 from Diabetes');
+}
+
+function testJournalIdentityModelRegression() {
+  // End-to-end through the shared resolver: merged-key journals resolve to
+  // their OWN quartiles, raw-title equality breaks stem ties, and truly
+  // ambiguous title-only queries abstain.
+  const journalOfDiabetes = accuracyLib.resolveJournalQuerySync('Journal of Diabetes', 2022, {});
+  assert.strictEqual(journalOfDiabetes.status, core.DECISION_STATUS.MATCHED);
+  assert.strictEqual(journalOfDiabetes.quartile, 'Q2');
+  assert.strictEqual(journalOfDiabetes.matchedTitle, 'Journal of Diabetes');
+
+  const diabetes = accuracyLib.resolveJournalQuerySync('Diabetes', 2022, {});
+  assert.strictEqual(diabetes.status, core.DECISION_STATUS.MATCHED);
+  assert.strictEqual(diabetes.quartile, 'Q1');
+
+  // "Neuroscience" stem-ties with the distinct journal "Neurosciences"; the
+  // exact raw title must break the tie and yield Neuroscience's own Q2.
+  const neuroscience = accuracyLib.resolveJournalQuerySync('Neuroscience', 2022, {});
+  assert.strictEqual(neuroscience.status, core.DECISION_STATUS.MATCHED);
+  assert.strictEqual(neuroscience.matchedTitle, 'Neuroscience');
+  assert.strictEqual(neuroscience.quartile, 'Q2');
+
+  const journalOfGenetics = accuracyLib.resolveJournalQuerySync('Journal of Genetics', 2022, {});
+  assert.strictEqual(journalOfGenetics.status, core.DECISION_STATUS.MATCHED);
+  assert.strictEqual(journalOfGenetics.quartile, 'Q4', 'Journal of Genetics must not inherit Q1 from Genetics');
+}
+
+function testDiacriticFoldingInMatching() {
+  assert.strictEqual(core.normalizeForMatch('Müller-Schloß Systems'), core.normalizeForMatch('Muller-Schloss Systems'));
+  assert.strictEqual(core.normalizeProfileName('José García'), 'jose garcia');
+
+  // An accented Scholar title must exact-match the unaccented DBLP rendering.
+  const match = core.selectBestDblpMatch({
+    scholarTitle: 'Énergie Harvesting für Müller Networks',
+    scholarYear: 2021,
+    dblpPublications: [
+      { dblpKey: 'conf/test/fold1', title: 'Energie Harvesting fur Muller Networks', year: '2021', venue: 'TEST' },
+    ],
+  });
+  assert.ok(match, 'Expected diacritic-folded exact title match');
+  assert.strictEqual(match.dblpKey, 'conf/test/fold1');
 }
 
 function testTimelineFilteringAndCounts() {
@@ -999,6 +1050,8 @@ async function run() {
   testSummaryDistributionRenderUsesFilteredCounts();
   testReportTimelineChartsUseStackedHorizontalLayout();
   testGeneratedSjrIndex();
+  testJournalIdentityModelRegression();
+  testDiacriticFoldingInMatching();
   testHistoricalSjrCoverageUnavailable();
   testCoreAliasResolution();
   testAmbiguousCoreAcronymAbstains();

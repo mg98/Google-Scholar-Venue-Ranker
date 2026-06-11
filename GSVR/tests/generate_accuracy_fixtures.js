@@ -674,7 +674,21 @@ function buildGoldJournalFixtures() {
     .filter((entry) => latestQuartile(entry))
     .sort((left, right) => left.resolvedTitle.localeCompare(right.resolvedTitle));
 
-  const selectedExact = exactEntries.slice(0, 75);
+  // Under the v3 identity model some normalized-title keys are shared by
+  // several distinct journals; those resolve via raw-title tie-break
+  // ('title_exact_raw') or abstain. Keep only entries that resolve back to
+  // the SAME journal, and pin the matchType the resolver actually reports.
+  const selectedExact = [];
+  const selectedProbes = [];
+  for (const entry of exactEntries) {
+    if (selectedExact.length >= 75) break;
+    const latest = latestQuartile(entry);
+    const probe = lib.resolveJournalResolutionFixture({ journalName: entry.resolvedTitle, publicationYear: latest.year });
+    if (probe.status !== lib.DECISION_STATUS.MATCHED) continue;
+    if ((probe.matchedSourceId || null) !== (entry.sourceId || null)) continue;
+    selectedExact.push(entry);
+    selectedProbes.push(probe);
+  }
   selectedExact.forEach((entry, index) => {
     const latest = latestQuartile(entry);
     const input = { journalName: entry.resolvedTitle, publicationYear: latest.year };
@@ -685,7 +699,7 @@ function buildGoldJournalFixtures() {
       sourceYear: latest.year,
       sourceYearFallback: false,
       matchedSourceId: entry.sourceId || null,
-      matchType: 'title_exact',
+      matchType: selectedProbes[index].matchType,
     };
     assertSubset(`journal_resolution exact ${entry.resolvedTitle}`, lib.resolveJournalResolutionFixture(input), expected);
     fixtures.push(fixture(
@@ -699,7 +713,23 @@ function buildGoldJournalFixtures() {
     ));
   });
 
-  const issnEntries = exactEntries.filter((entry) => Array.isArray(entry.issns) && entry.issns.length > 0).slice(0, 20);
+  // Keep only ISSNs that resolve uniquely back to the same journal (renamed
+  // journals can legitimately share an ISSN across sourceIds).
+  const issnEntries = [];
+  for (const entry of exactEntries) {
+    if (issnEntries.length >= 20) break;
+    if (!Array.isArray(entry.issns) || entry.issns.length === 0) continue;
+    const latest = latestQuartile(entry);
+    const probe = lib.resolveJournalResolutionFixture({
+      journalName: `ISSN probe ${entry.issns[0]}`,
+      publicationYear: latest.year,
+      journalMeta: { issns: [entry.issns[0]] },
+    });
+    if (probe.status !== lib.DECISION_STATUS.MATCHED) continue;
+    if ((probe.matchedSourceId || null) !== (entry.sourceId || null)) continue;
+    if (probe.matchType !== 'issn') continue;
+    issnEntries.push(entry);
+  }
   issnEntries.forEach((entry, index) => {
     const latest = latestQuartile(entry);
     const input = {

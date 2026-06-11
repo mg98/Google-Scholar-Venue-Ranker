@@ -1,0 +1,526 @@
+{
+  "report": {
+    "generatedAt": "2026-06-11T04:07:19.846Z",
+    "cwd": "C:\\Users\\Naveed Bhatti\\Documents\\Google-Scholar-Venue-Ranker - CODEX",
+    "suite": "all",
+    "family": null,
+    "fixtureCount": 2180,
+    "suites": {
+      "gold": {
+        "families": {
+          "profile_match": {
+            "suite": "gold",
+            "family": "profile_match",
+            "total": 40,
+            "passed": 40,
+            "failed": 0,
+            "exactAccuracy": 1,
+            "precision": 1,
+            "recall": 1,
+            "falsePositiveCount": 0,
+            "falseNegativeCount": 0,
+            "abstainRate": 0.5,
+            "ambiguityRate": 0,
+            "meanLatencyMs": 0.49582500000000007,
+            "p95LatencyMs": 1.3776,
+            "statusConfusion": {
+              "matched": {
+                "matched": 20
+              },
+              "missing": {
+                "missing": 20
+              }
+            },
+            "conferenceRankConfusion": {},
+            "journalQuartileConfusion": {},
+            "sampleFailures": [],
+            "topFalsePositives": [],
+            "topFalseNegatives": [],
+            "topAmbiguousFailures": []
+          },
+          "publication_match": {
+            "suite": "gold",
+            "family": "publication_match",
+            "total": 80,
+            "passed": 80,
+            "failed": 0,
+            "exactAccuracy": 1,
+            "precision": 1,
+            "recall": 1,
+            "falsePositiveCount": 0,
+            "falseNegativeCount": 0,
+            "abstainRate": 0.5,
+            "ambiguityRate": 0.25,
+            "meanLatencyMs": 0.035187500000000003,
+            "p95LatencyMs": 0.0588,
+            "statusConfusion": {
+              "matched": {
+                "matched": 40
+              },
+              "ambiguous": {
+                "ambiguous": 20
+              },
+              "missing": {
+                "missing": 20
+              }
+            },
+            "conferenceRankConfusion": {},
+            "journalQuartileConfusion": {},
+            "sampleFailures": [],
+            "topFalsePositives": [],
+            "topFalseNegatives": [],
+            "topAmbiguousFailures": []
+          },
+          "track_classification": {
+            "suite": "gold",
+            "family": "track_classification",
+            "total": 80,
+            "passed": 80,
+            "failed": 0,
+            "exactAccuracy": 1,
+            "precision": 1,
+            "recall": 1,
+            "falsePositiveCount": 0,
+            "falseNegativeCount": 0,
+            "abstainRate": 0,
+            "ambiguityRate": 0,
+            "meanLatencyMs": 0.042498750000000016,
+            "p95LatencyMs": 0.0574,
+            "statusConfusion": {
+              "workshop": {
+                "workshop": 20
+              },
+              "demoPoster": {
+                "demoPoster": 20
+              },
+              "extendedAbstract": {
+                "extendedAbstract": 20
+              },
+              "shortPaper": {
+                "shortPaper": 10
+              },
+              "main": {
+                "main": 10
+              }
+            },
+            "conferenceRankConfusion": {},
+            "journalQuartileConfusion": {},
+            "sampleFailures": [],
+            "topFalsePositives": [],
+            "topFalseNegatives": [],
+            "topAmbiguousFailures": []
+          },
+          "conference_resolution": {
+            "suite": "gold",
+            "family": "conference_resolution",
+            "total": 120,
+            "passed": 120,
+            "failed": 0,
+            "exactAccuracy": 1,
+            "precision": 1,
+            "recall": 1,
+            "falsePositiveCount": 0,
+            "falseNegativeCount": 0,
+            "abstainRate": 0.025,
+            "ambiguityRate": 0.016666666666666666,
+            "meanLatencyMs": 0.3224583333333336,
+            "p95LatencyMs": 0.1517,
+            "statusConfusion": {
+              "matched": {
+                "matched": 109
+              },
+              "unranked": {
+                "unranked": 8
+              },
+              "ambiguous": {
+                "ambiguous": 2
+              },
+              "missing": {
+                "missing": 1
+              }
+            },
+            "conferenceRankConfusion": {
+              "B": {
+                "B": 26
+              },
+              "C": {
+                "C": 16
+              },
+              "A*": {
+                "A*": 40
+              },
+              "A": {
+                "A": 27
+              },
+              "N/A": {
+                "N/A": 11
+              }
+            },
+            "journalQuartileConfusion": {},
+            "sampleFailures": [],
+            "topFalsePositives": [],
+            "topFalseNegatives": [],
+            "topAmbiguousFailures": []
+          },
+          "journal_resolution": {
+            "suite": "gold",
+            "family": "journal_resolution",
+            "total": 120,
+            "passed": 120,
+            "failed": 0,
+            "exactAccuracy": 1,
+            "precision": 1,
+            "recall": 1,
+            "falsePositiveCount": 0,
+            "falseNegativeCount": 0,
+            "abstainRate": 0.025,
+            "ambiguityRate": 0,
+            "meanLatencyMs": 7.799944166666666,
+            "p95LatencyMs": 0.1811,
+            "statusConfusion": {
+              "matched": {
+                "matched": 117
+              },
+              "missing": {
+                "missing": 3
+              }
+            },
+            "conferenceRankConfusion": {},
+            "journalQuartileConfusion": {
+              "Q4": {
+                "Q4": 49
+              },
+              "Q2": {
+                "Q2": 19
+              },
+              "Q3": {
+                "Q3": 21
+              },
+              "Q1": {
+                "Q1": 28
+              },
+              "N/A": {
+                "N/A": 3
+              }
+            },
+            "sampleFailures": [],
+            "topFalsePositives": [],
+            "topFalseNegatives": [],
+            "topAmbiguousFailures": []
+          },
+          "pipeline_e2e": {
+            "suite": "gold",
+            "family": "pipeline_e2e",
+            "total": 100,
+            "passed": 100,
+            "failed": 0,
+            "exactAccuracy": 1,
+            "precision": 1,
+            "recall": 1,
+            "falsePositiveCount": 0,
+            "falseNegativeCount": 0,
+            "abstainRate": 0.1,
+            "ambiguityRate": 0.05,
+            "meanLatencyMs": 0.4722530000000001,
+            "p95LatencyMs": 3.5554,
+            "statusConfusion": {
+              "matched": {
+                "matched": 50
+              },
+              "unranked": {
+                "unranked": 40
+              },
+              "missing": {
+                "missing": 5
+              },
+              "ambiguous": {
+                "ambiguous": 5
+              }
+            },
+            "conferenceRankConfusion": {},
+            "journalQuartileConfusion": {},
+            "sampleFailures": [],
+            "topFalsePositives": [],
+            "topFalseNegatives": [],
+            "topAmbiguousFailures": []
+          },
+          "search_queries": {
+            "suite": "gold",
+            "family": "search_queries",
+            "total": 60,
+            "passed": 60,
+            "failed": 0,
+            "exactAccuracy": 1,
+            "precision": 1,
+            "recall": 1,
+            "falsePositiveCount": 0,
+            "falseNegativeCount": 0,
+            "abstainRate": 0.6833333333333333,
+            "ambiguityRate": 0.016666666666666666,
+            "meanLatencyMs": 6.325031666666669,
+            "p95LatencyMs": 3.5662,
+            "statusConfusion": {
+              "matched": {
+                "matched": 17
+              },
+              "ambiguous": {
+                "ambiguous": 1
+              },
+              "unranked": {
+                "unranked": 2
+              },
+              "missing": {
+                "missing": 40
+              }
+            },
+            "conferenceRankConfusion": {},
+            "journalQuartileConfusion": {},
+            "sampleFailures": [],
+            "topFalsePositives": [],
+            "topFalseNegatives": [],
+            "topAmbiguousFailures": []
+          }
+        },
+        "overall": {
+          "suite": "gold",
+          "family": "overall",
+          "total": 600,
+          "passed": 600,
+          "failed": 0,
+          "exactAccuracy": 1,
+          "precision": 1,
+          "recall": 1,
+          "falsePositiveCount": 0,
+          "falseNegativeCount": 0,
+          "abstainRate": 0.17833333333333334,
+          "ambiguityRate": 0.03833333333333333,
+          "meanLatencyMs": 2.3791056666666663,
+          "p95LatencyMs": 1.851,
+          "statusConfusion": {
+            "matched": {
+              "matched": 303
+            },
+            "missing": {
+              "missing": 84
+            },
+            "ambiguous": {
+              "ambiguous": 23
+            },
+            "unranked": {
+              "unranked": 10
+            }
+          },
+          "conferenceRankConfusion": {},
+          "journalQuartileConfusion": {},
+          "sampleFailures": [],
+          "topFalsePositives": [],
+          "topFalseNegatives": [],
+          "topAmbiguousFailures": []
+        }
+      },
+      "shadow": {
+        "families": {
+          "conference_resolution": {
+            "suite": "shadow",
+            "family": "conference_resolution",
+            "total": 900,
+            "passed": 900,
+            "failed": 0,
+            "exactAccuracy": 1,
+            "precision": 1,
+            "recall": 1,
+            "falsePositiveCount": 0,
+            "falseNegativeCount": 0,
+            "abstainRate": 0.005555555555555556,
+            "ambiguityRate": 0.005555555555555556,
+            "meanLatencyMs": 0.022273666666666674,
+            "p95LatencyMs": 0.0508,
+            "statusConfusion": {
+              "unranked": {
+                "unranked": 143
+              },
+              "matched": {
+                "matched": 752
+              },
+              "ambiguous": {
+                "ambiguous": 5
+              }
+            },
+            "conferenceRankConfusion": {
+              "N/A": {
+                "N/A": 148
+              },
+              "B": {
+                "B": 252
+              },
+              "C": {
+                "C": 292
+              },
+              "A*": {
+                "A*": 84
+              },
+              "A": {
+                "A": 124
+              }
+            },
+            "journalQuartileConfusion": {},
+            "sampleFailures": [],
+            "topFalsePositives": [],
+            "topFalseNegatives": [],
+            "topAmbiguousFailures": []
+          },
+          "journal_resolution": {
+            "suite": "shadow",
+            "family": "journal_resolution",
+            "total": 320,
+            "passed": 320,
+            "failed": 0,
+            "exactAccuracy": 1,
+            "precision": 1,
+            "recall": 1,
+            "falsePositiveCount": 0,
+            "falseNegativeCount": 0,
+            "abstainRate": 0.003125,
+            "ambiguityRate": 0.003125,
+            "meanLatencyMs": 0.03881781250000004,
+            "p95LatencyMs": 0.0423,
+            "statusConfusion": {
+              "matched": {
+                "matched": 319
+              },
+              "ambiguous": {
+                "ambiguous": 1
+              }
+            },
+            "conferenceRankConfusion": {},
+            "journalQuartileConfusion": {
+              "Q2": {
+                "Q2": 67
+              },
+              "Q4": {
+                "Q4": 77
+              },
+              "Q1": {
+                "Q1": 109
+              },
+              "Q3": {
+                "Q3": 66
+              },
+              "N/A": {
+                "N/A": 1
+              }
+            },
+            "sampleFailures": [],
+            "topFalsePositives": [],
+            "topFalseNegatives": [],
+            "topAmbiguousFailures": []
+          },
+          "pipeline_e2e": {
+            "suite": "shadow",
+            "family": "pipeline_e2e",
+            "total": 240,
+            "passed": 240,
+            "failed": 0,
+            "exactAccuracy": 1,
+            "precision": 1,
+            "recall": 1,
+            "falsePositiveCount": 0,
+            "falseNegativeCount": 0,
+            "abstainRate": 0.5083333333333333,
+            "ambiguityRate": 0.020833333333333332,
+            "meanLatencyMs": 2.268000416666667,
+            "p95LatencyMs": 6.0227,
+            "statusConfusion": {
+              "matched": {
+                "matched": 72
+              },
+              "unranked": {
+                "unranked": 46
+              },
+              "missing": {
+                "missing": 117
+              },
+              "ambiguous": {
+                "ambiguous": 5
+              }
+            },
+            "conferenceRankConfusion": {},
+            "journalQuartileConfusion": {},
+            "sampleFailures": [],
+            "topFalsePositives": [],
+            "topFalseNegatives": [],
+            "topAmbiguousFailures": []
+          },
+          "search_queries": {
+            "suite": "shadow",
+            "family": "search_queries",
+            "total": 120,
+            "passed": 120,
+            "failed": 0,
+            "exactAccuracy": 1,
+            "precision": 1,
+            "recall": 1,
+            "falsePositiveCount": 0,
+            "falseNegativeCount": 0,
+            "abstainRate": 0.008333333333333333,
+            "ambiguityRate": 0.008333333333333333,
+            "meanLatencyMs": 1.0637541666666666,
+            "p95LatencyMs": 5.1867,
+            "statusConfusion": {
+              "unranked": {
+                "unranked": 13
+              },
+              "matched": {
+                "matched": 106
+              },
+              "ambiguous": {
+                "ambiguous": 1
+              }
+            },
+            "conferenceRankConfusion": {},
+            "journalQuartileConfusion": {},
+            "sampleFailures": [],
+            "topFalsePositives": [],
+            "topFalseNegatives": [],
+            "topAmbiguousFailures": []
+          }
+        },
+        "overall": {
+          "suite": "shadow",
+          "family": "overall",
+          "total": 1580,
+          "passed": 1580,
+          "failed": 0,
+          "exactAccuracy": 1,
+          "precision": 1,
+          "recall": 1,
+          "falsePositiveCount": 0,
+          "falseNegativeCount": 0,
+          "abstainRate": 0.004430379746835443,
+          "ambiguityRate": 0.004430379746835443,
+          "meanLatencyMs": 0.4458472151898737,
+          "p95LatencyMs": 3.5799,
+          "statusConfusion": {
+            "unranked": {
+              "unranked": 156
+            },
+            "matched": {
+              "matched": 1177
+            },
+            "ambiguous": {
+              "ambiguous": 7
+            }
+          },
+          "conferenceRankConfusion": {},
+          "journalQuartileConfusion": {},
+          "sampleFailures": [],
+          "topFalsePositives": [],
+          "topFalseNegatives": [],
+          "topAmbiguousFailures": []
+        }
+      }
+    },
+    "topRegressions": []
+  },
+  "issues": []
+}

@@ -4,17 +4,25 @@
  */
 
 (function (root, factory) {
-  const venueData = (typeof module === 'object' && module.exports)
+  const isNode = (typeof module === 'object' && module.exports);
+  const venueData = isNode
     ? require('./venue_data.js')
     : (root.GSVRVenueData || {});
+  const textNormalize = isNode
+    ? require('./core/text_normalize.js')
+    : (root.GSVRTextNormalize || {});
 
-  if (typeof module === 'object' && module.exports) {
-    module.exports = factory(venueData);
+  if (isNode) {
+    module.exports = factory(venueData, textNormalize);
   } else {
-    root.GSVRUtils = factory(venueData);
+    root.GSVRUtils = factory(venueData, textNormalize);
   }
-})(typeof self !== 'undefined' ? self : this, function (venueData) {
+})(typeof self !== 'undefined' ? self : this, function (venueData, textNormalize) {
   'use strict';
+
+  const foldDiacritics = (textNormalize && typeof textNormalize.foldDiacritics === 'function')
+    ? textNormalize.foldDiacritics
+    : (value) => String(value ?? '');
 
   const DECISION_VERSION = 2;
   const DECISION_STATUS = Object.freeze({
@@ -75,7 +83,7 @@
   function normalizeForMatch(value) {
     const stripped = stripTrackPrefixes(value);
     return normalizeSpaces(
-      stripped
+      foldDiacritics(stripped)
         .toLowerCase()
         .replace(/&/g, ' and ')
         .replace(/[\.,\/#!$%\^&\*;:{}=\_`~?"“”'’\(\)\[\]\+＋]/g, ' ')
@@ -92,7 +100,7 @@
 
   function normalizeProfileName(name) {
     return normalizeSpaces(
-      String(name || '')
+      foldDiacritics(String(name || ''))
         .toLowerCase()
         .replace(/[\.,'’"]/g, ' ')
         .replace(/\s+/g, ' ')
@@ -104,7 +112,7 @@
   }
 
   function normalizeKey(value) {
-    return normalizeSpaces(String(value || '')).toLowerCase();
+    return normalizeSpaces(foldDiacritics(String(value || ''))).toLowerCase();
   }
 
   function buildJournalLookupCacheKey(normalizedQuery, queryIssns) {

@@ -292,6 +292,7 @@ const SCORE_MODEL_API = (typeof window !== 'undefined' && window.GSVRScoreModel)
 const SCORE_SENSITIVITY_API = (typeof window !== 'undefined' && window.GSVRScoreSensitivity) ? window.GSVRScoreSensitivity : null;
 const REPORT_SCHEMA_API = (typeof window !== 'undefined' && window.GSVRReportSchema) ? window.GSVRReportSchema : null;
 const TIMELINE_STATS_API = (typeof window !== 'undefined' && window.GSVRTimelineStats) ? window.GSVRTimelineStats : null;
+const JOURNAL_MATCH_API = (typeof window !== 'undefined' && window.GSVRJournalMatch) ? window.GSVRJournalMatch : null;
 const SCORE_MODEL_VERSION = SCORE_CONFIG_API?.SCORE_MODEL_VERSION || 'gsvr-fractional-venue-v1';
 const DEFAULT_SCORE_CONFIG = SCORE_CONFIG_API?.DEFAULT_SCORE_CONFIG || null;
 const VALID_RANKS = ["A*", "A", "B", "C"];
@@ -465,20 +466,10 @@ function parseYearFromText(value) {
     return match ? parseInt(match[0], 10) : null;
 }
 function normalizeIssnValue(value) {
-    return String(value || '').replace(/[^0-9Xx]/g, '').toUpperCase() || null;
+    return JOURNAL_MATCH_API.normalizeIssnValue(value);
 }
 function normalizeIssnList(values) {
-    const list = Array.isArray(values) ? values : String(values || '').split(/[;,]/);
-    const out = [];
-    const seen = new Set();
-    for (const value of list) {
-        const normalized = normalizeIssnValue(value);
-        if (!normalized || seen.has(normalized))
-            continue;
-        seen.add(normalized);
-        out.push(normalized);
-    }
-    return out;
+    return JOURNAL_MATCH_API.normalizeIssnList(values);
 }
 function createDecisionMeta(base = {}) {
     return {
@@ -4803,77 +4794,14 @@ async function tryGetPdfPageCount(pdfUrl) {
     }
 }
 
+// Journal-name normalization, variants, and SJR matching live in the shared
+// core/journal_match.js module so the content script, the Node test mirror,
+// and the index generator can never drift apart.
 function normalizeJournalName(name) {
-    if (!name)
-        return "";
-    // Journal names coming from DBLP and Scholar are often abbreviated and may contain
-    // volume/issue/year tokens. For SJR matching we want a *stable* representation that:
-    //  - expands common abbreviations
-    //  - strips numeric volume/issue/year tokens
-    //  - removes low-signal stop words
-    //  - lightly stems plural forms (networks->network, surveys->survey, etc.)
-    let cleaned = cleanTextForComparison(name, true);
-    if (!cleaned)
-        return "";
-    // Drop bare numeric tokens (years, volumes, issues, article numbers).
-    cleaned = cleaned.replace(/\b\d{1,6}\b/g, " ");
-    cleaned = cleaned.replace(/\s+/g, ' ').trim();
-    if (!cleaned)
-        return "";
-
-    const STOP = new Set([
-        'a', 'an', 'the', 'of', 'and', 'for', 'in', 'on', 'to', 'at',
-        // Journal boilerplate terms
-        'journal', 'international', 'transactions', 'letters'
-    ]);
-
-    const stem = (tok) => {
-        // Simple stemming sufficient for venue name matching.
-        if (tok.length <= 4)
-            return tok;
-        if (tok.endsWith('ies') && tok.length > 5)
-            return tok.slice(0, -3) + 'y';
-        if (tok.endsWith('sses'))
-            return tok; // e.g., "processes" edge
-        if (tok.endsWith('s') && !tok.endsWith('ss'))
-            return tok.slice(0, -1);
-        return tok;
-    };
-
-    const tokens = cleaned
-        .split(' ')
-        .map(t => t.trim())
-        .filter(t => t.length > 0)
-        .map(t => stem(t))
-        .filter(t => t.length > 0 && !STOP.has(t));
-
-    return tokens.join(' ').trim();
+    return JOURNAL_MATCH_API.normalizeJournalName(name);
 }
-
-// Some abbreviations map ambiguously (e.g., "Comput." could be "Computer" or "Computing").
-// To avoid lowering the global fuzzy threshold, try a handful of deterministic variants.
 function generateJournalNormalizationVariants(name) {
-    const base = normalizeJournalName(name);
-    if (!base)
-        return [];
-    const variants = new Set([base]);
-    if (/\bcomputer\b/.test(base)) {
-        variants.add(base.replace(/\bcomputer\b/g, 'computing'));
-    }
-    if (/\bcomputing\b/.test(base)) {
-        variants.add(base.replace(/\bcomputing\b/g, 'computer'));
-    }
-    // "ACM computer survey" vs "ACM computing survey"
-    if (/\bacm\s+computer\b/.test(base)) {
-        variants.add(base.replace(/\bacm\s+computer\b/g, 'acm computing'));
-    }
-    if (/\bcomputer\s+survey\b/.test(base)) {
-        variants.add(base.replace(/\bcomputer\b/g, 'computing'));
-    }
-    if (/\bcomputing\s+survey\b/.test(base)) {
-        variants.add(base.replace(/\bcomputing\b/g, 'computer'));
-    }
-    return Array.from(variants);
+    return JOURNAL_MATCH_API.generateJournalNormalizationVariants(name);
 }
 function isArxivLikeVenue(info) {
     const key = info.dblpKey?.toLowerCase() ?? "";
@@ -4957,25 +4885,10 @@ function parseSjrCsv(text) {
     return rows;
 }
 function createTokenSet(normalizedTitle) {
-    const STOP_WORDS = new Set(['and', 'the', 'of', 'for', 'in', 'on', 'journal', 'international', 'transactions', 'letters']);
-    const tokens = normalizedTitle
-        .split(' ')
-        .map(token => token.trim())
-        .filter(token => token.length >= 3 && !STOP_WORDS.has(token));
-    return new Set(tokens);
+    return JOURNAL_MATCH_API.createTokenSet(normalizedTitle);
 }
 function createSjrTokenIndex(entries) {
-    const tokenToIndexes = new Map();
-    const tokenFrequency = new Map();
-    entries.forEach((entry, index) => {
-        for (const token of entry.tokenSet || []) {
-            if (!tokenToIndexes.has(token))
-                tokenToIndexes.set(token, new Set());
-            tokenToIndexes.get(token).add(index);
-            tokenFrequency.set(token, (tokenFrequency.get(token) || 0) + 1);
-        }
-    });
-    return { tokenToIndexes, tokenFrequency };
+    return JOURNAL_MATCH_API.createSjrTokenIndex(entries);
 }
 function chooseBetterQuartile(existing, nextValue) {
     if (!nextValue)
@@ -5009,6 +4922,20 @@ async function loadSjrDataset() {
                 const byNormalized = new Map();
                 const byIssn = new Map();
                 const entries = [];
+                // Distinct journals (sourceIds) can share a normalized-title key,
+                // so byNormalized maps key -> ARRAY of entries. findBestSjrMatch
+                // abstains on multi-journal buckets unless ISSN evidence resolves them.
+                const registerKey = (key, entry) => {
+                    if (!key)
+                        return;
+                    const bucket = byNormalized.get(key);
+                    if (!bucket) {
+                        byNormalized.set(key, [entry]);
+                    }
+                    else if (!bucket.includes(entry)) {
+                        bucket.push(entry);
+                    }
+                };
                 for (const item of payload.entries) {
                     if (!item?.n || !item?.t || !item?.q)
                         continue;
@@ -5018,7 +4945,13 @@ async function loadSjrDataset() {
                         sourceId: item.s,
                         coverage: item.c
                     });
-                    byNormalized.set(entry.normalizedTitle, entry);
+                    registerKey(entry.normalizedTitle, entry);
+                    // v3 payloads carry alias keys for journals whose titles changed across years.
+                    if (Array.isArray(item.a)) {
+                        for (const aliasKey of item.a) {
+                            registerKey(String(aliasKey || '').trim(), entry);
+                        }
+                    }
                     entries.push(entry);
                     for (const issn of entry.issns) {
                         if (!byIssn.has(issn))
@@ -5043,9 +4976,10 @@ async function loadSjrDataset() {
     catch (error) {
         console.warn('Falling back to raw SJR CSV data because the compact index could not be loaded.', error);
     }
-    const byNormalized = new Map();
+    // Raw-CSV fallback uses the same identity model as the prebuilt index:
+    // one entry per SCImago sourceId, never merged across journals.
+    const bySourceKey = new Map();
     const byIssn = new Map();
-    const entries = [];
     for (let year = SJR_DATASET_START_YEAR; year <= SJR_DATASET_END_YEAR; year++) {
         const datasetPath = `sjr/scimagojr ${year}.csv`;
         try {
@@ -5088,22 +5022,21 @@ async function loadSjrDataset() {
                 if (!normalizedTitle)
                     continue;
                 const quartile = quartileRaw && /^Q[1-4]$/i.test(quartileRaw) ? quartileRaw.toUpperCase() : undefined;
-                let entry = byNormalized.get(normalizedTitle);
+                const sourceKey = sourceId ? `sid:${sourceId}` : `title:${normalizedTitle}`;
+                let entry = bySourceKey.get(sourceKey);
                 if (!entry) {
                     entry = createSjrEntry(normalizedTitle, title, {}, {
                         issns,
                         sourceId,
                         coverage
                     });
-                    byNormalized.set(normalizedTitle, entry);
-                    entries.push(entry);
+                    entry.aliasKeys = new Set();
+                    bySourceKey.set(sourceKey, entry);
                 }
                 else if (title.length > entry.resolvedTitle.length) {
                     entry.resolvedTitle = title;
                 }
-                if (!entry.sourceId && sourceId) {
-                    entry.sourceId = sourceId;
-                }
+                entry.aliasKeys.add(normalizedTitle);
                 if (!entry.coverage && coverage) {
                     entry.coverage = coverage;
                 }
@@ -5124,7 +5057,19 @@ async function loadSjrDataset() {
             console.error(`Error loading SJR dataset for ${year}:`, error);
         }
     }
+    const entries = Array.from(bySourceKey.values());
+    const byNormalized = new Map();
     for (const entry of entries) {
+        for (const key of entry.aliasKeys || [entry.normalizedTitle]) {
+            const bucket = byNormalized.get(key);
+            if (!bucket) {
+                byNormalized.set(key, [entry]);
+            }
+            else if (!bucket.includes(entry)) {
+                bucket.push(entry);
+            }
+        }
+        delete entry.aliasKeys;
         for (const issn of entry.issns) {
             if (!byIssn.has(issn))
                 byIssn.set(issn, []);
@@ -5132,7 +5077,7 @@ async function loadSjrDataset() {
         }
     }
     return {
-        version: 1,
+        version: 3,
         startYear: SJR_DATASET_START_YEAR,
         endYear: SJR_DATASET_END_YEAR,
         byNormalized,
@@ -5207,118 +5152,10 @@ function buildSjrQuartileSelectionResult(data, selection, extra = {}) {
     };
 }
 function selectSjrCandidateIndexes(queryTokens, dataset) {
-    if (!queryTokens.length || !dataset?.tokenIndex)
-        return null;
-    const ranked = queryTokens
-        .map(token => ({ token, count: dataset.tokenIndex.tokenFrequency.get(token) || Number.POSITIVE_INFINITY }))
-        .filter(entry => Number.isFinite(entry.count))
-        .sort((a, b) => a.count - b.count || a.token.localeCompare(b.token));
-    if (!ranked.length)
-        return null;
-    let candidateSet = null;
-    for (const entry of ranked.slice(0, 3)) {
-        const indexes = dataset.tokenIndex.tokenToIndexes.get(entry.token);
-        if (!indexes?.size)
-            continue;
-        candidateSet = candidateSet ? new Set([...candidateSet].filter(index => indexes.has(index))) : new Set(indexes);
-        if (candidateSet.size > 0 && candidateSet.size <= 48) {
-            break;
-        }
-    }
-    if (candidateSet?.size) {
-        return candidateSet;
-    }
-    return dataset.tokenIndex.tokenToIndexes.get(ranked[0].token) || null;
+    return JOURNAL_MATCH_API.selectSjrCandidateIndexes(queryTokens, dataset);
 }
-function findBestSjrMatch({ normalizedQuery, queryIssns, dataset }) {
-    const exactIssnMatches = [];
-    for (const issn of normalizeIssnList(queryIssns)) {
-        const matches = dataset.byIssn?.get(issn) || [];
-        for (const match of matches) {
-            if (!exactIssnMatches.includes(match))
-                exactIssnMatches.push(match);
-        }
-    }
-    if (exactIssnMatches.length === 1) {
-        return { status: DECISION_STATUS.MATCHED, entry: exactIssnMatches[0], score: 1.0, matchedBy: 'issn' };
-    }
-    if (exactIssnMatches.length > 1) {
-        const exactTitleMatch = exactIssnMatches.find((entry) => entry.normalizedTitle === normalizedQuery);
-        if (exactTitleMatch) {
-            return { status: DECISION_STATUS.MATCHED, entry: exactTitleMatch, score: 1.0, matchedBy: 'issn' };
-        }
-        const sourceIds = new Set(exactIssnMatches.map((entry) => entry.sourceId).filter(Boolean));
-        if (sourceIds.size === 1) {
-            const latestSourceEntry = exactIssnMatches
-                .slice()
-                .sort((left, right) => {
-                const rightYear = Math.max(0, ...Object.keys(right.quartilesByYear || {}).map((year) => Number(year)).filter(Number.isFinite));
-                const leftYear = Math.max(0, ...Object.keys(left.quartilesByYear || {}).map((year) => Number(year)).filter(Number.isFinite));
-                return rightYear - leftYear;
-            })[0];
-            if (latestSourceEntry) {
-                return { status: DECISION_STATUS.MATCHED, entry: latestSourceEntry, score: 1.0, matchedBy: 'issn' };
-            }
-        }
-        let bestIssnMatch = null;
-        let secondIssnMatch = null;
-        for (const entry of exactIssnMatches) {
-            const score = RANKING_UTILS?.hybridSimilarity
-                ? RANKING_UTILS.hybridSimilarity(normalizedQuery, entry.normalizedTitle)
-                : (0.72 * jaroWinkler(normalizedQuery, entry.normalizedTitle));
-            const candidate = { entry, score };
-            if (!bestIssnMatch || score > bestIssnMatch.score) {
-                secondIssnMatch = bestIssnMatch;
-                bestIssnMatch = candidate;
-            }
-            else if (!secondIssnMatch || score > secondIssnMatch.score) {
-                secondIssnMatch = candidate;
-            }
-        }
-        const issnGap = secondIssnMatch ? bestIssnMatch.score - secondIssnMatch.score : Number.POSITIVE_INFINITY;
-        if (bestIssnMatch && (bestIssnMatch.score >= 0.97 || issnGap >= RANKING_CONFIG.sjrAmbiguityGap)) {
-            return { status: DECISION_STATUS.MATCHED, entry: bestIssnMatch.entry, score: bestIssnMatch.score, matchedBy: 'issn' };
-        }
-        return { status: DECISION_STATUS.AMBIGUOUS, score: 1.0, matchedBy: 'issn' };
-    }
-    const directMatch = dataset.byNormalized.get(normalizedQuery);
-    if (directMatch) {
-        return { status: DECISION_STATUS.MATCHED, entry: directMatch, score: 1.0, matchedBy: 'title_exact' };
-    }
-    const queryTokens = normalizedQuery
-        .split(' ')
-        .map(token => token.trim())
-        .filter(token => token.length >= 3);
-    const candidateIndexes = selectSjrCandidateIndexes(queryTokens, dataset) || new Set(dataset.entries.map((_, index) => index));
-    let best = null;
-    let second = null;
-    for (const index of candidateIndexes) {
-        const entry = dataset.entries[index];
-        if (!entry)
-            continue;
-        const score = RANKING_UTILS?.hybridSimilarity
-            ? RANKING_UTILS.hybridSimilarity(normalizedQuery, entry.normalizedTitle)
-            : (0.72 * jaroWinkler(normalizedQuery, entry.normalizedTitle));
-        if (score < RANKING_CONFIG.sjrFuzzyThreshold) {
-            continue;
-        }
-        const candidate = { entry, score };
-        if (!best || score > best.score) {
-            second = best;
-            best = candidate;
-        }
-        else if (!second || score > second.score) {
-            second = candidate;
-        }
-    }
-    if (!best) {
-        return { status: DECISION_STATUS.MISSING };
-    }
-    const gap = second ? best.score - second.score : Number.POSITIVE_INFINITY;
-    if (second && best.score < 0.97 && gap < RANKING_CONFIG.sjrAmbiguityGap) {
-        return { status: DECISION_STATUS.AMBIGUOUS, score: best.score, gap, matchedBy: 'title_fuzzy' };
-    }
-    return { status: DECISION_STATUS.MATCHED, entry: best.entry, score: best.score, matchedBy: 'title_fuzzy' };
+function findBestSjrMatch({ normalizedQuery, queryIssns, dataset, rawQuery = null }) {
+    return JOURNAL_MATCH_API.findBestSjrMatch({ normalizedQuery, queryIssns, dataset, rawQuery });
 }
 async function resolveSjrQuartile(journalName, publicationYear, journalMeta = {}) {
     const variants = generateJournalNormalizationVariants(journalName);
@@ -5361,7 +5198,7 @@ async function resolveSjrQuartile(journalName, publicationYear, journalMeta = {}
         const dataset = await ensureSjrDataset();
         let sawAmbiguous = false;
         for (const normalizedQuery of variants) {
-            const match = findBestSjrMatch({ normalizedQuery, queryIssns, dataset });
+            const match = findBestSjrMatch({ normalizedQuery, queryIssns, dataset, rawQuery: journalName });
             if (!match || match.status === DECISION_STATUS.MISSING)
                 continue;
             if (match.status === DECISION_STATUS.AMBIGUOUS) {
@@ -5413,149 +5250,11 @@ async function resolveSjrQuartile(journalName, publicationYear, journalMeta = {}
         return { status: 'error', transient: false };
     }
 }
-function escapeRegExp(str) {
-    return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-
-const COMMON_ABBREVIATIONS = {
-    "int'l": "international",
-    "intl": "international",
-    "int.": "international",
-    "int": "international",
-    "conf.": "conference",
-    "conf": "conference",
-    "proc.": "proceedings",
-    "proc": "proceedings",
-    "symp.": "symposium",
-    "symp": "symposium",
-    "j.": "journal",
-    "j": "journal",
-    "jour": "journal",
-    "trans.": "transactions",
-    "trans": "transactions",
-    "annu.": "annual",
-    "annu": "annual",
-    // NOTE: DBLP abbreviations use "Comput." overwhelmingly to mean "Computer".
-    // Some venues expand to "Computing" (e.g., "ACM Computing Surveys"),
-    // which we handle via lightweight normalization variants in journal matching.
-    "comput.": "computer",
-    "comput": "computer",
-    "comp.": "computer",
-    "comp": "computer",
-    "commun.": "communications",
-    "commun": "communications",
-    "comm.": "communications",
-    "comm": "communications",
-    "rev.": "review",
-    "rev": "review",
-    "syst.": "systems",
-    "syst": "systems",
-    // Common DBLP journal abbreviations
-    "manag.": "management",
-    "manag": "management",
-    "process.": "processing",
-    "process": "processing",
-    "sci.": "science",
-    "sci": "science",
-    "sens.": "sensor",
-    "sens": "sensor",
-    "netw.": "networks",
-    "netw": "networks",
-    "pers.": "personal",
-    "pers": "personal",
-    "embed.": "embedded",
-    "embed": "embedded",
-    "distr.": "distributed",
-    "distr": "distributed",
-    "archit.": "architecture",
-    "archit": "architecture",
-    "tech.": "technical",
-    "tech": "technical",
-    "technol": "technology",
-    "engin.": "engineering",
-    "engin": "engineering",
-    "res.": "research",
-    "res": "research",
-    "adv.": "advances",
-    "adv": "advances",
-    "appl.": "applications",
-    "appl": "applications",
-    "surv.": "surveys",
-    "surv": "surveys",
-    "wirel.": "wireless",
-    "wirel": "wireless",
-    "inf.": "information",
-    "inf": "information",
-    "lectures notes": "lecture notes",
-    "lect notes": "lecture notes",
-    "lncs": "lecture notes in computer science",
-};
+// Text comparison cleanup (abbreviation expansion, diacritic folding) lives in
+// the shared core/journal_match.js module. String similarity lives in
+// rank_core.js. The former local copies drifted from the canonical versions.
 function cleanTextForComparison(text, isGoogleScholarVenue = false) {
-    if (!text)
-        return "";
-    let cleanedText = text.toLowerCase();
-    cleanedText = cleanedText.replace(/&/g, " and ");
-    cleanedText = cleanedText.replace(/[\.,\/#!$%\^;\*:{}=\_`~?"“”()\[\]]/g, " ");
-    cleanedText = cleanedText.replace(/\s-\s/g, " ");
-    if (isGoogleScholarVenue) {
-        cleanedText = cleanedText.replace(/^(\d{4}\s+|\d{1,2}(st|nd|rd|th)\s+)/, "");
-        cleanedText = cleanedText.replace(/,\s*\d{4}$/, "");
-        cleanedText = cleanedText.replace(/\(\d{4}\)$/, "");
-        // Scholar/DBLP often appends "(2)", "(Part 2)", etc. Strip trailing numeric/issue tokens.
-        cleanedText = cleanedText.replace(/\b(part|volume|vol|issue|no|number)\s*\d+\b/g, " ");
-        cleanedText = cleanedText.replace(/\b\d{1,3}\b\s*$/g, "");
-    }
-    // Also remove a trailing standalone number for non-Scholar venues (e.g., "MobiQuitous (2)")
-    cleanedText = cleanedText.replace(/\b\d{1,3}\b\s*$/g, "");
-    cleanedText = cleanedText.replace(/\s+/g, ' ').trim();
-
-    // Expand abbreviations *after* punctuation is normalized to spaces.
-    // This avoids false negatives for dotted abbreviations like "Commun." or "J.".
-    for (const [abbr, expansion] of Object.entries(COMMON_ABBREVIATIONS)) {
-        const regex = new RegExp(`\\b${escapeRegExp(abbr)}\\b`, 'gi');
-        cleanedText = cleanedText.replace(regex, expansion);
-    }
-
-    cleanedText = cleanedText.replace(/\s+/g, ' ');
-    return cleanedText.trim();
-}
-const FUZZY_THRESHOLD = 0.90;
-function jaroWinkler(s1, s2) {
-    if (!s1 || !s2)
-        return 0;
-    const m = (a, b) => {
-        const bound = Math.max(0, Math.floor(Math.max(a.length, b.length) / 2) - 1);
-        const match = new Array(a.length).fill(false), bMatch = new Array(b.length).fill(false);
-        let matches = 0;
-        for (let i = 0; i < a.length; i++) {
-            const lo = Math.max(0, i - bound), hi = Math.min(i + bound + 1, b.length);
-            for (let j = lo; j < hi; j++)
-                if (!bMatch[j] && a[i] === b[j]) {
-                    match[i] = bMatch[j] = true;
-                    matches++;
-                    break;
-                }
-        }
-        if (!matches)
-            return { matches: 0, trans: 0 };
-        let k = 0, trans = 0;
-        for (let i = 0; i < a.length; i++)
-            if (match[i]) {
-                while (!bMatch[k])
-                    k++;
-                if (a[i] !== b[k])
-                    trans++;
-                k++;
-            }
-        return { matches, trans: trans / 2 };
-    };
-    const { matches, trans } = m(s1, s2);
-    if (!matches)
-        return 0;
-    const j = (matches / s1.length + matches / s2.length + (matches - trans) / matches) / 3;
-    const l = Math.min(4, [...s1].findIndex((c, i) => c !== s2[i] || i >= s2.length));
-    return j + l * 0.1 * (1 - j);
+    return JOURNAL_MATCH_API.cleanTextForComparison(text, isGoogleScholarVenue);
 }
 const ORG_PREFIXES_TO_IGNORE = ["acm/ieee", "ieee/acm", "acm-ieee", "ieee-acm", "acm sigplan", "acm sigops", "acm sigbed", "acm sigcomm", "acm sigmod", "acm sigarch", "acm sigsac", "acm", "ieee", "ifip", "usenix", "eurographics", "springer", "elsevier", "wiley", "sigplan", "sigops", "sigbed", "sigcomm", "sigmod", "sigarch", "sigsac", "international", "national", "annual"];
 function stripOrgPrefixes(text) {
@@ -9075,7 +8774,6 @@ function restoreVisibleInlineBadgesFromCache(cachedRanks, targetRows = null) {
     }
 }
 // --- START: DBLP Integration Functions (REPLACED/UPDATED) ---
-const normalizeText = (s) => s.toLowerCase().replace(/[\.,\/#!$%\^&\*;:{}=\_`~?"“”()\[\]]/g, " ").replace(/\s+/g, ' ').trim();
 function getScholarAuthorName() {
     const nameElement = document.getElementById('gsc_prf_in');
     if (nameElement) {
@@ -9481,9 +9179,7 @@ async function findBestDblpProfileCheap(scholarName, scholarSamplePubs, options 
         if (!pid) {
             continue;
         }
-        const nameSimilarity = utils?.hybridSimilarity
-            ? utils.hybridSimilarity(utils.normalizeProfileName(scholarName), utils.normalizeProfileName(dblpName))
-            : jaroWinkler(scholarName.toLowerCase(), dblpName.toLowerCase());
+        const nameSimilarity = utils.hybridSimilarity(utils.normalizeProfileName(scholarName), utils.normalizeProfileName(dblpName));
         if (nameSimilarity < HEURISTIC_MIN_NAME_SIMILARITY) {
             continue;
         }
@@ -9545,9 +9241,7 @@ async function findBestDblpProfileRescue(scholarName, scholarSamplePubs, options
         if (!pid) {
             continue;
         }
-        const nameSimilarity = utils?.hybridSimilarity
-            ? utils.hybridSimilarity(utils.normalizeProfileName(scholarName), utils.normalizeProfileName(dblpName))
-            : jaroWinkler(scholarName.toLowerCase(), dblpName.toLowerCase());
+        const nameSimilarity = utils.hybridSimilarity(utils.normalizeProfileName(scholarName), utils.normalizeProfileName(dblpName));
         if (nameSimilarity < HEURISTIC_MIN_NAME_SIMILARITY) {
             continue;
         }
