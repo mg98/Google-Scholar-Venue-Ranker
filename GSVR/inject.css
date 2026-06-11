@@ -1306,17 +1306,23 @@
   font-weight: 800;
   line-height: 1;
   vertical-align: middle;
+  /* A badge is an atomic chip: its text must never wrap onto the page. */
+  white-space: nowrap;
 }
 
 .gsr-rank-badge-inline {
   margin-left: 6px;
 }
 
+/* Renders as a true 22x22 circle for two-character quartile chips; if long
+   text ever reaches it again, the box relaxes into a pill instead of
+   overflowing onto the publication title (defense in depth). */
 .gsr-rank-badge--circular {
-  width: 22px;
+  width: auto;
   min-width: 22px;
-  padding: 0;
-  border-radius: 50%;
+  min-height: 22px;
+  padding: 0 4px;
+  border-radius: 999px;
 }
 
 .gsr-rank-badge--pill {

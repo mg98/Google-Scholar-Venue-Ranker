@@ -5629,7 +5629,10 @@ function createRankBadgeElement(rank, system, reason = null, meta = null) {
     }
     badge.setAttribute('tabindex', '0');
     badge.setAttribute('aria-label', `${system} ${badge.textContent}`);
-    const usePill = system === 'CORE' && !!reason;
+    // The circular style is sized for two-character chips ("Q1"). ANY badge
+    // carrying a reason has long text and must render as a pill, or the text
+    // overflows the fixed-size circle and overlaps the publication title.
+    const usePill = !!reason;
 
     if (system === 'DBLP' && rank === DBLP_ENTRY_MISSING_LABEL) {
         badge.classList.add('badge-missing-dblp', 'gsr-rank-badge--pill', 'gsr-rank-badge--neutral');

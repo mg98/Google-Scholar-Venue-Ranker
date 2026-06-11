@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GSVR UI fixture — inline rank badges</title>
+<!-- Loads the REAL injected stylesheet so what renders here is what ships. -->
+<link rel="stylesheet" href="../../GSVR/inject.css">
+<style>
+  /* Minimal stand-in for Scholar's own page styles (not part of the extension). */
+  body { font: 13px/1.4 Arial, sans-serif; color: #222; background: #fff; margin: 24px; }
+  h2 { font-size: 14px; margin: 28px 0 8px; color: #555; }
+  table.gsc_a_t { border-collapse: collapse; width: 720px; }
+  tr.gsc_a_tr { border-bottom: 1px solid #e8e8e8; }
+  td.gsc_a_t { padding: 8px 4px; max-width: 480px; }
+  a.gsc_a_at { color: #1a0dab; font-size: 17px; text-decoration: none; }
+  .gs_gray { color: #777; font-size: 13px; margin-top: 2px; }
+  .case-label { font-size: 11px; color: #b00; font-weight: bold; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+  <h1 style="font-size:16px">GSVR inline badge fixture (renders GSVR/inject.css verbatim)</h1>
+
+  <h2>Regression case from the bug report: long-reason journal badge on a two-line title</h2>
+  <table class="gsc_a_t"><tbody>
+    <tr class="gsc_a_tr">
+      <td class="gsc_a_t">
+        <div class="case-label">was: text crammed into a 22px circle, overlapping "Things"</div>
+        <a class="gsc_a_at" href="#">An Interpretable Deep Learning Framework For Intrusion Detection In Industrial Internet Of Things</a><span class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--neutral gsr-rank-badge--pill" data-gsr-system="sjr" data-gsr-kind="unranked" tabindex="0">N/A: Ambiguous Journal Match</span>
+        <div class="gs_gray">J Ahmad, S Latif, I Khan, MS Alshehri, MS Khan, N Alasbali, W Jiang</div>
+        <div class="gs_gray">Internet of Things, 101681</div>
+      </td>
+    </tr>
+    <tr class="gsc_a_tr">
+      <td class="gsc_a_t">
+        <div class="case-label">defense-in-depth: same long text FORCED onto the circular class (must relax to pill, never overlap)</div>
+        <a class="gsc_a_at" href="#">An Interpretable Deep Learning Framework For Intrusion Detection In Industrial Internet Of Things</a><span class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--neutral gsr-rank-badge--circular" data-gsr-system="sjr" data-gsr-kind="unranked" tabindex="0">N/A: Ambiguous Journal Match</span>
+        <div class="gs_gray">J Ahmad, S Latif, I Khan, MS Alshehri, MS Khan, N Alasbali, W Jiang</div>
+        <div class="gs_gray">Internet of Things, 101681</div>
+      </td>
+    </tr>
+  </tbody></table>
+
+  <h2>Ranked badges (must look unchanged: A*-C pills, Q1-Q4 circles)</h2>
+  <table class="gsc_a_t"><tbody>
+    <tr class="gsc_a_tr"><td class="gsc_a_t">
+      <a class="gsc_a_at" href="#">A Conference Paper Title of Ordinary Length</a><span class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--core gsr-rank-badge--pill gsr-rank-badge--astar" data-gsr-system="core" data-gsr-kind="ranked">A*</span>
+      <div class="gs_gray">A Author, B Author — SenSys 2023</div>
+    </td></tr>
+    <tr class="gsc_a_tr"><td class="gsc_a_t">
+      <a class="gsc_a_at" href="#">Another Conference Paper</a><span class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--core gsr-rank-badge--pill gsr-rank-badge--a" data-gsr-system="core" data-gsr-kind="ranked">A</span>
+      <div class="gs_gray">A Author — EuroSys 2022</div>
+    </td></tr>
+    <tr class="gsc_a_tr"><td class="gsc_a_t">
+      <a class="gsc_a_at" href="#">A Journal Article With a Quartile</a><span class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--sjr gsr-rank-badge--circular gsr-rank-badge--q1" data-gsr-system="sjr" data-gsr-kind="ranked">Q1</span>
+      <div class="gs_gray">A Author — IEEE Transactions on Mobile Computing</div>
+    </td></tr>
+    <tr class="gsc_a_tr"><td class="gsc_a_t">
+      <a class="gsc_a_at" href="#">A Q4 Journal Article</a><span class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--sjr gsr-rank-badge--circular gsr-rank-badge--q4" data-gsr-system="sjr" data-gsr-kind="ranked">Q4</span>
+      <div class="gs_gray">A Author — Some Q4 Journal</div>
+    </td></tr>
+  </tbody></table>
+
+  <h2>Other abstain states (all pills, all atomic)</h2>
+  <table class="gsc_a_t"><tbody>
+    <tr class="gsc_a_tr"><td class="gsc_a_t">
+      <a class="gsc_a_at" href="#">A Workshop Paper That Is Reported But Not Scored</a><span class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--neutral gsr-rank-badge--pill" data-gsr-system="core" data-gsr-kind="unranked">N/A: Workshop</span>
+      <div class="gs_gray">A Author — ENSsys@SenSys</div>
+    </td></tr>
+    <tr class="gsc_a_tr"><td class="gsc_a_t">
+      <a class="gsc_a_at" href="#">A Short Paper Under Six Pages</a><span class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--neutral gsr-rank-badge--pill" data-gsr-system="core" data-gsr-kind="unranked">N/A: Short-paper</span>
+      <div class="gs_gray">A Author — IMC 2021, pages 1-5</div>
+    </td></tr>
+    <tr class="gsc_a_tr"><td class="gsc_a_t">
+      <a class="gsc_a_at" href="#">A Paper Missing From the Matched DBLP Profile</a><span class="gsr-rank-badge gsr-rank-badge-inline badge-missing-dblp gsr-rank-badge--pill gsr-rank-badge--neutral" data-gsr-system="dblp" data-gsr-kind="dblp-missing">DBLP Entry Missing</span>
+      <div class="gs_gray">A Author — Some venue Scholar lists but DBLP does not</div>
+    </td></tr>
+  </tbody></table>
+</body>
+</html>
