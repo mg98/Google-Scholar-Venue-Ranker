@@ -20,27 +20,32 @@
 <body>
   <h1 style="font-size:16px">GSVR inline badge fixture (renders GSVR/inject.css verbatim)</h1>
 
-  <h2>Regression case from the bug report: long-reason journal badge on a two-line title</h2>
+  <h2>Regression case from the bug report: abstain chip on a two-line title (now compact "N/A · Ambiguous")</h2>
   <table class="gsc_a_t"><tbody>
-    <tr class="gsc_a_tr">
+    <tr class="gsc_a_tr" id="case-bug">
       <td class="gsc_a_t">
-        <div class="case-label">was: text crammed into a 22px circle, overlapping "Things"</div>
-        <a class="gsc_a_at" href="#">An Interpretable Deep Learning Framework For Intrusion Detection In Industrial Internet Of Things</a><span class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--neutral gsr-rank-badge--pill" data-gsr-system="sjr" data-gsr-kind="unranked" tabindex="0">N/A: Ambiguous Journal Match</span>
+        <a class="gsc_a_at" href="#">An Interpretable Deep Learning Framework For Intrusion Detection In Industrial Internet Of Things</a><span class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--neutral gsr-rank-badge--pill" data-gsr-system="sjr" data-gsr-kind="unranked" tabindex="0" aria-label="SJR not scored: Ambiguous Journal Match">N/A · Ambiguous</span>
         <div class="gs_gray">J Ahmad, S Latif, I Khan, MS Alshehri, MS Khan, N Alasbali, W Jiang</div>
         <div class="gs_gray">Internet of Things, 101681</div>
       </td>
     </tr>
-    <tr class="gsc_a_tr">
+    <tr class="gsc_a_tr" id="case-forced-circular">
       <td class="gsc_a_t">
-        <div class="case-label">defense-in-depth: same long text FORCED onto the circular class (must relax to pill, never overlap)</div>
-        <a class="gsc_a_at" href="#">An Interpretable Deep Learning Framework For Intrusion Detection In Industrial Internet Of Things</a><span class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--neutral gsr-rank-badge--circular" data-gsr-system="sjr" data-gsr-kind="unranked" tabindex="0">N/A: Ambiguous Journal Match</span>
-        <div class="gs_gray">J Ahmad, S Latif, I Khan, MS Alshehri, MS Khan, N Alasbali, W Jiang</div>
+        <div class="case-label">defense-in-depth: long text FORCED onto the circular class (must relax to pill, never overlap)</div>
+        <a class="gsc_a_at" href="#">An Interpretable Deep Learning Framework For Intrusion Detection In Industrial Internet Of Things</a><span class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--neutral gsr-rank-badge--circular" data-gsr-system="sjr" data-gsr-kind="unranked" tabindex="0">N/A · Ambiguous</span>
         <div class="gs_gray">Internet of Things, 101681</div>
+      </td>
+    </tr>
+    <tr class="gsc_a_tr" id="case-torture">
+      <td class="gsc_a_t">
+        <div class="case-label">torture: unknown 60-char reason must ellipsize at the 200px cap, single line</div>
+        <a class="gsc_a_at" href="#">A Paper Whose Hypothetical Future Reason Text Is Unreasonably Long</a><span class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--neutral gsr-rank-badge--pill" data-gsr-system="core" data-gsr-kind="unranked" tabindex="0">N/A · Some Hypothetical Future Reason Label That Nobody Shortened Yet</span>
+        <div class="gs_gray">A Author — Somewhere 2031</div>
       </td>
     </tr>
   </tbody></table>
 
-  <h2>Ranked badges (must look unchanged: A*-C pills, Q1-Q4 circles)</h2>
+  <h2>Ranked chips (must be visually unchanged: A*-C pills, Q1-Q4 22x22 circles)</h2>
   <table class="gsc_a_t"><tbody>
     <tr class="gsc_a_tr"><td class="gsc_a_t">
       <a class="gsc_a_at" href="#">A Conference Paper Title of Ordinary Length</a><span class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--core gsr-rank-badge--pill gsr-rank-badge--astar" data-gsr-system="core" data-gsr-kind="ranked">A*</span>
@@ -51,29 +56,83 @@
       <div class="gs_gray">A Author — EuroSys 2022</div>
     </td></tr>
     <tr class="gsc_a_tr"><td class="gsc_a_t">
-      <a class="gsc_a_at" href="#">A Journal Article With a Quartile</a><span class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--sjr gsr-rank-badge--circular gsr-rank-badge--q1" data-gsr-system="sjr" data-gsr-kind="ranked">Q1</span>
+      <a class="gsc_a_at" href="#">A B-Ranked Conference Paper</a><span class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--core gsr-rank-badge--pill gsr-rank-badge--b" data-gsr-system="core" data-gsr-kind="ranked">B</span>
+      <div class="gs_gray">A Author — EWSN 2021</div>
+    </td></tr>
+    <tr class="gsc_a_tr"><td class="gsc_a_t">
+      <a class="gsc_a_at" href="#">A C-Ranked Conference Paper</a><span class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--core gsr-rank-badge--pill gsr-rank-badge--c" data-gsr-system="core" data-gsr-kind="ranked">C</span>
+      <div class="gs_gray">A Author — PAM 2020</div>
+    </td></tr>
+    <tr class="gsc_a_tr"><td class="gsc_a_t">
+      <a class="gsc_a_at" href="#">A Q1 Journal Article</a><span id="badge-q1" class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--sjr gsr-rank-badge--circular gsr-rank-badge--q1" data-gsr-system="sjr" data-gsr-kind="ranked">Q1</span>
       <div class="gs_gray">A Author — IEEE Transactions on Mobile Computing</div>
     </td></tr>
     <tr class="gsc_a_tr"><td class="gsc_a_t">
+      <a class="gsc_a_at" href="#">A Q2 Journal Article</a><span class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--sjr gsr-rank-badge--circular gsr-rank-badge--q2" data-gsr-system="sjr" data-gsr-kind="ranked">Q2</span>
+      <div class="gs_gray">A Author — Computer Networks</div>
+    </td></tr>
+    <tr class="gsc_a_tr"><td class="gsc_a_t">
+      <a class="gsc_a_at" href="#">A Q3 Journal Article</a><span class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--sjr gsr-rank-badge--circular gsr-rank-badge--q3" data-gsr-system="sjr" data-gsr-kind="ranked">Q3</span>
+      <div class="gs_gray">A Author — Information Processing Letters</div>
+    </td></tr>
+    <tr class="gsc_a_tr"><td class="gsc_a_t">
       <a class="gsc_a_at" href="#">A Q4 Journal Article</a><span class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--sjr gsr-rank-badge--circular gsr-rank-badge--q4" data-gsr-system="sjr" data-gsr-kind="ranked">Q4</span>
-      <div class="gs_gray">A Author — Some Q4 Journal</div>
+      <div class="gs_gray">A Author — Journal of Genetics</div>
     </td></tr>
   </tbody></table>
 
-  <h2>Other abstain states (all pills, all atomic)</h2>
+  <h2>Full abstain family (compact qualifiers; full reason lives in popover + aria-label)</h2>
   <table class="gsc_a_t"><tbody>
     <tr class="gsc_a_tr"><td class="gsc_a_t">
-      <a class="gsc_a_at" href="#">A Workshop Paper That Is Reported But Not Scored</a><span class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--neutral gsr-rank-badge--pill" data-gsr-system="core" data-gsr-kind="unranked">N/A: Workshop</span>
+      <a class="gsc_a_at" href="#">A Workshop Paper That Is Reported But Not Scored</a><span class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--neutral gsr-rank-badge--pill" data-gsr-system="core" data-gsr-kind="unranked" aria-label="CORE not scored: Workshop">N/A · Workshop</span>
       <div class="gs_gray">A Author — ENSsys@SenSys</div>
     </td></tr>
     <tr class="gsc_a_tr"><td class="gsc_a_t">
-      <a class="gsc_a_at" href="#">A Short Paper Under Six Pages</a><span class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--neutral gsr-rank-badge--pill" data-gsr-system="core" data-gsr-kind="unranked">N/A: Short-paper</span>
+      <a class="gsc_a_at" href="#">A Short Paper Under Six Pages</a><span class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--neutral gsr-rank-badge--pill" data-gsr-system="core" data-gsr-kind="unranked" aria-label="CORE not scored: Short-paper">N/A · Short paper</span>
       <div class="gs_gray">A Author — IMC 2021, pages 1-5</div>
     </td></tr>
     <tr class="gsc_a_tr"><td class="gsc_a_t">
-      <a class="gsc_a_at" href="#">A Paper Missing From the Matched DBLP Profile</a><span class="gsr-rank-badge gsr-rank-badge-inline badge-missing-dblp gsr-rank-badge--pill gsr-rank-badge--neutral" data-gsr-system="dblp" data-gsr-kind="dblp-missing">DBLP Entry Missing</span>
+      <a class="gsc_a_at" href="#">A Demo Paper</a><span class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--neutral gsr-rank-badge--pill" data-gsr-system="core" data-gsr-kind="unranked" aria-label="CORE not scored: Demo/Poster">N/A · Demo/Poster</span>
+      <div class="gs_gray">A Author — SenSys Demos 2022</div>
+    </td></tr>
+    <tr class="gsc_a_tr"><td class="gsc_a_t">
+      <a class="gsc_a_at" href="#">An Extended Abstract</a><span class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--neutral gsr-rank-badge--pill" data-gsr-system="core" data-gsr-kind="unranked" aria-label="CORE not scored: Extended Abstract">N/A · Abstract</span>
+      <div class="gs_gray">A Author — CHI EA 2021</div>
+    </td></tr>
+    <tr class="gsc_a_tr"><td class="gsc_a_t">
+      <a class="gsc_a_at" href="#">A Pre-1999 Journal Paper</a><span class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--neutral gsr-rank-badge--pill" data-gsr-system="sjr" data-gsr-kind="unranked" aria-label="SJR not scored: SJR Historical Coverage Unavailable">N/A · No SJR data</span>
+      <div class="gs_gray">A Author — TPAMI 1998</div>
+    </td></tr>
+    <tr class="gsc_a_tr"><td class="gsc_a_t">
+      <a class="gsc_a_at" href="#">A Paper Missing From the Matched DBLP Profile</a><span id="badge-dblp" class="gsr-rank-badge gsr-rank-badge-inline badge-missing-dblp gsr-rank-badge--pill gsr-rank-badge--neutral" data-gsr-system="dblp" data-gsr-kind="dblp-missing" aria-label="DBLP DBLP Entry Missing">No DBLP</span>
       <div class="gs_gray">A Author — Some venue Scholar lists but DBLP does not</div>
     </td></tr>
+    <tr class="gsc_a_tr"><td class="gsc_a_t">
+      <a class="gsc_a_at" href="#">A Bare Unranked Venue</a><span class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--neutral gsr-rank-badge--pill" data-gsr-system="core" data-gsr-kind="unranked">N/A</span>
+      <div class="gs_gray">A Author — A regional venue CORE does not list</div>
+    </td></tr>
   </tbody></table>
+
+  <h2>Scanning state: skeleton placeholder chip</h2>
+  <table class="gsc_a_t"><tbody>
+    <tr class="gsc_a_tr"><td class="gsc_a_t">
+      <a class="gsc_a_at" href="#">A Row Whose Rank Is Still Being Determined</a><span id="badge-skeleton" class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--pill gsr-rank-badge--skeleton" aria-hidden="true"></span>
+      <div class="gs_gray">A Author — scanning…</div>
+    </td></tr>
+  </tbody></table>
+
+  <h2>Compact mode (root class .gsr-compact-mode)</h2>
+  <div class="gsr-compact-mode">
+  <table class="gsc_a_t"><tbody>
+    <tr class="gsc_a_tr"><td class="gsc_a_t">
+      <a class="gsc_a_at" href="#">A Compact-Mode Conference Paper</a><span id="badge-compact-astar" class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--core gsr-rank-badge--pill gsr-rank-badge--astar" data-gsr-system="core" data-gsr-kind="ranked">A*</span>
+      <div class="gs_gray">A Author — SenSys 2023</div>
+    </td></tr>
+    <tr class="gsc_a_tr"><td class="gsc_a_t">
+      <a class="gsc_a_at" href="#">A Compact-Mode Abstain Chip</a><span id="badge-compact-abstain" class="gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--neutral gsr-rank-badge--pill" data-gsr-system="sjr" data-gsr-kind="unranked">N/A · Ambiguous</span>
+      <div class="gs_gray">A Author — Internet of Things, 101681</div>
+    </td></tr>
+  </tbody></table>
+  </div>
 </body>
 </html>

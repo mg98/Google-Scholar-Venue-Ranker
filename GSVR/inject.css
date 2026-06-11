@@ -1292,9 +1292,9 @@
 }
 
 .gsr-rank-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  /* inline-block (not flex) so text-overflow: ellipsis works on long chips. */
+  display: inline-block;
+  box-sizing: border-box;
   min-width: 28px;
   min-height: 22px;
   padding: 0 7px;
@@ -1304,10 +1304,15 @@
   color: #2f446b;
   font-size: 10px;
   font-weight: 800;
-  line-height: 1;
+  line-height: 20px;
+  text-align: center;
   vertical-align: middle;
-  /* A badge is an atomic chip: its text must never wrap onto the page. */
+  /* A badge is an atomic chip: text never wraps onto the page, and anything
+     longer than the cap ellipsizes instead of stretching across the title. */
   white-space: nowrap;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .gsr-rank-badge-inline {
@@ -1320,9 +1325,29 @@
 .gsr-rank-badge--circular {
   width: auto;
   min-width: 22px;
-  min-height: 22px;
-  padding: 0 4px;
+  padding: 0 2px;
   border-radius: 999px;
+}
+
+/* Placeholder chip while a row's rank is still being determined. */
+.gsr-rank-badge--skeleton {
+  width: 34px;
+  border-color: #d3dcef;
+  background: linear-gradient(90deg, #e8eefb 25%, #f5f8ff 50%, #e8eefb 75%);
+  background-size: 200% 100%;
+  animation: gsr-badge-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes gsr-badge-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: 0 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gsr-rank-badge--skeleton {
+    animation: none;
+    background: #e8eefb;
+  }
 }
 
 .gsr-rank-badge--pill {
@@ -1799,6 +1824,8 @@ tr.gsc_a_tr.gsr-row--preview.gsr-row--dimmed {
 .gsr-compact-mode .gsr-rank-badge {
   min-height: 20px;
   font-size: 9px;
+  line-height: 18px;
+  max-width: 150px;
 }
 
 .gsr-compact-mode .gsr-summary-row {

@@ -19,6 +19,14 @@ Google Scholar Venue Ranker is an open-source Chrome extension developed by [Nav
 
 ## Changelog
 
+### Unreleased (UI workstream A — inline badge system)
+
+- `Badge overflow fix`: long-reason journal badges no longer render as fixed 22px circles with text spilling over the publication title (the "N/A: Ambiguous Journal Match" artifact). Any badge carrying a reason is a pill, badges are atomic single-line chips, and the circular style relaxes into a pill if long text ever reaches it.
+- `Compact abstain chips`: abstain badges now show a short qualifier next to the title (`N/A · Ambiguous`, `N/A · Workshop`, `N/A · Abstract`, `N/A · No SJR data`; `No DBLP` for missing DBLP entries) instead of full sentences. The complete reason remains in the hover/focus popover and in the badge's `aria-label`.
+- `Overflow guard`: badges ellipsize at a 200px cap (150px in compact mode), so even unknown future reason strings cannot stretch across the page.
+- `Scan skeletons`: while ranks are being determined, each row shows a small shimmering placeholder chip (static under `prefers-reduced-motion`), removed automatically on completion, error, or cancellation.
+- `Visual fixture harness`: `docs/ui-fixtures/badges.html` renders the real `inject.css` against replica Scholar rows for the full badge state matrix (ranked chips, all abstain qualifiers, forced-circular defense, 60-character torture case, compact mode, skeleton). Verified by rendered-geometry inspection: zero overlaps, zero multi-line badges, Q1-Q4 stay true 22x22 circles, torture case capped at exactly 200px.
+
 ### Unreleased (phase 4)
 
 - `DBLP match trust line`: the sidebar footer now shows the matched DBLP PID, how it was matched (automatically or set manually), and a one-click "Wrong author?" correction path into the manual override dialog. Automatic matches are re-verified after 45 days instead of being cached forever, so a wrong homonym match can no longer persist indefinitely; manual overrides never expire.

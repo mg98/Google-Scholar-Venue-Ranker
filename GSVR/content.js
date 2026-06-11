@@ -5609,26 +5609,46 @@ function clearSummaryFilterPreview(nextFilter) {
     applyActiveSummaryFilter();
 }
 
+// Short qualifiers for abstain chips. The chip stays compact next to the
+// paper title; the FULL reason always remains available in the popover (see
+// buildBadgeDetailItems) and in the badge's aria-label.
+const BADGE_REASON_QUALIFIERS = Object.freeze({
+    'workshop': 'Workshop',
+    'short-paper': 'Short paper',
+    'demo/poster': 'Demo/Poster',
+    'extended abstract': 'Abstract',
+    'ambiguous venue match': 'Ambiguous',
+    'ambiguous journal match': 'Ambiguous',
+    'sjr historical coverage unavailable': 'No SJR data',
+    'preprint': 'Preprint',
+});
+function getBadgeReasonQualifier(reason) {
+    const key = String(reason || '').trim().toLowerCase();
+    if (!key) {
+        return null;
+    }
+    return BADGE_REASON_QUALIFIERS[key] || String(reason).trim();
+}
 function createRankBadgeElement(rank, system, reason = null, meta = null) {
     const badge = document.createElement('span');
     badge.classList.add('gsr-rank-badge');
     badge.dataset.gsrSystem = String(system || 'unknown').toLowerCase();
-    if (rank === 'N/A' && reason) {
-        if (String(reason).toLowerCase() === 'extended abstract') {
-            badge.textContent = 'N/A: Extended Abstract';
-        }
-        else if (String(reason).toLowerCase() === 'demo/poster') {
-            badge.textContent = 'N/A: Demo/Poster';
-        }
-        else {
-            badge.textContent = `N/A: ${reason}`;
-        }
+    let fullLabel;
+    if (system === 'DBLP' && rank === DBLP_ENTRY_MISSING_LABEL) {
+        // Chip stays short; the full state lives in the popover and aria-label.
+        badge.textContent = 'No DBLP';
+        fullLabel = `${system} ${DBLP_ENTRY_MISSING_LABEL}`;
+    }
+    else if (rank === 'N/A' && reason) {
+        badge.textContent = `N/A · ${getBadgeReasonQualifier(reason)}`;
+        fullLabel = `${system} not scored: ${reason}`;
     }
     else {
         badge.textContent = rank;
+        fullLabel = `${system} ${rank}`;
     }
     badge.setAttribute('tabindex', '0');
-    badge.setAttribute('aria-label', `${system} ${badge.textContent}`);
+    badge.setAttribute('aria-label', fullLabel);
     // The circular style is sized for two-character chips ("Q1"). ANY badge
     // carrying a reason has long text and must render as a pill, or the text
     // overflows the fixed-size circle and overlaps the publication title.
@@ -9844,6 +9864,23 @@ function createPublicationRankInfo(result) {
         topCandidates: result.topCandidates ?? null
     };
 }
+// Placeholder chips shown while a row's rank is still being determined, so the
+// page does not jump when the real badges land all at once after the scan.
+function addSkeletonRankBadges(publicationLinkElements) {
+    for (const pubInfo of publicationLinkElements || []) {
+        const titleLinkElement = pubInfo?.rowElement?.querySelector?.('td.gsc_a_t a.gsc_a_at');
+        if (!titleLinkElement || pubInfo.rowElement.querySelector('.gsr-rank-badge-inline')) {
+            continue;
+        }
+        const skeleton = document.createElement('span');
+        skeleton.className = 'gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--pill gsr-rank-badge--skeleton';
+        skeleton.setAttribute('aria-hidden', 'true');
+        titleLinkElement.insertAdjacentElement('afterend', skeleton);
+    }
+}
+function removeSkeletonRankBadges() {
+    document.querySelectorAll('.gsr-rank-badge--skeleton').forEach((element) => element.remove());
+}
 async function evaluatePublicationRanks(publicationLinkElements, dblpPublications, statusElement, sessionId) {
     const determinedPublicationRanks = [];
     const persistentPublicationRanks = [];
@@ -9852,6 +9889,7 @@ async function evaluatePublicationRanks(publicationLinkElements, dblpPublication
     const scholarTitlesAlreadyRanked = new Set();
     const dblpKeysAlreadyUsedForRank = new Set();
     let processedCount = 0;
+    addSkeletonRankBadges(publicationLinkElements);
     dblpPubsForCurrentUser = Array.isArray(dblpPublications) ? dblpPublications : [];
     const processPublication = async (pubInfo, titlesAlreadyProcessedSet, dblpKeysUsedSet) => {
         throwIfStaleScanSession(sessionId);
@@ -10244,24 +10282,31 @@ async function evaluatePublicationRanks(publicationLinkElements, dblpPublication
         }
         return { rank: currentRank, system: rankingSystem, reason: (currentRank === 'N/A' ? naReason : null), rowElement: pubInfo.rowElement, paperTitle: pubInfo.paperTitle, titleText: pubInfo.titleText, publicationYear: resolvedPublicationYear, authorCount, url: pubInfo.url, shouldPersist, matchConfidence, matchedVenue, venueMatchConfidence, dblpVenue, sourceYear, dblpKey: dblpKeyUsedForThisRanking, topCandidates, ...decisionMeta };
     };
-    for (const pubInfo of publicationLinkElements) {
-        throwIfStaleScanSession(sessionId);
-        const result = await processPublication(pubInfo, scholarTitlesAlreadyRanked, dblpKeysAlreadyUsedForRank);
-        if (result.system === 'CORE') {
-            const coreKey = VALID_RANKS.includes(result.rank) ? result.rank : 'N/A';
-            coreRankCounts[coreKey] += 1;
+    try {
+        for (const pubInfo of publicationLinkElements) {
+            throwIfStaleScanSession(sessionId);
+            const result = await processPublication(pubInfo, scholarTitlesAlreadyRanked, dblpKeysAlreadyUsedForRank);
+            if (result.system === 'CORE') {
+                const coreKey = VALID_RANKS.includes(result.rank) ? result.rank : 'N/A';
+                coreRankCounts[coreKey] += 1;
+            }
+            else if (result.system === 'SJR') {
+                const sjrKey = SJR_QUARTILES.includes(result.rank) ? result.rank : 'N/A';
+                sjrRankCounts[sjrKey] += 1;
+            }
+            const publicationRankInfo = createPublicationRankInfo(result);
+            determinedPublicationRanks.push(publicationRankInfo);
+            if (result.shouldPersist !== false) {
+                persistentPublicationRanks.push(publicationRankInfo);
+            }
+            processedCount++;
+            updateStatusElement(statusElement, processedCount, publicationLinkElements.length, "Ranking");
         }
-        else if (result.system === 'SJR') {
-            const sjrKey = SJR_QUARTILES.includes(result.rank) ? result.rank : 'N/A';
-            sjrRankCounts[sjrKey] += 1;
-        }
-        const publicationRankInfo = createPublicationRankInfo(result);
-        determinedPublicationRanks.push(publicationRankInfo);
-        if (result.shouldPersist !== false) {
-            persistentPublicationRanks.push(publicationRankInfo);
-        }
-        processedCount++;
-        updateStatusElement(statusElement, processedCount, publicationLinkElements.length, "Ranking");
+    }
+    finally {
+        // Real badges are applied in bulk right after this returns; leftover
+        // placeholders (including on error/cancel paths) must never linger.
+        removeSkeletonRankBadges();
     }
     return {
         coreRankCounts,
