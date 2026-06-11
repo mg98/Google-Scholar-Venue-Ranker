@@ -39,7 +39,7 @@ function printHelp() {
     'Usage: node GSVR/tests/benchmark_accuracy.js [options]',
     '',
     'Options:',
-    '  --suite gold|shadow|all',
+    '  --suite gold|shadow|real|all',
     '  --family <fixture-family>',
     '  --json',
     '  --fail-on-regression',

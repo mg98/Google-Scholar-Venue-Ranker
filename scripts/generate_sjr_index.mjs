@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 const require = createRequire(import.meta.url);
 const journalMatch = require("../GSVR/core/journal_match.js");
 
-const { normalizeJournalName, createTokenSet, normalizeIssnList } = journalMatch;
+const { normalizeJournalName, createTokenSet, normalizeIssnList, buildJournalAliasTitles } = journalMatch;
 
 function parseSjrCsv(text) {
   const rows = [];
@@ -135,7 +135,10 @@ export async function generateSjrIndex({ root = process.cwd() } = {}) {
         bySourceKey.set(sourceKey, entry);
       }
 
-      entry.aliasKeys.add(normalizedTitle);
+      for (const aliasTitle of buildJournalAliasTitles(title)) {
+        const aliasKey = normalizeJournalName(aliasTitle);
+        if (aliasKey) entry.aliasKeys.add(aliasKey);
+      }
       if (title.length > entry.resolvedTitle.length) {
         entry.resolvedTitle = title;
       }

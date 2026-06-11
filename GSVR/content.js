@@ -4344,11 +4344,16 @@ function getCoreDataFileForYear(pubYear) {
         return 'core/CORE_2018.json';
     if (pubYear >= 2017)
         return 'core/CORE_2017.json';
-    if (pubYear <= 2016) {
+    if (pubYear >= 2014)
         return 'core/CORE_2014.json';
-    }
-    // Fallback
-    return 'core/CORE_2026.json';
+    if (pubYear >= 2013)
+        return 'core/CORE_2013.json';
+    // ERA 2010 list (hosted by the CORE portal as the 2010 snapshot).
+    if (pubYear >= 2010)
+        return 'core/CORE_2010.json';
+    // CORE 2008 is the oldest bundled snapshot; pre-2008 papers use it with
+    // limited historical coverage.
+    return 'core/CORE_2008.json';
 }
 const ORDERED_CORE_DATA_FILES = [
     'core/CORE_2026.json',
@@ -4358,6 +4363,9 @@ const ORDERED_CORE_DATA_FILES = [
     'core/CORE_2018.json',
     'core/CORE_2017.json',
     'core/CORE_2014.json',
+    'core/CORE_2013.json',
+    'core/CORE_2010.json',
+    'core/CORE_2008.json',
 ];
 function getCoreDatasetYear(coreDataFile) {
     const match = String(coreDataFile || '').match(/CORE_(\d{4})/i);
@@ -5036,7 +5044,11 @@ async function loadSjrDataset() {
                 else if (title.length > entry.resolvedTitle.length) {
                     entry.resolvedTitle = title;
                 }
-                entry.aliasKeys.add(normalizedTitle);
+                for (const aliasTitle of JOURNAL_MATCH_API.buildJournalAliasTitles(title)) {
+                    const aliasKey = normalizeJournalName(aliasTitle);
+                    if (aliasKey)
+                        entry.aliasKeys.add(aliasKey);
+                }
                 if (!entry.coverage && coverage) {
                     entry.coverage = coverage;
                 }

@@ -123,6 +123,47 @@
     'lectures notes': 'lecture notes',
     'lect notes': 'lecture notes',
     'lncs': 'lecture notes in computer science',
+    // DBLP journal-abbreviation tokens (dots are stripped before expansion, so
+    // only the undotted forms below ever match). Ambiguous expansions (e.g.
+    // "exp" = experience/experimental) expand to the most common form here and
+    // get alternates via VARIANT_TOKEN_PAIRS in
+    // generateJournalNormalizationVariants.
+    'mob': 'mobile',
+    'sel': 'selected',
+    'ind': 'industrial',
+    'mach': 'machine',
+    'learn': 'learning',
+    'gener': 'generation',
+    'veh': 'vehicular',
+    'knowl': 'knowledge',
+    'pract': 'practice',
+    'empir': 'empirical',
+    'softw': 'software',
+    'eng': 'engineering',
+    'artif': 'artificial',
+    'concurr': 'concurrency',
+    'cogn': 'cognitive',
+    'neurosci': 'neuroscience',
+    'biomed': 'biomedical',
+    'lett': 'letters',
+    'methodol': 'methodology',
+    'lang': 'language',
+    'priv': 'privacy',
+    'depend': 'dependable',
+    'ubiquit': 'ubiquitous',
+    'intell': 'intelligence',
+    'anal': 'analysis',
+    'exp': 'experience',
+    'autom': 'automation',
+    'theor': 'theory',
+    'interact': 'interaction',
+    'environ': 'environment',
+    'oper': 'operating',
+    'vis': 'visualization',
+    'phys': 'physics',
+    'chem': 'chemistry',
+    'biol': 'biology',
+    'secur': 'security',
   });
 
   function escapeRegExp(value) {
@@ -140,7 +181,9 @@
     let cleanedText = foldDiacritics(String(text)).toLowerCase();
     cleanedText = cleanedText.replace(/&/g, ' and ');
     cleanedText = cleanedText.replace(/[\.,\/#!$%\^;\*:{}=\_`~?"“”()\[\]]/g, ' ');
-    cleanedText = cleanedText.replace(/\s-\s/g, ' ');
+    // Fold all dash forms to spaces so "Real-Time Systems" and "Real Time
+    // Systems" produce the same key (applied to index titles and queries alike).
+    cleanedText = cleanedText.replace(/[-‐-―]/g, ' ');
     if (isScholarVenue) {
       cleanedText = cleanedText.replace(/^(\d{4}\s+|\d{1,2}(st|nd|rd|th)\s+)/, '');
       cleanedText = cleanedText.replace(/,\s*\d{4}$/, '');
@@ -166,7 +209,7 @@
   // ("Journal of Systems Architecture" vs "Journal Systems Architecture").
   // Deliberately does NOT include "journal" / "international": dropping those
   // merges distinct journals ("Diabetes" vs "Journal of Diabetes").
-  const CONNECTOR_WORDS = new Set(['a', 'an', 'the', 'of', 'and', 'for', 'in', 'on', 'to', 'at']);
+  const CONNECTOR_WORDS = new Set(['a', 'an', 'the', 'of', 'and', 'for', 'in', 'on', 'to', 'at', 'with']);
 
   function stemToken(token) {
     // Simple stemming sufficient for venue name matching.
@@ -196,29 +239,76 @@
   }
 
   // Some abbreviations map ambiguously (e.g., "Comput." could be "Computer" or
-  // "Computing"). To avoid lowering the global fuzzy threshold, try a handful
-  // of deterministic variants.
+  // "Computing"; "Exp." could be "Experience" or "Experimental"). To avoid
+  // lowering the global fuzzy threshold, try deterministic single-token swap
+  // variants of the normalized base. Pairs are written in STEMMED form because
+  // they substitute into the already-stemmed base ("physics" appears as
+  // "physic", "operations" as "operation").
+  const VARIANT_TOKEN_PAIRS = [
+    ['computer', 'computing'],
+    ['network', 'networking'],
+    ['intelligence', 'intelligent'],
+    ['experience', 'experimental'],
+    ['automation', 'automatic'],
+    ['automation', 'automated'],
+    ['theory', 'theoretical'],
+    ['interaction', 'interactive'],
+    ['environment', 'environmental'],
+    ['analysi', 'analytical'],
+    ['operating', 'operation'],
+    ['visualization', 'visual'],
+    ['physic', 'physical'],
+    ['chemistry', 'chemical'],
+    ['biology', 'biological'],
+    ['security', 'secure'],
+    ['electron', 'electronic'],
+    ['application', 'applied'],
+    ['computer', 'computation'],
+    ['computer', 'computational'],
+    ['graph', 'graphic'],
+  ];
+  const MAX_VARIANTS = 16;
+
   function generateJournalNormalizationVariants(name) {
     const base = normalizeJournalName(name);
     if (!base) return [];
     const variants = new Set([base]);
-    if (/\bcomputer\b/.test(base)) {
-      variants.add(base.replace(/\bcomputer\b/g, 'computing'));
-    }
-    if (/\bcomputing\b/.test(base)) {
-      variants.add(base.replace(/\bcomputing\b/g, 'computer'));
-    }
-    // "ACM computer survey" vs "ACM computing survey"
-    if (/\bacm\s+computer\b/.test(base)) {
-      variants.add(base.replace(/\bacm\s+computer\b/g, 'acm computing'));
-    }
-    if (/\bcomputer\s+survey\b/.test(base)) {
-      variants.add(base.replace(/\bcomputer\b/g, 'computing'));
-    }
-    if (/\bcomputing\s+survey\b/.test(base)) {
-      variants.add(base.replace(/\bcomputing\b/g, 'computer'));
+    // Two passes so titles needing two independent swaps still land on the
+    // official key ("Dependable Secur. Comput." needs security->secure AND
+    // computer->computing). The base is always first, so an exact base hit
+    // wins before any variant is consulted.
+    for (let pass = 0; pass < 2 && variants.size < MAX_VARIANTS; pass++) {
+      for (const source of [...variants]) {
+        for (const [left, right] of VARIANT_TOKEN_PAIRS) {
+          if (variants.size >= MAX_VARIANTS) break;
+          const leftRx = new RegExp(`\\b${left}\\b`, 'g');
+          const rightRx = new RegExp(`\\b${right}\\b`, 'g');
+          if (leftRx.test(source)) {
+            variants.add(source.replace(leftRx, right));
+          }
+          if (rightRx.test(source)) {
+            variants.add(source.replace(rightRx, left));
+          }
+        }
+      }
     }
     return Array.from(variants);
+  }
+
+  // SCImago sometimes appends a publisher/disambiguation parenthetical to the
+  // official title ("Operating Systems Review (ACM)", "BMJ (Online)"). Index
+  // builders register BOTH the full title and the parenthetical-stripped form
+  // as lookup keys; if stripping collides with another journal, the bucket
+  // logic resolves via ISSN / raw title or abstains, so this is safe.
+  function buildJournalAliasTitles(rawTitle) {
+    const title = String(rawTitle || '').trim();
+    if (!title) return [];
+    const aliases = [title];
+    const withoutParenthetical = title.replace(/\s*\([^()]*\)\s*$/, '').trim();
+    if (withoutParenthetical && withoutParenthetical !== title) {
+      aliases.push(withoutParenthetical);
+    }
+    return aliases;
   }
 
   // Token stop list for CANDIDATE SELECTION only (never identity): boilerplate
@@ -476,6 +566,7 @@
     cleanTextForComparison,
     normalizeJournalName,
     generateJournalNormalizationVariants,
+    buildJournalAliasTitles,
     createTokenSet,
     createSjrTokenIndex,
     selectSjrCandidateIndexes,

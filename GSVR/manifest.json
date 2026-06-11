@@ -431,6 +431,9 @@
   "web_accessible_resources": [
     {
       "resources": [
+        "core/CORE_2008.json",
+        "core/CORE_2010.json",
+        "core/CORE_2013.json",
         "core/CORE_2014.json",
         "core/CORE_2017.json",
         "core/CORE_2018.json",

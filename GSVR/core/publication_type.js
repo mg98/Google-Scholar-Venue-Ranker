@@ -66,7 +66,7 @@
       signals.push("short_by_pages");
       return { publicationType: "short_paper", signals };
     }
-    if (hasToken("workshop") || /\bworkshop\b/.test(reason) || /\bworkshop\b/.test(venue) || /@/.test(venue)) {
+    if (hasToken("workshop") || /\bworkshop\b/.test(reason) || /\bworkshop\b/.test(venue) || /\b\w+\s*@\s*\w+\b/.test(venue)) {
       signals.push("workshop");
       return { publicationType: "workshop", signals };
     }

@@ -62,7 +62,10 @@
     /^work\s*-?\s*in\s*-?\s*progress\s*:\s*/i,
   ];
 
-  const WORKSHOP_RX = /(\bworkshop\b|\bws\b|\bworkshop\s+on\b|\bworkshop\s+proceedings\b|\bco\s*-?located\b|\bco\s*-?located\s+with\b|\bcolocated\b|\bsatellite\b|\bassociated\s+workshop\b|\baffiliated\s+workshop\b|\bworkshop\s+track\b|@|\bproceedings\s+of\s+the\s+[\s\S]*\bworkshop\b)/i;
+  // NOTE: deliberately no bare "@" alternative — "X@Y" workshop notation is
+  // detected separately from VENUE fields only, so paper titles containing "@"
+  // ("Energy@home: ...") cannot misclassify a main-track paper as a workshop.
+  const WORKSHOP_RX = /(\bworkshop\b|\bws\b|\bworkshop\s+on\b|\bworkshop\s+proceedings\b|\bco\s*-?located\b|\bco\s*-?located\s+with\b|\bcolocated\b|\bsatellite\b|\bassociated\s+workshop\b|\baffiliated\s+workshop\b|\bworkshop\s+track\b|\bproceedings\s+of\s+the\s+[\s\S]*\bworkshop\b)/i;
   const EXTENDED_ABSTRACT_RX = /(\bextended\s+abstracts?\b)/i;
   const DEMO_POSTER_VENUE_RX = /(\bposter\b|\bposters\b|\bdemo\b|\bdemos\b|\bdemonstration\b|\bdemonstrations\b|\bcompanion\b|\badjunct\b|\bsupplement\b|\bdoctoral\s+(consortium|symposium)\b|\bph\.?d\.?\s+forum\b|\bforum\s+abstract\b|\bstudent\s+research\b|\bwork\s*-?\s*in\s*-?\s*progress\b|\bwip\b|\bindustry\s+track\b|\btool\s+demonstration\b)/i;
   const DEMO_POSTER_TITLE_RX = /(\bposter\b|\bdemo\b|\blate\s+breaking\b|\bwork\s*-?\s*in\s*-?\s*progress\b|\bwip\b|\bdoctoral\s+(consortium|symposium)\b|\bph\.?d\.?\s+forum\b|\bcompanion\b|\badjunct\b|\btool\s+demonstration\b)/i;
@@ -326,11 +329,15 @@
 
     const haystack = `${rawTitle}\n${rawVenue}\n${rawVenueFull}\n${rawScholarVenue}\n${rawDblpKey}\n${rawCrossref}\n${rawType}`;
     const venueHaystack = `${rawVenue}\n${rawVenueFull}\n${rawDblpKey}\n${rawCrossref}\n${rawType}`;
+    // Workshop evidence must come from venue metadata, never the paper title:
+    // titles like "Energy@home: ..." or "Lessons from the Dagstuhl Workshop"
+    // do not make a main-track paper a workshop paper.
+    const workshopHaystack = `${rawVenue}\n${rawVenueFull}\n${rawScholarVenue}\n${rawDblpKey}\n${rawCrossref}\n${rawType}`;
 
     let resolvedVenue = null;
     let parentVenue = null;
 
-    const atMatch = haystack.match(/\b([A-Za-z][A-Za-z0-9\-]{1,20})\s*@\s*([A-Za-z][A-Za-z0-9\-]{1,20})\b/);
+    const atMatch = workshopHaystack.match(/\b([A-Za-z][A-Za-z0-9\-]{1,20})\s*@\s*([A-Za-z][A-Za-z0-9\-]{1,20})\b/);
     if (atMatch) {
       resolvedVenue = atMatch[1];
       parentVenue = atMatch[2];
@@ -346,7 +353,7 @@
       addSignal(signals, scores, 'extendedAbstract', 4.0, 'extended_keyword');
     }
 
-    if (WORKSHOP_RX.test(haystack)) {
+    if (WORKSHOP_RX.test(workshopHaystack)) {
       addSignal(signals, scores, 'workshop', 2.2, 'workshop_keyword');
     }
 
@@ -458,8 +465,19 @@
     };
   }
 
-  function scorePublicationCandidate(normalizedScholarTitle, scholarYear, pub, normalizedTitle, config) {
-    const similarity = hybridSimilarity(normalizedScholarTitle, normalizedTitle);
+  // Scholar sometimes truncates long titles with a trailing ellipsis. Detect it
+  // so matching can compare the prefix against equally-truncated candidate
+  // titles instead of failing the full-string similarity threshold.
+  const TRUNCATED_TITLE_RX = /(…|\.\.\.)\s*$/;
+  // A short truncated prefix carries too little signal to match safely.
+  const MIN_TRUNCATED_PREFIX_LENGTH = 30;
+
+  function scorePublicationCandidate(normalizedScholarTitle, scholarYear, pub, normalizedTitle, config, options = {}) {
+    const truncatedPrefix = options.truncatedPrefix === true;
+    const comparableTitle = truncatedPrefix
+      ? normalizedTitle.slice(0, normalizedScholarTitle.length)
+      : normalizedTitle;
+    const similarity = hybridSimilarity(normalizedScholarTitle, comparableTitle);
     const pubYear = pub?.year ? parseInt(pub.year, 10) : null;
     const scholarYearNumber = typeof scholarYear === 'number' ? scholarYear : null;
     const yearDiff = (scholarYearNumber !== null && Number.isFinite(pubYear))
@@ -467,6 +485,12 @@
       : 0;
 
     let score = similarity;
+    if (truncatedPrefix) {
+      // Identical prefixes of two DIFFERENT long papers must stay inside the
+      // ambiguity gate (which is skipped at score >= 0.96), so a prefix match
+      // can never claim full-title certainty.
+      score = Math.min(score, 0.95);
+    }
     if (scholarYearNumber !== null && Number.isFinite(pubYear) && yearDiff > config.publicationMaxYearDiff) {
       if (similarity < config.publicationStrongSimilarityThreshold || yearDiff > config.publicationStrongYearDiff) {
         return null;
@@ -485,7 +509,8 @@
       rawSimilarity: similarity,
       yearDiff,
       hasPages: !!pub.pages,
-      exactTitleMatch: normalizedTitle === normalizedScholarTitle,
+      exactTitleMatch: !truncatedPrefix && normalizedTitle === normalizedScholarTitle,
+      truncatedPrefixMatch: truncatedPrefix,
     };
   }
 
@@ -528,13 +553,21 @@
       publicationStrongSimilarityThreshold: Number.isFinite(strongSimilarityThreshold) ? strongSimilarityThreshold : RANKING_CONFIG.publicationStrongSimilarityThreshold,
     };
 
-    const normalizedScholarTitle = normalizeForMatch(scholarTitle);
+    const rawScholarTitle = String(scholarTitle || '').trim();
+    const isTruncatedTitle = TRUNCATED_TITLE_RX.test(rawScholarTitle);
+    const effectiveScholarTitle = isTruncatedTitle
+      ? rawScholarTitle.replace(TRUNCATED_TITLE_RX, '')
+      : scholarTitle;
+    const normalizedScholarTitle = normalizeForMatch(effectiveScholarTitle);
     if (!normalizedScholarTitle || !Array.isArray(dblpPublications) || dblpPublications.length === 0) {
       return { status: DECISION_STATUS.MISSING, match: null, reason: 'no_candidates' };
     }
+    if (isTruncatedTitle && normalizedScholarTitle.length < MIN_TRUNCATED_PREFIX_LENGTH) {
+      return { status: DECISION_STATUS.MISSING, match: null, reason: 'truncated_title_too_short' };
+    }
 
     const index = createPublicationTitleIndex(dblpPublications);
-    const exactMatches = index.exactTitleMap.get(normalizedScholarTitle) || [];
+    const exactMatches = isTruncatedTitle ? [] : (index.exactTitleMap.get(normalizedScholarTitle) || []);
     let candidateIndexes = exactMatches.length
       ? new Set(exactMatches)
       : getCandidateIndexesFromTokens(tokenizeNormalizedText(normalizedScholarTitle, 3), index.tokenIndex);
@@ -548,7 +581,7 @@
     for (const candidateIndex of candidateIndexes) {
       const pub = index.items[candidateIndex];
       const normalizedTitle = index.normalizedTitles[candidateIndex];
-      const scored = scorePublicationCandidate(normalizedScholarTitle, scholarYear, pub, normalizedTitle, config);
+      const scored = scorePublicationCandidate(normalizedScholarTitle, scholarYear, pub, normalizedTitle, config, { truncatedPrefix: isTruncatedTitle });
       if (!scored) continue;
 
       if (!best || comparePublicationCandidates(best, scored) > 0) {
@@ -583,6 +616,7 @@
       runnerUpScore: second ? second.score : null,
       scoreGap: gap,
       exactTitleMatch: best.exactTitleMatch,
+      truncatedTitleMatch: best.truncatedPrefixMatch === true,
       match: { ...best.pub, matchScore: best.score, matchRawSimilarity: best.rawSimilarity },
       topCandidates: [summarizePublicationCandidate(best), summarizePublicationCandidate(second)].filter(Boolean),
     };
@@ -741,6 +775,41 @@
     }).filter(Boolean);
   }
 
+  // Words too generic to count as evidence that a venue title and a CORE entry
+  // describe the same conference.
+  const GENERIC_VENUE_TOKENS = new Set([
+    'conference', 'international', 'national', 'annual', 'symposium', 'proceedings',
+    'workshop', 'acm', 'ieee', 'ifip', 'usenix', 'joint', 'european', 'world',
+    'meeting', 'congress', 'forum', 'first', 'second', 'third',
+  ]);
+
+  // Cross-field acronym collisions (e.g. a marketing "PAM" vs CORE's Passive
+  // and Active Measurement) must not resolve with confidence 1.0 just because
+  // the acronym string is unique within one CORE snapshot. When the caller
+  // supplies a substantial full venue title, require at least minimal title
+  // agreement with the CORE entry; otherwise abstain.
+  function acronymEntryAgreesWithTitle(entry, fullVenueTitle, acronymCandidate) {
+    const normalizedFull = normalizeVenueCandidate(fullVenueTitle);
+    if (!normalizedFull || normalizedFull.length < 18) return true;
+    const acronymKeyNormalized = normalizeKey(acronymCandidate || entry?.acronym || '');
+    if (normalizedFull === acronymKeyNormalized) return true;
+    const fullTokens = tokenizeNormalizedText(normalizedFull, 4).filter((token) => !GENERIC_VENUE_TOKENS.has(token));
+    if (fullTokens.length < 2) return true;
+
+    const entryText = normalizeVenueCandidate(`${entry?.title || ''} ${entry?.acronym || ''}`);
+    const entryTokens = new Set(tokenizeNormalizedText(entryText, 4).filter((token) => !GENERIC_VENUE_TOKENS.has(token)));
+    // An entry whose title carries no descriptive tokens (e.g. title equals the
+    // acronym) offers nothing to cross-check against — accept the acronym hit.
+    if (entryTokens.size < 2) return true;
+    const sharedToken = fullTokens.some((token) => entryTokens.has(token));
+    if (sharedToken) return true;
+
+    // No shared content token: only a strong whole-string similarity can save
+    // the match (Jaro-Winkler's noise floor on long strings sits near ~0.5,
+    // so anything lower than 0.62 is indistinguishable from chance).
+    return hybridSimilarity(normalizedFull, normalizeVenueCandidate(entry?.title || '')) >= 0.62;
+  }
+
   function resolveCoreVenue({ venueKey, fullVenueTitle, coreData, aliasIndex }) {
     const data = Array.isArray(coreData) ? coreData : [];
     const index = aliasIndex && aliasIndex.entries === data ? aliasIndex : createCoreAliasIndex(data);
@@ -779,6 +848,15 @@
       const acronymMatches = index.exactAcronymMap.get(acronymKey) || [];
       if (acronymMatches.length === 1) {
         const entry = index.entries[acronymMatches[0]];
+        if (!acronymEntryAgreesWithTitle(entry, fullVenueTitle, candidate)) {
+          return {
+            status: DECISION_STATUS.AMBIGUOUS,
+            rank: 'N/A',
+            reason: 'acronym_title_mismatch',
+            confidence: null,
+            topCandidates: summarizeCoreEntries(acronymMatches, index),
+          };
+        }
         return buildEntryResolution(entry, candidate, 1, 'acronym_exact', entry.acronym || entry.title || candidate);
       }
       if (acronymMatches.length > 1) {

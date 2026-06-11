@@ -19,7 +19,18 @@ Google Scholar Venue Ranker is an open-source Chrome extension developed by [Nav
 
 ## Changelog
 
-### Unreleased
+### Unreleased (phase 2)
+
+- `Local journal resolution`: greatly expanded DBLP abbreviation coverage (`Mob.`, `Sel.`, `Mach.`, `Learn.`, `Knowl.`, `Softw.`, `Eng.`, `Empir.`, and ~30 more) plus a generic ambiguous-token variant system (`computer/computing/computation(al)`, `experience/experimental`, `security/secure`, ...). A 48-name battery of real DBLP journal renderings now resolves 48/48 locally with verified identities (previously 20/40, with the rest requiring slow network lookups).
+- `Historical CORE snapshots`: bundled CORE 2013, ERA 2010, and CORE 2008 (downloaded from the CORE portal; converter in `scripts/convert_core_export.mjs`). Papers from 2008-2016 now consult era-appropriate snapshots instead of all being ranked by CORE 2014; for example SIGCOMM 2011 correctly shows ERA 2010's rank A rather than CORE 2014's A*.
+- `Acronym/title cross-check`: a unique CORE acronym hit no longer auto-wins when the publication's full venue title describes a different conference. This fixes a class of generated-acronym collisions where, for example, the *Australasian Language Technology Workshop* was confidently ranked B via "Algorithmic Learning Theory" and a cryptography conference inherited rank A from Supercomputing.
+- `Workshop signals`: a paper title containing `@` or the word "workshop" no longer misclassifies a main-track paper as a workshop paper; the X@Y notation now only counts when it appears in venue metadata.
+- `Truncated titles`: Scholar titles ending in an ellipsis now prefix-match their DBLP record (with mandatory abstention when two records share the truncated prefix, and a minimum-length guard).
+- `Publisher parentheticals`: SCImago titles like "Operating Systems Review (ACM)" now also register a parenthetical-stripped lookup key, so DBLP's "Oper. Syst. Rev." resolves.
+- `Real-world benchmark suite`: new `real` fixture suite (91 cases) of genuine DBLP/Scholar query strings with human-verified identities and authority-data expected values — including identity traps for previously-merged journals and acronym-collision traps. Runs in CI alongside gold/shadow via `--suite all`.
+- `Threshold tuning harness`: `npm run tune:thresholds` sweeps the publication-match similarity threshold over gold+real fixtures; current default 0.88 is measured optimal (raising it makes precision worse because abstention needs to see the runner-up candidate).
+
+### Unreleased (phase 1)
 
 - `SJR identity fix`: the compact SJR index is now keyed by SCImago `sourceId` instead of normalized title. The previous normalization silently merged 2,249 distinct journals onto 1,002 shared keys (883 with conflicting quartiles) and kept the best quartile, inflating ranks (for example, `Journal of Diabetes` inherited Q1 from `Diabetes`). Distinct journals now keep their own quartile histories; title-key collisions resolve via ISSN or exact-title evidence and otherwise abstain as ambiguous.
 - `Shared journal matcher`: journal-name normalization and SJR matching moved into `GSVR/core/journal_match.js`, used identically by the content script, the Node test mirror, the SJR index generator, and the smoke test, so the four previous copies can no longer drift apart.
@@ -340,7 +351,7 @@ The extension relies on three main authority sources:
 
 Current bundled data coverage in this repository:
 
-- CORE snapshots: `2014`, `2017`, `2018`, `2020`, `2021`, `2023`, `2026`
+- CORE snapshots: `2008`, `2010` (ERA 2010), `2013`, `2014`, `2017`, `2018`, `2020`, `2021`, `2023`, `2026`
 - SJR CSVs: `1999` through `2024`
 
 As of May 2026, this repository does not bundle an official `2025` SJR CSV.

@@ -23,6 +23,10 @@ const BASELINE_REPORT_PATH = path.join(FIXTURE_ROOT, 'baseline.json');
 const REPORTS_DIR = path.join(FIXTURE_ROOT, 'reports');
 const GOLD_DIR = path.join(FIXTURE_ROOT, 'gold');
 const SHADOW_DIR = path.join(FIXTURE_ROOT, 'shadow');
+// Hand-curated real-world cases: identities are human-verified, expected
+// ranks/quartiles read directly from the authority datasets (never from the
+// resolver under test). See generate_real_fixtures.js.
+const REAL_DIR = path.join(FIXTURE_ROOT, 'real');
 const CORE_DATA_FILES = [
   'core/CORE_2026.json',
   'core/CORE_2023.json',
@@ -31,6 +35,9 @@ const CORE_DATA_FILES = [
   'core/CORE_2018.json',
   'core/CORE_2017.json',
   'core/CORE_2014.json',
+  'core/CORE_2013.json',
+  'core/CORE_2010.json',
+  'core/CORE_2008.json',
 ];
 
 const FIXTURE_FAMILIES = [
@@ -214,7 +221,10 @@ function getCoreDataFileForYear(pubYear) {
   if (pubYear >= 2020) return 'core/CORE_2020.json';
   if (pubYear >= 2018) return 'core/CORE_2018.json';
   if (pubYear >= 2017) return 'core/CORE_2017.json';
-  return 'core/CORE_2014.json';
+  if (pubYear >= 2014) return 'core/CORE_2014.json';
+  if (pubYear >= 2013) return 'core/CORE_2013.json';
+  if (pubYear >= 2010) return 'core/CORE_2010.json';
+  return 'core/CORE_2008.json';
 }
 
 function getCoreDatasetYear(coreDataFile) {
@@ -940,10 +950,11 @@ function evaluateFixture(fixture) {
 }
 
 function getFixtureFilesForSuite(suite) {
-  const suites = suite === 'all' ? ['gold', 'shadow'] : [suite];
+  const suites = suite === 'all' ? ['gold', 'shadow', 'real'] : [suite];
+  const suiteDirs = { gold: GOLD_DIR, shadow: SHADOW_DIR, real: REAL_DIR };
   const filePaths = [];
   for (const suiteName of suites) {
-    const suiteDir = suiteName === 'gold' ? GOLD_DIR : SHADOW_DIR;
+    const suiteDir = suiteDirs[suiteName] || SHADOW_DIR;
     if (!fs.existsSync(suiteDir)) continue;
     for (const family of FIXTURE_FAMILIES) {
       const filePath = path.join(suiteDir, `${family}.jsonl`);
@@ -977,6 +988,7 @@ module.exports = {
   REPORTS_DIR,
   GOLD_DIR,
   SHADOW_DIR,
+  REAL_DIR,
   FIXTURE_FAMILIES,
   CORE_DATA_FILES,
   ensureDir,

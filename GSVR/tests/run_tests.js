@@ -389,6 +389,122 @@ function testJournalIdentityModelRegression() {
   assert.strictEqual(journalOfGenetics.quartile, 'Q4', 'Journal of Genetics must not inherit Q1 from Genetics');
 }
 
+function testHistoricalCoreSnapshots() {
+  // Pre-2014 papers must consult era-appropriate snapshots instead of CORE 2014.
+  assert.strictEqual(accuracyLib.getCoreDataFileForYear(2013), 'core/CORE_2013.json');
+  assert.strictEqual(accuracyLib.getCoreDataFileForYear(2012), 'core/CORE_2010.json');
+  assert.strictEqual(accuracyLib.getCoreDataFileForYear(2010), 'core/CORE_2010.json');
+  assert.strictEqual(accuracyLib.getCoreDataFileForYear(2009), 'core/CORE_2008.json');
+  assert.strictEqual(accuracyLib.getCoreDataFileForYear(1998), 'core/CORE_2008.json');
+  assert.strictEqual(accuracyLib.getCoreDataFileForYear(2015), 'core/CORE_2014.json');
+
+  const sigcomm2013 = resolveBundledCoreVenue('CORE_2013.json', 'SIGCOMM');
+  assert.strictEqual(sigcomm2013.status, core.DECISION_STATUS.MATCHED);
+  assert.strictEqual(sigcomm2013.rank, 'A*');
+
+  // ERA 2010 has no A* tier; SIGCOMM is rank A there.
+  const sigcomm2010 = resolveBundledCoreVenue('CORE_2010.json', 'SIGCOMM');
+  assert.strictEqual(sigcomm2010.status, core.DECISION_STATUS.MATCHED);
+  assert.strictEqual(sigcomm2010.rank, 'A');
+
+  const sigcomm2008 = resolveBundledCoreVenue('CORE_2008.json', 'SIGCOMM');
+  assert.strictEqual(sigcomm2008.status, core.DECISION_STATUS.MATCHED);
+  assert.strictEqual(sigcomm2008.rank, 'A*');
+}
+
+function testTitleAtSignDoesNotMakeWorkshop() {
+  // A paper TITLE containing "@" (or the word "workshop") must not classify a
+  // main-track paper as a workshop; only venue metadata carries that signal.
+  const mainTrack = core.classifyVenueTrack({
+    title: 'Energy@home: Smart Metering for Residential Energy Disaggregation',
+    venue: 'SenSys',
+    venue_full: 'Proceedings of the ACM Conference on Embedded Networked Sensor Systems',
+    acronym: 'SenSys',
+    dblpKey: 'conf/sensys/energy2023',
+    pageCount: 12,
+    dblpType: 'inproceedings',
+  });
+  assert.strictEqual(mainTrack.isWorkshop, false, 'Title "@" must not flag workshop');
+
+  const titleMentionsWorkshop = core.classifyVenueTrack({
+    title: 'Lessons Learned from the Dagstuhl Workshop on Intermittent Computing',
+    venue: 'CACM',
+    venue_full: 'Communications of the ACM',
+    dblpKey: 'journals/cacm/lessons2023',
+    pageCount: 10,
+    dblpType: 'article',
+  });
+  assert.strictEqual(titleMentionsWorkshop.isWorkshop, false, 'Title mentioning "workshop" must not flag workshop');
+
+  const venueAtNotation = core.classifyVenueTrack({
+    title: 'On Securing Persistent State in Intermittent Computing',
+    venue: 'ENSsys@SenSys',
+    venue_full: 'Proceedings of the 4th International Workshop on Energy Harvesting Systems',
+    acronym: 'ENSsys',
+    dblpKey: 'conf/sensys/enssys2020',
+    dblpType: 'inproceedings',
+  });
+  assert.strictEqual(venueAtNotation.isWorkshop, true, 'Venue "X@Y" must still flag workshop');
+}
+
+function testTruncatedTitleMatching() {
+  const longTitle = 'A Comprehensive Study of Energy Harvesting Architectures for Batteryless Intermittent Computing Systems';
+  const pubs = [
+    { dblpKey: 'conf/sensys/a1', title: longTitle, year: '2022', venue: 'SenSys' },
+    { dblpKey: 'conf/sensys/b2', title: 'Some Other Paper About Different Things Entirely', year: '2022', venue: 'SenSys' },
+  ];
+  const truncated = `${longTitle.slice(0, 64).trim()}…`;
+  const matchResult = core.selectBestDblpMatchDetailed({ scholarTitle: truncated, scholarYear: 2022, dblpPublications: pubs });
+  assert.strictEqual(matchResult.status, core.DECISION_STATUS.MATCHED);
+  assert.strictEqual(matchResult.match.dblpKey, 'conf/sensys/a1');
+  assert.strictEqual(matchResult.truncatedTitleMatch, true);
+
+  // Two papers sharing the truncated prefix must abstain instead of guessing.
+  const ambiguousPubs = [
+    { dblpKey: 'conf/x/p1', title: 'A Longitudinal Study of Network Behavior in Campus Networks: Measurements', year: '2022', venue: 'X' },
+    { dblpKey: 'conf/x/p2', title: 'A Longitudinal Study of Network Behavior in Campus Networks: Modeling', year: '2022', venue: 'X' },
+  ];
+  const ambiguousResult = core.selectBestDblpMatchDetailed({
+    scholarTitle: 'A Longitudinal Study of Network Behavior in Campus Networks…',
+    scholarYear: 2022,
+    dblpPublications: ambiguousPubs,
+  });
+  assert.strictEqual(ambiguousResult.status, core.DECISION_STATUS.AMBIGUOUS);
+
+  // A short truncated prefix carries too little signal and must abstain.
+  const shortResult = core.selectBestDblpMatchDetailed({ scholarTitle: 'Short title…', scholarYear: 2022, dblpPublications: pubs });
+  assert.strictEqual(shortResult.status, core.DECISION_STATUS.MISSING);
+  assert.strictEqual(shortResult.reason, 'truncated_title_too_short');
+}
+
+function testAcronymTitleCrossCheck() {
+  const coreData = [
+    { title: 'Passive and Active Measurement Conference', acronym: 'PAM', rank: 'C' },
+  ];
+  const aliasIndex = core.createCoreAliasIndex(coreData);
+
+  const mismatch = core.resolveCoreVenue({
+    venueKey: 'PAM',
+    fullVenueTitle: 'Pacific Asian Conference on Marketing Analytics',
+    coreData,
+    aliasIndex,
+  });
+  assert.strictEqual(mismatch.status, core.DECISION_STATUS.AMBIGUOUS, 'Unrelated full title must abstain');
+  assert.strictEqual(mismatch.reason, 'acronym_title_mismatch');
+
+  const legit = core.resolveCoreVenue({
+    venueKey: 'PAM',
+    fullVenueTitle: 'Proceedings of the Passive and Active Measurement Conference',
+    coreData,
+    aliasIndex,
+  });
+  assert.strictEqual(legit.status, core.DECISION_STATUS.MATCHED);
+  assert.strictEqual(legit.rank, 'C');
+
+  const bareAcronym = core.resolveCoreVenue({ venueKey: 'PAM', fullVenueTitle: 'PAM', coreData, aliasIndex });
+  assert.strictEqual(bareAcronym.status, core.DECISION_STATUS.MATCHED, 'Acronym-only queries must still match');
+}
+
 function testDiacriticFoldingInMatching() {
   assert.strictEqual(core.normalizeForMatch('Müller-Schloß Systems'), core.normalizeForMatch('Muller-Schloss Systems'));
   assert.strictEqual(core.normalizeProfileName('José García'), 'jose garcia');
@@ -1052,6 +1168,10 @@ async function run() {
   testGeneratedSjrIndex();
   testJournalIdentityModelRegression();
   testDiacriticFoldingInMatching();
+  testHistoricalCoreSnapshots();
+  testTitleAtSignDoesNotMakeWorkshop();
+  testTruncatedTitleMatching();
+  testAcronymTitleCrossCheck();
   testHistoricalSjrCoverageUnavailable();
   testCoreAliasResolution();
   testAmbiguousCoreAcronymAbstains();
