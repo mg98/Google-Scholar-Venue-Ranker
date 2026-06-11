@@ -222,8 +222,6 @@
         "core/score_model.js",
         "core/score_sensitivity.js",
         "core/report_schema.js",
-        "vendor/pdfmake.min.js",
-        "vendor/vfs_fonts.js",
         "content.js"
       ],
       "css": [
@@ -444,7 +442,8 @@
         "core/timeline_stats.js",
         "data/sjr-index.json",
         "icons/dblp-logo.png",
-        "sjr/*.csv"
+        "vendor/pdfmake.min.js",
+        "vendor/vfs_fonts.js"
       ],
       "matches": [
         "https://scholar.google.com/*",

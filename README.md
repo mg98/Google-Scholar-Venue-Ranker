@@ -19,6 +19,13 @@ Google Scholar Venue Ranker is an open-source Chrome extension developed by [Nav
 
 ## Changelog
 
+### Unreleased (phase 3)
+
+- `Package diet`: the shipped extension dropped from ~254 MB to ~19 MB. Raw SCImago CSVs no longer ship in the package (they remain in the repository to build the compact index); the runtime CSV fallback was removed and an index-load failure now reports "lookup unavailable" instead of silently returning "not found".
+- `Lazy PDF engine`: pdfmake and its embedded fonts (~2.2 MB of JavaScript) are no longer parsed on every Scholar page load; they load on demand the first time a PDF report is generated.
+- `Dead code removed`: deleted the unused legacy single-pass scan pipeline (~660 lines shipped to every user, including references to functions that no longer existed).
+- Deferred: the full `src/` + esbuild modular split of `content.js` needs interactive runtime verification in a browser session and is intentionally not part of this automated pass; the highest-value pieces (shared matcher modules, dead-code removal) landed in phases 1-3.
+
 ### Unreleased (phase 2)
 
 - `Local journal resolution`: greatly expanded DBLP abbreviation coverage (`Mob.`, `Sel.`, `Mach.`, `Learn.`, `Knowl.`, `Softw.`, `Eng.`, `Empir.`, and ~30 more) plus a generic ambiguous-token variant system (`computer/computing/computation(al)`, `experience/experimental`, `security/secure`, ...). A 48-name battery of real DBLP journal renderings now resolves 48/48 locally with verified identities (previously 20/40, with the rest requiring slow network lookups).

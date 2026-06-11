@@ -14,7 +14,8 @@ const IGNORE_DIRS = new Set([
   '.git',
   '.github',
   '.vscode',
-  'tests' // tests are useful in-source, but not needed in the packed extension
+  'tests', // tests are useful in-source, but not needed in the packed extension
+  'sjr' // raw SCImago CSVs (~230 MB) feed the index generator; only the compact index ships
 ]);
 
 async function exists(p) {

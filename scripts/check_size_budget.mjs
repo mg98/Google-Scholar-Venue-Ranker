@@ -13,14 +13,15 @@ import path from "node:path";
 
 const DIST_DIR = path.join(process.cwd(), "dist");
 
-// Budgets in bytes. The SJR CSV corpus dominates the package until Phase 3
-// removes it from the shipped build; these numbers shrink then.
-const TOTAL_BUDGET = 280 * 1024 * 1024;
+// Budgets in bytes. The package now ships the compact SJR index instead of the
+// raw CSV corpus, so the whole extension fits well under 40 MB.
+const TOTAL_BUDGET = 40 * 1024 * 1024;
 const FILE_BUDGETS = [
   { pattern: /^icons[\\/]icon16\.png$/, budget: 16 * 1024 },
   { pattern: /^icons[\\/]icon48\.png$/, budget: 32 * 1024 },
   { pattern: /^icons[\\/]icon128\.png$/, budget: 96 * 1024 },
   { pattern: /^images[\\/]/, budget: 0 }, // demo media must not ship in the package
+  { pattern: /^sjr[\\/]/, budget: 0 }, // raw SCImago CSVs must not ship in the package
 ];
 
 async function walk(dir, base = dir, out = []) {

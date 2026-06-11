@@ -1,6 +1,6 @@
 {
   "report": {
-    "generatedAt": "2026-06-11T04:37:19.846Z",
+    "generatedAt": "2026-06-11T04:44:33.273Z",
     "cwd": "C:\\Users\\Naveed Bhatti\\Documents\\Google-Scholar-Venue-Ranker - CODEX",
     "suite": "all",
     "family": null,
@@ -21,8 +21,8 @@
             "falseNegativeCount": 0,
             "abstainRate": 0.5,
             "ambiguityRate": 0,
-            "meanLatencyMs": 0.4733175000000003,
-            "p95LatencyMs": 1.2437,
+            "meanLatencyMs": 0.5581500000000001,
+            "p95LatencyMs": 1.455,
             "statusConfusion": {
               "matched": {
                 "matched": 20
@@ -51,8 +51,8 @@
             "falseNegativeCount": 0,
             "abstainRate": 0.5,
             "ambiguityRate": 0.25,
-            "meanLatencyMs": 0.04057625,
-            "p95LatencyMs": 0.0599,
+            "meanLatencyMs": 0.05727874999999999,
+            "p95LatencyMs": 0.1022,
             "statusConfusion": {
               "matched": {
                 "matched": 40
@@ -84,8 +84,8 @@
             "falseNegativeCount": 0,
             "abstainRate": 0,
             "ambiguityRate": 0,
-            "meanLatencyMs": 0.03148124999999999,
-            "p95LatencyMs": 0.0549,
+            "meanLatencyMs": 0.034742499999999996,
+            "p95LatencyMs": 0.0441,
             "statusConfusion": {
               "workshop": {
                 "workshop": 20
@@ -123,8 +123,8 @@
             "falseNegativeCount": 0,
             "abstainRate": 0.025,
             "ambiguityRate": 0.016666666666666666,
-            "meanLatencyMs": 0.3828899999999997,
-            "p95LatencyMs": 0.2584,
+            "meanLatencyMs": 0.43083166666666656,
+            "p95LatencyMs": 0.1658,
             "statusConfusion": {
               "matched": {
                 "matched": 109
@@ -175,8 +175,8 @@
             "falseNegativeCount": 0,
             "abstainRate": 0.025,
             "ambiguityRate": 0,
-            "meanLatencyMs": 7.9479733333333344,
-            "p95LatencyMs": 0.2359,
+            "meanLatencyMs": 8.021906666666666,
+            "p95LatencyMs": 0.3855,
             "statusConfusion": {
               "matched": {
                 "matched": 117
@@ -221,8 +221,8 @@
             "falseNegativeCount": 0,
             "abstainRate": 0.1,
             "ambiguityRate": 0.05,
-            "meanLatencyMs": 0.42989,
-            "p95LatencyMs": 3.5132,
+            "meanLatencyMs": 0.456504,
+            "p95LatencyMs": 2.9185,
             "statusConfusion": {
               "matched": {
                 "matched": 50
@@ -257,8 +257,8 @@
             "falseNegativeCount": 0,
             "abstainRate": 0.6833333333333333,
             "ambiguityRate": 0.016666666666666666,
-            "meanLatencyMs": 8.190138333333334,
-            "p95LatencyMs": 4.0139,
+            "meanLatencyMs": 8.589008333333332,
+            "p95LatencyMs": 7.7802,
             "statusConfusion": {
               "matched": {
                 "matched": 17
@@ -294,8 +294,8 @@
           "falseNegativeCount": 0,
           "abstainRate": 0.17833333333333334,
           "ambiguityRate": 0.03833333333333333,
-          "meanLatencyMs": 2.597997000000001,
-          "p95LatencyMs": 2.5922,
+          "meanLatencyMs": 2.675011999999998,
+          "p95LatencyMs": 2.7133,
           "statusConfusion": {
             "matched": {
               "matched": 303
@@ -333,8 +333,8 @@
             "falseNegativeCount": 0,
             "abstainRate": 0.005555555555555556,
             "ambiguityRate": 0.005555555555555556,
-            "meanLatencyMs": 0.02168922222222221,
-            "p95LatencyMs": 0.0499,
+            "meanLatencyMs": 0.02279500000000002,
+            "p95LatencyMs": 0.0547,
             "statusConfusion": {
               "unranked": {
                 "unranked": 146
@@ -382,8 +382,8 @@
             "falseNegativeCount": 0,
             "abstainRate": 0.003125,
             "ambiguityRate": 0.003125,
-            "meanLatencyMs": 0.05878218750000004,
-            "p95LatencyMs": 0.0964,
+            "meanLatencyMs": 0.07193937500000001,
+            "p95LatencyMs": 0.1226,
             "statusConfusion": {
               "matched": {
                 "matched": 319
@@ -428,8 +428,8 @@
             "falseNegativeCount": 0,
             "abstainRate": 0.5083333333333333,
             "ambiguityRate": 0.020833333333333332,
-            "meanLatencyMs": 2.5770266666666672,
-            "p95LatencyMs": 7.0218,
+            "meanLatencyMs": 2.2763366666666665,
+            "p95LatencyMs": 5.489,
             "statusConfusion": {
               "matched": {
                 "matched": 72
@@ -464,8 +464,8 @@
             "falseNegativeCount": 0,
             "abstainRate": 0.008333333333333333,
             "ambiguityRate": 0.008333333333333333,
-            "meanLatencyMs": 1.5283824999999998,
-            "p95LatencyMs": 5.4383,
+            "meanLatencyMs": 1.5220291666666663,
+            "p95LatencyMs": 4.9387,
             "statusConfusion": {
               "unranked": {
                 "unranked": 13
@@ -498,8 +498,8 @@
           "falseNegativeCount": 0,
           "abstainRate": 0.004430379746835443,
           "ambiguityRate": 0.004430379746835443,
-          "meanLatencyMs": 0.5317866455696203,
-          "p95LatencyMs": 3.9946,
+          "meanLatencyMs": 0.48892430379746843,
+          "p95LatencyMs": 3.7105,
           "statusConfusion": {
             "unranked": {
               "unranked": 159
@@ -534,8 +534,8 @@
             "falseNegativeCount": 0,
             "abstainRate": 0.25,
             "ambiguityRate": 0.25,
-            "meanLatencyMs": 0.10462499999999998,
-            "p95LatencyMs": 0.298,
+            "meanLatencyMs": 0.09177500000000001,
+            "p95LatencyMs": 0.252,
             "statusConfusion": {
               "matched": {
                 "matched": 3
@@ -564,8 +564,8 @@
             "falseNegativeCount": 0,
             "abstainRate": 0,
             "ambiguityRate": 0,
-            "meanLatencyMs": 0.013883333333333333,
-            "p95LatencyMs": 0.03,
+            "meanLatencyMs": 0.013383333333333336,
+            "p95LatencyMs": 0.0309,
             "statusConfusion": {
               "main": {
                 "main": 2
@@ -603,8 +603,8 @@
             "falseNegativeCount": 0,
             "abstainRate": 0,
             "ambiguityRate": 0,
-            "meanLatencyMs": 0.02061111111111111,
-            "p95LatencyMs": 0.0807,
+            "meanLatencyMs": 0.019677777777777773,
+            "p95LatencyMs": 0.07,
             "statusConfusion": {
               "matched": {
                 "matched": 24
@@ -646,8 +646,8 @@
             "falseNegativeCount": 0,
             "abstainRate": 0,
             "ambiguityRate": 0,
-            "meanLatencyMs": 0.13480370370370368,
-            "p95LatencyMs": 0.4247,
+            "meanLatencyMs": 0.26333333333333325,
+            "p95LatencyMs": 0.7686,
             "statusConfusion": {
               "matched": {
                 "matched": 53
@@ -693,8 +693,8 @@
           "falseNegativeCount": 0,
           "abstainRate": 0.01098901098901099,
           "ambiguityRate": 0.01098901098901099,
-          "meanLatencyMs": 0.09162307692307688,
-          "p95LatencyMs": 0.3123,
+          "meanLatencyMs": 0.16701868131868128,
+          "p95LatencyMs": 0.4688,
           "statusConfusion": {
             "matched": {
               "matched": 80

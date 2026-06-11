@@ -3614,10 +3614,38 @@ function buildPdfReportDefinition(summaryState, reportVariant = 'full') {
         }
     };
 }
-async function buildPdfReportDataUrl(summaryState, reportVariant = 'full') {
-    if (typeof pdfMake === 'undefined' || !pdfMake?.createPdf) {
-        throw new Error('pdfMake is not available.');
+// pdfmake (~2.2 MB with fonts) is loaded on demand the first time a PDF report
+// is generated, instead of being parsed on every Scholar page load.
+let pdfMakeLoadPromise = null;
+function ensurePdfMakeLoaded() {
+    if (typeof window !== 'undefined' && window.pdfMake?.createPdf) {
+        return Promise.resolve(window.pdfMake);
     }
+    if (!pdfMakeLoadPromise) {
+        pdfMakeLoadPromise = (async () => {
+            const pdfModule = await import(chrome.runtime.getURL('vendor/pdfmake.min.js'));
+            if (!window.pdfMake?.createPdf) {
+                // The UMD bundle normally attaches to self/window; fall back to
+                // the module namespace if a future build stops doing that.
+                const candidate = pdfModule?.pdfMake || pdfModule?.default;
+                if (candidate?.createPdf) {
+                    window.pdfMake = candidate;
+                }
+            }
+            await import(chrome.runtime.getURL('vendor/vfs_fonts.js'));
+            if (!window.pdfMake?.createPdf) {
+                throw new Error('pdfMake failed to initialize after dynamic load.');
+            }
+            return window.pdfMake;
+        })().catch((error) => {
+            pdfMakeLoadPromise = null;
+            throw error;
+        });
+    }
+    return pdfMakeLoadPromise;
+}
+async function buildPdfReportDataUrl(summaryState, reportVariant = 'full') {
+    const pdfMake = await ensurePdfMakeLoaded();
     const docDefinition = buildPdfReportDefinition(summaryState, reportVariant);
     return await new Promise((resolve, reject) => {
         let settled = false;
@@ -4982,125 +5010,30 @@ async function loadSjrDataset() {
         }
     }
     catch (error) {
-        console.warn('Falling back to raw SJR CSV data because the compact index could not be loaded.', error);
+        console.error('GSVR: Failed to load the compact SJR index; journal lookups are unavailable for this page load.', error);
     }
-    // Raw-CSV fallback uses the same identity model as the prebuilt index:
-    // one entry per SCImago sourceId, never merged across journals.
-    const bySourceKey = new Map();
-    const byIssn = new Map();
-    for (let year = SJR_DATASET_START_YEAR; year <= SJR_DATASET_END_YEAR; year++) {
-        const datasetPath = `sjr/scimagojr ${year}.csv`;
-        try {
-            const url = chrome.runtime.getURL(datasetPath);
-            const response = await gsvrFetch(url);
-            if (!response.ok) {
-                console.error(`Failed to fetch ${datasetPath}: ${response.status} ${response.statusText}`);
-                continue;
-            }
-            const text = await response.text();
-            const rows = parseSjrCsv(text);
-            if (rows.length === 0)
-                continue;
-            const header = rows[0].map(cell => cell.trim().toLowerCase());
-            const sourceIdIndex = header.findIndex(cell => cell === 'sourceid');
-            const titleIndex = header.findIndex(cell => cell === 'title');
-            const quartileIndex = header.findIndex(cell => cell === 'sjr best quartile');
-            const typeIndex = header.findIndex(cell => cell === 'type');
-            const issnIndex = header.findIndex(cell => cell === 'issn');
-            const coverageIndex = header.findIndex(cell => cell === 'coverage');
-            if (titleIndex === -1 || quartileIndex === -1) {
-                console.warn(`Skipping ${datasetPath} because header columns were not found.`);
-                continue;
-            }
-            for (let rowIndex = 1; rowIndex < rows.length; rowIndex++) {
-                const row = rows[rowIndex];
-                if (!row || row.length <= Math.max(titleIndex, quartileIndex))
-                    continue;
-                const type = typeIndex >= 0 ? row[typeIndex]?.trim().toLowerCase() : '';
-                if (type && type !== 'journal')
-                    continue;
-                const title = row[titleIndex]?.trim();
-                const quartileRaw = row[quartileIndex]?.trim().toUpperCase();
-                const sourceId = sourceIdIndex >= 0 ? row[sourceIdIndex]?.trim() || null : null;
-                const issns = issnIndex >= 0 ? normalizeIssnList(row[issnIndex]) : [];
-                const coverage = coverageIndex >= 0 ? row[coverageIndex]?.trim() || null : null;
-                if (!title)
-                    continue;
-                const normalizedTitle = normalizeJournalName(title);
-                if (!normalizedTitle)
-                    continue;
-                const quartile = quartileRaw && /^Q[1-4]$/i.test(quartileRaw) ? quartileRaw.toUpperCase() : undefined;
-                const sourceKey = sourceId ? `sid:${sourceId}` : `title:${normalizedTitle}`;
-                let entry = bySourceKey.get(sourceKey);
-                if (!entry) {
-                    entry = createSjrEntry(normalizedTitle, title, {}, {
-                        issns,
-                        sourceId,
-                        coverage
-                    });
-                    entry.aliasKeys = new Set();
-                    bySourceKey.set(sourceKey, entry);
-                }
-                else if (title.length > entry.resolvedTitle.length) {
-                    entry.resolvedTitle = title;
-                }
-                for (const aliasTitle of JOURNAL_MATCH_API.buildJournalAliasTitles(title)) {
-                    const aliasKey = normalizeJournalName(aliasTitle);
-                    if (aliasKey)
-                        entry.aliasKeys.add(aliasKey);
-                }
-                if (!entry.coverage && coverage) {
-                    entry.coverage = coverage;
-                }
-                for (const issn of issns) {
-                    if (!entry.issns.includes(issn))
-                        entry.issns.push(issn);
-                }
-                if (quartile) {
-                    const current = entry.quartilesByYear[year];
-                    const best = chooseBetterQuartile(current, quartile);
-                    if (best) {
-                        entry.quartilesByYear[year] = best;
-                    }
-                }
-            }
-        }
-        catch (error) {
-            console.error(`Error loading SJR dataset for ${year}:`, error);
-        }
-    }
-    const entries = Array.from(bySourceKey.values());
-    const byNormalized = new Map();
-    for (const entry of entries) {
-        for (const key of entry.aliasKeys || [entry.normalizedTitle]) {
-            const bucket = byNormalized.get(key);
-            if (!bucket) {
-                byNormalized.set(key, [entry]);
-            }
-            else if (!bucket.includes(entry)) {
-                bucket.push(entry);
-            }
-        }
-        delete entry.aliasKeys;
-        for (const issn of entry.issns) {
-            if (!byIssn.has(issn))
-                byIssn.set(issn, []);
-            byIssn.get(issn).push(entry);
-        }
-    }
+    // No raw-CSV fallback: the CSV corpus is no longer shipped in the package.
+    // Callers see loadFailed and report "lookup unavailable" instead of "not found".
     return {
         version: 3,
         startYear: SJR_DATASET_START_YEAR,
         endYear: SJR_DATASET_END_YEAR,
-        byNormalized,
-        byIssn,
-        entries,
-        tokenIndex: createSjrTokenIndex(entries)
+        byNormalized: new Map(),
+        byIssn: new Map(),
+        entries: [],
+        tokenIndex: { tokenToIndexes: new Map(), tokenFrequency: new Map() },
+        loadFailed: true
     };
 }
 function ensureSjrDataset() {
     if (!sjrDatasetPromise) {
-        sjrDatasetPromise = loadSjrDataset();
+        sjrDatasetPromise = loadSjrDataset().then((dataset) => {
+            if (dataset?.loadFailed) {
+                // Allow a later scan (e.g. manual rescan) to retry the fetch.
+                sjrDatasetPromise = null;
+            }
+            return dataset;
+        });
     }
     return sjrDatasetPromise;
 }
@@ -5208,6 +5141,9 @@ async function resolveSjrQuartile(journalName, publicationYear, journalMeta = {}
     }
     try {
         const dataset = await ensureSjrDataset();
+        if (dataset?.loadFailed) {
+            return { status: 'error', transient: true };
+        }
         let sawAmbiguous = false;
         for (const normalizedQuery of variants) {
             const match = findBestSjrMatch({ normalizedQuery, queryIssns, dataset, rawQuery: journalName });
@@ -10648,670 +10584,6 @@ async function startBackgroundDepthUpgrade({ sessionId, fastPassResult, fastComp
             dblpPidSource: fastPassResult.context.dblpPidSource || null
         });
     }
-}
-async function legacyMainSinglePass_DoNotUse() {
-    if (isMainProcessing) {
-        return;
-    }
-    isMainProcessing = true;
-    await loadSettingsIntoState();
-    disconnectPublicationTableObserver();
-    activeCachedPublicationRanks = null;
-    rankMapForObserver = null;
-    dblpPubsForCurrentUser = [];
-    scholarUrlToDblpInfoMap.clear();
-    const statusElement = createStatusElement("Initializing Scholar Ranker...");
-    const statusTextElement = statusElement.querySelector('.gsr-status-text');
-    const currentUserId = getScholarUserId();
-    const determinedPublicationRanks = [];
-    const persistentPublicationRanks = [];
-    let cachedDblpPidForSave = null;
-    let cachedBaseItemsForSave = null;
-    const scholarTitlesAlreadyRanked = new Set();
-    const dblpKeysAlreadyUsedForRank = new Set();
-    try {
-        // -----------------------
-        // Strict DBLP-only: PID is mandatory.
-        // -----------------------
-        const scholarAuthorName = getScholarAuthorName();
-        const sanitizedName = scholarAuthorName ? sanitizeAuthorName(scholarAuthorName) : null;
-        if (!sanitizedName) {
-            if (statusTextElement)
-                statusTextElement.textContent = "Could not determine Scholar author name from page.";
-            return;
-        }
-
-        const cachedUserData = currentUserId ? await loadCachedData(currentUserId) : null;
-        if (cachedUserData?.dblpAuthorPid && cachedUserData.dblpMatchTimestamp && (Date.now() - cachedUserData.dblpMatchTimestamp) < DBLP_CACHE_DURATION_MS) {
-            cachedDblpPidForSave = cachedUserData.dblpAuthorPid;
-            console.log("GSR INFO: Using cached DBLP PID:", cachedDblpPidForSave);
-        }
-        else {
-            if (cachedUserData?.dblpAuthorPid)
-                console.log("GSR INFO: Cached DBLP PID is stale or missing timestamp. Will attempt fresh DBLP author match.");
-            else
-                console.log("GSR INFO: No cached DBLP PID. Attempting DBLP author match for:", sanitizedName);
-
-            if (statusTextElement)
-                statusTextElement.textContent = `DBLP: Searching for ${sanitizedName}...`;
-
-            const scholarSamplePubs = getScholarSamplePublications(getScholarSampleTargetCount());
-            if (scholarSamplePubs.length >= DBLP_HEURISTIC_MIN_OVERLAP_COUNT) {
-                const verifiedProfile = await findBestDblpProfile(sanitizedName, scholarSamplePubs, {
-                    currentScholarUserId: currentUserId,
-                    currentScholarProfileUrl: normalizeScholarProfileUrlValue(window.location?.href || ''),
-                    statusElement
-                });
-                cachedDblpPidForSave = verifiedProfile?.pid || null;
-                cachedBaseItemsForSave = Array.isArray(verifiedProfile?.baseItems) ? verifiedProfile.baseItems : null;
-            }
-            else {
-                // Not enough data to do name+title overlap verification.
-                cachedDblpPidForSave = null;
-            }
-        }
-
-        if (!cachedDblpPidForSave) {
-            // Termination clause: halt all execution when PID cannot be verified.
-            const title = statusElement.querySelector('div:first-child');
-            if (title)
-                title.textContent = "DBLP Author Not Found";
-            const progressBar = statusElement.querySelector('.gsr-progress-bar-inner');
-            if (progressBar && progressBar.parentElement) {
-                progressBar.parentElement.style.display = 'none';
-            }
-            if (statusTextElement) {
-                statusTextElement.textContent = "DBLP Author Not Found";
-                statusTextElement.setAttribute('title', `No verified DBLP PID for "${sanitizedName}".`);
-                statusTextElement.style.color = '#64748b';
-            }
-            return;
-        }
-
-        if (statusTextElement && dblpPubsForCurrentUser.length === 0)
-            statusTextElement.textContent = `DBLP: Fetching publications for PID ${cachedDblpPidForSave} (${getActiveScanMode()} scan)...`;
-        const dblpFetchResult = await fetchPublicationsFromDblp(cachedDblpPidForSave, statusElement, { baseItems: cachedBaseItemsForSave });
-        dblpPubsForCurrentUser = Array.isArray(dblpFetchResult?.publications) ? dblpFetchResult.publications : [];
-
-        // Strict DBLP-only: if DBLP publications cannot be fetched, do not continue.
-        if (!dblpPubsForCurrentUser || dblpPubsForCurrentUser.length === 0) {
-            const title = statusElement.querySelector('div:first-child');
-            if (title)
-                title.textContent = "DBLP Publications Unavailable";
-            const progressBar = statusElement.querySelector('.gsr-progress-bar-inner');
-            if (progressBar && progressBar.parentElement) {
-                progressBar.parentElement.style.display = 'none';
-            }
-            if (statusTextElement) {
-                statusTextElement.textContent = "Could not fetch the matched DBLP publication list.";
-                statusTextElement.style.color = '#64748b';
-            }
-            return;
-        }
-        if (statusTextElement)
-            statusTextElement.textContent = "Expanding publications list...";
-        await expandAllPublications(statusElement);
-        const publicationLinkElements = [];
-        document.querySelectorAll('tr.gsc_a_tr').forEach(row => {
-            const linkEl = row.querySelector('td.gsc_a_t a.gsc_a_at');
-            const yearEl = row.querySelector('td.gsc_a_y span.gsc_a_h');
-            let yearFromProfile = null;
-            if (yearEl?.textContent && /^\d{4}$/.test(yearEl.textContent.trim())) {
-                yearFromProfile = parseInt(yearEl.textContent.trim(), 10);
-            }
-            if (linkEl instanceof HTMLAnchorElement && linkEl.href && linkEl.textContent) {
-                publicationLinkElements.push({
-                    url: normalizeUrlForCache(linkEl.href),
-                    rowElement: row,
-                    paperTitle: linkEl.textContent.trim(),
-                    titleText: linkEl.textContent.trim().toLowerCase(),
-                    yearFromProfile: yearFromProfile
-                });
-            }
-        });
-        if (publicationLinkElements.length === 0) {
-            if (statusTextElement)
-                statusTextElement.textContent = "No publications found on profile.";
-            setTimeout(() => document.getElementById(STATUS_ELEMENT_ID)?.remove(), 3000);
-            isMainProcessing = false;
-            return;
-        }
-        if (dblpPubsForCurrentUser.length > 0) {
-            await buildDblpInfoMap(publicationLinkElements, dblpPubsForCurrentUser, scholarUrlToDblpInfoMap, statusElement);
-        }
-        updateStatusElement(statusElement, 0, publicationLinkElements.length, "Ranking");
-        const coreRankCounts = createEmptyCoreRankCounts();
-        const sjrRankCounts = createEmptySjrRankCounts();
-        let processedCount = 0;
-        const processPublication = async (pubInfo, titlesAlreadyProcessedSet, dblpKeysUsedSet) => {
-            const defaultResult = {
-                rank: "N/A",
-                system: 'UNKNOWN',
-                reason: null,
-                rowElement: pubInfo.rowElement,
-                paperTitle: pubInfo.paperTitle,
-                titleText: pubInfo.titleText,
-                publicationYear: pubInfo.yearFromProfile ?? null,
-                authorCount: null,
-                url: pubInfo.url,
-                shouldPersist: true,
-                matchConfidence: null,
-                matchedVenue: null,
-                venueMatchConfidence: null,
-                dblpVenue: null,
-                sourceYear: null,
-                dblpKey: null,
-                ...createDecisionMeta()
-            };
-            if (titlesAlreadyProcessedSet.has(pubInfo.titleText)) {
-                return defaultResult;
-            }
-            let currentRank = "N/A";
-            let rankingSystem = 'UNKNOWN';
-            let naReason = null;
-            let dblpKeyUsedForThisRanking = null;
-            let shouldPersist = true;
-            let matchConfidence = null;
-            let matchedVenue = null;
-            let venueMatchConfidence = null;
-            let dblpVenue = null;
-            let sourceYear = null;
-            let resolvedPublicationYear = pubInfo.yearFromProfile ?? null;
-            let authorCount = null;
-            let topCandidates = null;
-            let decisionMeta = createDecisionMeta();
-            try {
-                const dblpInfo = scholarUrlToDblpInfoMap.get(pubInfo.url);
-                if (dblpInfo) {
-                    if (typeof dblpInfo.matchScore === 'number')
-                        matchConfidence = dblpInfo.matchScore;
-                    authorCount = typeof dblpInfo.authorCount === 'number' ? dblpInfo.authorCount : authorCount;
-                    dblpVenue = (dblpInfo.venue_full || dblpInfo.venue || null);
-                    decisionMeta = mergeDecisionMeta(decisionMeta, {
-                        decisionStatus: dblpInfo.decisionStatus ?? DECISION_STATUS.MATCHED,
-                        confidence: dblpInfo.matchScore ?? null,
-                        matchedKey: dblpInfo.dblpKey ?? null,
-                        decisionEvidence: dblpInfo.decisionEvidence ?? null
-                    });
-                    topCandidates = Array.isArray(dblpInfo.topCandidates) ? dblpInfo.topCandidates : topCandidates;
-                }
-                if (dblpInfo && dblpInfo.venue && dblpInfo.dblpKey) {
-                    dblpKeyUsedForThisRanking = dblpInfo.dblpKey;
-                    if (dblpKeysUsedSet.has(dblpInfo.dblpKey)) {
-                        return defaultResult;
-                    }
-                    let venueName = dblpInfo.venue;
-                    let pageCount = dblpInfo.pageCount;
-                    let publicationYear = pubInfo.yearFromProfile;
-                    const matchedDblpEntry = dblpPubsForCurrentUser.find(dp => dp.dblpKey === dblpInfo.dblpKey);
-                    if (matchedDblpEntry && matchedDblpEntry.year) {
-                        const dblpYearNum = parseInt(matchedDblpEntry.year, 10);
-                        if (!isNaN(dblpYearNum)) {
-                            publicationYear = dblpYearNum;
-                        }
-                    }
-                    resolvedPublicationYear = publicationYear ?? resolvedPublicationYear;
-                    const dblpKeyLower = dblpInfo.dblpKey.toLowerCase();
-                    const isJournal = dblpKeyLower.startsWith('journals/') || String(dblpInfo.dblpType || '').toLowerCase() === 'article';
-                    const utils = (typeof window !== 'undefined' && window.GSVRUtils) ? window.GSVRUtils : null;
-                    const csrOverride = utils?.resolveCsrankingsVenueOverride
-                        ? utils.resolveCsrankingsVenueOverride({
-                            dblpKey: dblpInfo.dblpKey,
-                            venue: matchedDblpEntry?.venue || dblpInfo.venue,
-                            year: publicationYear ?? null,
-                            volume: matchedDblpEntry?.volume || null,
-                            number: matchedDblpEntry?.number || null,
-                            dblpType: matchedDblpEntry?.dblpType || dblpInfo.dblpType
-                        })
-                        : null;
-                    const forcedCore = !!(csrOverride && csrOverride.system === 'CORE');
-                    const csrCanonicalVenue = csrOverride?.canonicalVenue || null;
-                    if (forcedCore && csrCanonicalVenue) {
-                        // Treat proceedings-as-journals as conferences (CSRankings-style).
-                        venueName = csrCanonicalVenue;
-                        if (typeof csrOverride.year === 'number' && Number.isFinite(csrOverride.year)) {
-                            publicationYear = csrOverride.year;
-                        }
-                    }
-                    if (isJournal && !forcedCore) {
-                        if (isArxivLikeVenue(dblpInfo)) {
-                            return defaultResult;
-                        }
-                        rankingSystem = 'SJR';
-                        const candidateNames = Array.from(new Set([dblpInfo.venue_full, dblpInfo.journalShortTitle, venueName, dblpInfo.acronym, utils?.canonicalizeCsrankingsVenueName ? utils.canonicalizeCsrankingsVenueName(venueName) : null].filter((name) => !!name && name.trim().length > 0)));
-                        let sjrLookupTransientFailure = false;
-                        let bestSjr = null;
-                        let sawAmbiguousSjr = false;
-                        let sawHistoricalSjrUnavailable = false;
-                        for (const candidate of candidateNames) {
-                            const sjrResult = await resolveSjrQuartile(candidate, publicationYear ?? null, {
-                                issns: dblpInfo.journalIssns
-                            });
-                            if (sjrResult.status === 'success' && sjrResult.quartile && SJR_QUARTILES.includes(sjrResult.quartile)) {
-                                const score = (typeof sjrResult.matchScore === 'number') ? sjrResult.matchScore : 1.0;
-                                if (!bestSjr || score > bestSjr.score) {
-                                    bestSjr = { ...sjrResult, score };
-                                }
-                                sjrLookupTransientFailure = false;
-                                continue;
-                            }
-                            if (sjrResult.status === 'ambiguous') {
-                                sawAmbiguousSjr = true;
-                            }
-                            if (sjrResult.status === 'historical_coverage_unavailable') {
-                                sawHistoricalSjrUnavailable = true;
-                            }
-                            if (sjrResult.status === 'error' && sjrResult.transient) {
-                                sjrLookupTransientFailure = true;
-                            }
-                        }
-                        if (bestSjr) {
-                            currentRank = bestSjr.quartile;
-                            matchedVenue = bestSjr.resolvedTitle ?? matchedVenue;
-                            venueMatchConfidence = (typeof bestSjr.matchScore === 'number') ? bestSjr.matchScore : venueMatchConfidence;
-                            sourceYear = bestSjr.year ?? sourceYear;
-                            decisionMeta = mergeDecisionMeta(decisionMeta, {
-                                decisionStatus: DECISION_STATUS.MATCHED,
-                                confidence: bestSjr.matchScore ?? 1,
-                                matchedKey: bestSjr.matchedNormalizedTitle ?? matchedVenue,
-                                matchedSourceId: bestSjr.matchedSourceId ?? null,
-                                sourceYearFallback: bestSjr.sourceYearFallback === true,
-                                decisionEvidence: bestSjr.matchedSourceId ? [`source:${bestSjr.matchedSourceId}`] : null
-                            });
-                        }
-                        else if (sawAmbiguousSjr) {
-                            naReason = 'Ambiguous Journal Match';
-                            decisionMeta = mergeDecisionMeta(decisionMeta, {
-                                decisionStatus: DECISION_STATUS.AMBIGUOUS,
-                                matchedKey: venueName ?? null,
-                                decisionEvidence: ['sjr_ambiguous']
-                            });
-                        }
-                        else if (sawHistoricalSjrUnavailable) {
-                            naReason = 'SJR Historical Coverage Unavailable';
-                            decisionMeta = mergeDecisionMeta(decisionMeta, {
-                                decisionStatus: DECISION_STATUS.UNRANKED,
-                                matchedKey: venueName ?? null,
-                                decisionEvidence: ['sjr_historical_coverage_unavailable']
-                            });
-                        }
-                        if (currentRank === 'N/A' && sjrLookupTransientFailure) {
-                            shouldPersist = false;
-                        }
-                    }
-                    else {
-                        rankingSystem = 'CORE';
-                        const effectiveYear = publicationYear;
-                        const trackVenueForClassification = (forcedCore && csrCanonicalVenue) ? csrCanonicalVenue : dblpInfo.venue;
-                        const trackVenueFullForClassification = (forcedCore && csrCanonicalVenue) ? csrCanonicalVenue : dblpInfo.venue_full;
-                        const trackInfo = utils?.classifyVenueTrack
-                            ? utils.classifyVenueTrack({
-                                title: (dblpInfo.title || matchedDblpEntry?.title || pubInfo.titleText),
-                                venue: trackVenueForClassification,
-                                venue_full: trackVenueFullForClassification,
-                                acronym: (forcedCore && csrCanonicalVenue) ? csrCanonicalVenue : dblpInfo.acronym,
-                                dblpKey: dblpInfo.dblpKey,
-                                dblpType: dblpInfo.dblpType,
-                                crossref: dblpInfo.crossref,
-                                scholarVenue: null,
-                                pageCount: pageCount
-                            })
-                            : { isWorkshop: false, isDemoPoster: false, isShortPaper: false, reason: null, resolvedVenue: null, parentVenue: null, seriesId: null, signals: [] };
-                        naReason = trackInfo.reason;
-                        // Exclusions that should never be ranked in CORE.
-                        if (trackInfo.isExtendedAbstract || naReason === 'Extended Abstract') {
-                            return {
-                                rank: "N/A",
-                                system: 'CORE',
-                                reason: 'Extended Abstract',
-                                rowElement: pubInfo.rowElement,
-                                paperTitle: pubInfo.paperTitle,
-                                titleText: pubInfo.titleText,
-                                publicationYear: publicationYear ?? null,
-                                authorCount,
-                                url: pubInfo.url,
-                                shouldPersist: true,
-                                matchConfidence,
-                                matchedVenue: null,
-                                venueMatchConfidence: null,
-                                dblpVenue,
-                                sourceYear,
-                                dblpKey: dblpInfo.dblpKey ?? null,
-                                ...mergeDecisionMeta(decisionMeta, {
-                                    decisionStatus: DECISION_STATUS.UNRANKED,
-                                    decisionEvidence: trackInfo.signals ?? ['extended_abstract']
-                                })
-                            };
-                        }
-                        if (naReason === 'Editorship') {
-                            return {
-                                rank: "N/A",
-                                system: 'CORE',
-                                reason: 'Editorship',
-                                rowElement: pubInfo.rowElement,
-                                paperTitle: pubInfo.paperTitle,
-                                titleText: pubInfo.titleText,
-                                publicationYear: publicationYear ?? null,
-                                authorCount,
-                                url: pubInfo.url,
-                                shouldPersist: true,
-                                matchConfidence,
-                                matchedVenue: null,
-                                venueMatchConfidence: null,
-                                dblpVenue,
-                                sourceYear,
-                                dblpKey: dblpInfo.dblpKey ?? null,
-                                ...mergeDecisionMeta(decisionMeta, {
-                                    decisionStatus: DECISION_STATUS.UNRANKED,
-                                    decisionEvidence: trackInfo.signals ?? ['editorship']
-                                })
-                            };
-                        }
-                        // Demo/Poster tracks should not inherit the parent conference rank.
-                        if (trackInfo.isDemoPoster) {
-                            return {
-                                rank: "N/A",
-                                system: 'CORE',
-                                reason: naReason || 'Demo/Poster',
-                                rowElement: pubInfo.rowElement,
-                                paperTitle: pubInfo.paperTitle,
-                                titleText: pubInfo.titleText,
-                                publicationYear: publicationYear ?? null,
-                                authorCount,
-                                url: pubInfo.url,
-                                shouldPersist: true,
-                                matchConfidence,
-                                matchedVenue: null,
-                                venueMatchConfidence: null,
-                                dblpVenue,
-                                sourceYear,
-                                dblpKey: dblpInfo.dblpKey ?? null,
-                                ...mergeDecisionMeta(decisionMeta, {
-                                    decisionStatus: DECISION_STATUS.UNRANKED,
-                                    decisionEvidence: trackInfo.signals ?? ['demo_poster']
-                                })
-                            };
-                        }
-                        const coreDataFile = getCoreDataFileForYear(effectiveYear);
-                        const coreDataYearMatch = coreDataFile.match(/CORE_(\d{4})/);
-                        sourceYear = coreDataYearMatch ? parseInt(coreDataYearMatch[1], 10) : sourceYear;
-                        const yearSpecificCoreData = await loadCoreDataForFile(coreDataFile);
-                        if (yearSpecificCoreData.length > 0) {
-                                const fullVenueTitleForRanking = (forcedCore && csrCanonicalVenue) ? csrCanonicalVenue : (dblpInfo.venue_full ?? null);
-                                const rankingCandidates = [];
-                                const pushCandidate = (candidate) => {
-                                    if (!candidate)
-                                        return;
-                                    const trimmed = candidate.trim();
-                                    if (!trimmed)
-                                        return;
-                                    const lower = trimmed.toLowerCase();
-                                    if (!rankingCandidates.some(existing => existing.toLowerCase() === lower)) {
-                                        rankingCandidates.push(trimmed);
-                                    }
-                                    // Also try CSRankings-style canonicalization for top venues and common variants.
-                                    const canon = utils?.canonicalizeCsrankingsVenueName ? utils.canonicalizeCsrankingsVenueName(trimmed) : null;
-                                    if (canon) {
-                                        const c = canon.trim();
-                                        if (c) {
-                                            const cl = c.toLowerCase();
-                                            if (!rankingCandidates.some(existing => existing.toLowerCase() === cl)) {
-                                                rankingCandidates.push(c);
-                                            }
-                                        }
-                                    }
-                                };
-                                const expandVenue = (candidate, opts) => {
-                                    if (!candidate)
-                                        return;
-                                    const variants = utils?.expandVenueCandidates ? utils.expandVenueCandidates(candidate, opts) : [candidate];
-                                    for (const v of variants) {
-                                        pushCandidate(v);
-                                    }
-                                };
-                                const inheritWorkshopParentRank = INHERIT_PARENT_CONFERENCE_RANK_FOR_WORKSHOPS;
-                                if (csrCanonicalVenue) {
-                                    // Add CSRankings-derived canonical venue hint early.
-                                    expandVenue(csrCanonicalVenue, (trackInfo.isWorkshop && !inheritWorkshopParentRank) ? { includeAtParent: false } : undefined);
-                                }
-                                if (trackInfo.isWorkshop && !inheritWorkshopParentRank) {
-                                    // Prefer the actual workshop/track series and do NOT add parent conference as a candidate.
-                                    if (trackInfo.resolvedVenue)
-                                        expandVenue(trackInfo.resolvedVenue, { includeAtParent: false });
-                                    // seriesId is often the *parent* conference in DBLP (e.g., conf/sensys/* for ENSsys@SenSys).
-                                    // Only include it if it is the same as the resolved venue (or if resolved venue is unknown).
-                                    if (trackInfo.seriesId && (!trackInfo.resolvedVenue || trackInfo.seriesId.toLowerCase() === trackInfo.resolvedVenue.toLowerCase()))
-                                        expandVenue(trackInfo.seriesId, { includeAtParent: false });
-                                    // Add acronym only if it doesn't look like a parent venue.
-                                    if (dblpInfo.acronym && (!trackInfo.parentVenue || dblpInfo.acronym.toLowerCase() !== trackInfo.parentVenue.toLowerCase())) {
-                                        expandVenue(dblpInfo.acronym, { includeAtParent: false });
-                                    }
-                                    // If DBLP provides a full proceedings title, prefer it as it usually contains explicit track keywords.
-                                    if (fullVenueTitleForRanking)
-                                        expandVenue(fullVenueTitleForRanking, { includeAtParent: false });
-                                    // Only add raw venue strings if they don't contain an explicit "@Parent" marker.
-                                    if (venueName && !(trackInfo.parentVenue && venueName.toLowerCase().includes(`@${trackInfo.parentVenue.toLowerCase()}`))) {
-                                        expandVenue(venueName, { includeAtParent: false });
-                                    }
-                                }
-                                else {
-                                    expandVenue(dblpInfo.acronym);
-                                    expandVenue(venueName);
-                                    expandVenue(fullVenueTitleForRanking);
-                                }
-                                let resolvedRank = null;
-                                let resolvedDetails = null;
-                                for (const candidate of rankingCandidates) {
-                                    const details = {};
-                                    const attempt = findRankForVenue(candidate, yearSpecificCoreData, fullVenueTitleForRanking, details);
-                                    if (VALID_RANKS.includes(attempt)) {
-                                        resolvedRank = attempt;
-                                        resolvedDetails = details;
-                                        break;
-                                    }
-                                    if (resolvedRank === null && attempt !== "N/A") {
-                                        resolvedRank = attempt;
-                                        resolvedDetails = details;
-                                        continue;
-                                    }
-                                    // Preserve a "matched venue" even when CORE rank is N/A (some venues are explicitly unranked in CORE).
-                                    if (resolvedDetails === null && attempt === "N/A" && details && details.matchedVenue) {
-                                        resolvedDetails = details;
-                                    }
-                                }
-                                currentRank = resolvedRank ?? "N/A";
-                                if (resolvedDetails) {
-                                    matchedVenue = resolvedDetails.matchedVenue ?? matchedVenue;
-                                    venueMatchConfidence = resolvedDetails.venueMatchConfidence ?? venueMatchConfidence;
-                                    decisionMeta = mergeDecisionMeta(decisionMeta, {
-                                    decisionStatus: resolvedDetails.decisionStatus ?? (VALID_RANKS.includes(currentRank) ? DECISION_STATUS.MATCHED : DECISION_STATUS.UNRANKED),
-                                        confidence: resolvedDetails.venueMatchConfidence ?? decisionMeta.confidence,
-                                        matchedKey: resolvedDetails.matchedKey ?? matchedVenue,
-                                        decisionEvidence: resolvedDetails.decisionEvidence ?? null
-                                    });
-                                    topCandidates = Array.isArray(resolvedDetails.topCandidates) ? resolvedDetails.topCandidates : topCandidates;
-                                }
-                                // If this is a workshop and we didn't find a CORE rank for the workshop itself, mark as N/A (Workshop)
-                                if (currentRank === 'N/A' && trackInfo.isWorkshop) {
-                                    naReason = naReason || 'Workshop';
-                                }
-                                if (currentRank === 'N/A' && resolvedDetails?.decisionStatus === DECISION_STATUS.AMBIGUOUS) {
-                                    naReason = naReason || 'Ambiguous Venue Match';
-                                }
-                        }
-                        // Page-length override (strictly < 6 pages) unless already classified as Demo/Poster or Workshop.
-                        if (pageCount !== null && pageCount < 6 && !trackInfo.isDemoPoster && !trackInfo.isWorkshop) {
-                            currentRank = 'N/A';
-                            naReason = 'Short-paper';
-                            decisionMeta = mergeDecisionMeta(decisionMeta, {
-                                decisionStatus: DECISION_STATUS.UNRANKED,
-                                decisionEvidence: [...(trackInfo.signals || []), 'short_by_pages']
-                            });
-                        }
-                    }
-                } else {
-                    // Strict DBLP-only: do not use Scholar metadata for ranking.
-                    // If a Scholar entry cannot be matched to the matched DBLP profile,
-                    // flag it as missing rather than attempting any Scholar-based inference.
-                    rankingSystem = 'DBLP';
-                    currentRank = DBLP_ENTRY_MISSING_LABEL;
-                    naReason = null;
-                    decisionMeta = mergeDecisionMeta(decisionMeta, {
-                        decisionStatus: DECISION_STATUS.MISSING,
-                        decisionEvidence: ['dblp_entry_missing']
-                    });
-                }
-            }
-            catch (error) {
-                console.warn(`GSR Error processing publication (URL: ${pubInfo.url}, Title: "${pubInfo.titleText.substring(0, 50)}..."):`, error);
-            }
-            const hasCoreRank = rankingSystem === 'CORE' && VALID_RANKS.includes(currentRank);
-            const hasSjrRank = rankingSystem === 'SJR' && SJR_QUARTILES.includes(currentRank);
-            if (hasCoreRank || hasSjrRank) {
-                titlesAlreadyProcessedSet.add(pubInfo.titleText);
-                if (dblpKeyUsedForThisRanking) {
-                    dblpKeysUsedSet.add(dblpKeyUsedForThisRanking);
-                }
-            }
-            if (hasCoreRank || hasSjrRank) {
-                decisionMeta = mergeDecisionMeta(decisionMeta, {
-                    decisionStatus: DECISION_STATUS.MATCHED,
-                    confidence: venueMatchConfidence ?? matchConfidence ?? decisionMeta.confidence
-                });
-            }
-            else if (currentRank === 'N/A' && decisionMeta.decisionStatus === DECISION_STATUS.MISSING) {
-                decisionMeta = mergeDecisionMeta(decisionMeta, {
-                    decisionStatus: DECISION_STATUS.UNRANKED
-                });
-            }
-            return { rank: currentRank, system: rankingSystem, reason: (currentRank === 'N/A' ? naReason : null), rowElement: pubInfo.rowElement, paperTitle: pubInfo.paperTitle, titleText: pubInfo.titleText, publicationYear: resolvedPublicationYear, authorCount, url: pubInfo.url, shouldPersist, matchConfidence, matchedVenue, venueMatchConfidence, dblpVenue, sourceYear, dblpKey: dblpKeyUsedForThisRanking, topCandidates, ...decisionMeta };
-        };
-        for (const pubInfo of publicationLinkElements) {
-            const result = await processPublication(pubInfo, scholarTitlesAlreadyRanked, dblpKeysAlreadyUsedForRank);
-            if (result.system === 'CORE') {
-                const coreKey = VALID_RANKS.includes(result.rank) ? result.rank : 'N/A';
-                coreRankCounts[coreKey] += 1;
-            }
-            else if (result.system === 'SJR') {
-                const sjrKey = SJR_QUARTILES.includes(result.rank) ? result.rank : 'N/A';
-                sjrRankCounts[sjrKey] += 1;
-            }
-            displayRankBadgeAfterTitle(result.rowElement, result.rank, result.system, result.reason, result);
-            const publicationRankInfo = {
-                paperTitle: result.paperTitle ?? result.titleText,
-                publicationYear: result.publicationYear ?? null,
-                authorCount: result.authorCount ?? null,
-                titleText: result.titleText,
-                rank: result.rank,
-                system: result.system,
-                reason: result.reason,
-                url: result.url,
-                matchConfidence: result.matchConfidence ?? null,
-                matchedVenue: result.matchedVenue ?? null,
-                venueMatchConfidence: result.venueMatchConfidence ?? null,
-                dblpVenue: result.dblpVenue ?? null,
-                sourceYear: result.sourceYear ?? null,
-                sourceYearFallback: result.sourceYearFallback === true,
-                decisionVersion: result.decisionVersion ?? DECISION_VERSION,
-                decisionStatus: result.decisionStatus ?? null,
-                confidence: result.confidence ?? null,
-                matchedKey: result.matchedKey ?? null,
-                matchedSourceId: result.matchedSourceId ?? null,
-                dblpKey: result.dblpKey ?? null,
-                decisionEvidence: result.decisionEvidence ?? null,
-                topCandidates: result.topCandidates ?? null
-            };
-            determinedPublicationRanks.push(publicationRankInfo);
-            if (result.shouldPersist !== false) {
-                persistentPublicationRanks.push(publicationRankInfo);
-            }
-            processedCount++;
-            updateStatusElement(statusElement, processedCount, publicationLinkElements.length, "Ranking");
-        }
-        if (currentUserId && persistentPublicationRanks.length > 0) {
-            await saveCachedData(currentUserId, coreRankCounts, sjrRankCounts, persistentPublicationRanks, cachedDblpPidForSave, {
-                dblpPidSource: cachedDblpPidForSave ? 'cached' : null
-            });
-        }
-        displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, determinedPublicationRanks, Date.now(), cachedDblpPidForSave, null, {
-            authorName: getScholarAuthorName(),
-            dblpPidSource: cachedDblpPidForSave ? 'cached' : null
-        });
-    }
-    catch (error) {
-        if (error instanceof DblpRateLimitError || error instanceof DblpBusyError) {
-            console.warn("GSR: Caught a DBLP rate limit error. Displaying message to user.", error.message);
-            displayDblpRateLimitError();
-        }
-        else if (error instanceof DblpUnavailableError) {
-            console.warn("GSR: DBLP appears unavailable. Displaying friendly message.", error.message);
-            displayDblpUnavailableError();
-        }
-        else {
-            console.error("GSR: Uncaught error in main pipeline:", error);
-            const statusElem = document.getElementById(STATUS_ELEMENT_ID) || createStatusElement("An error occurred in main pipeline.");
-            const currentStatusText = statusElem.querySelector('.gsr-status-text');
-            if (currentStatusText)
-                currentStatusText.textContent = "Error in main. Check console.";
-            const progressBar = statusElem.querySelector('.gsr-progress-bar-inner');
-            if (progressBar)
-                progressBar.style.backgroundColor = 'red';
-            appendStatusScanControls(statusElem);
-        }
-    }
-    finally {
-        pendingScanModeOverride = null;
-        currentSettings = {
-            ...currentSettings,
-            scanMode: 'fast'
-        };
-        isMainProcessing = false;
-        syncScanModeToggleControls();
-    }
-}
-// --- END: Main Orchestration ---
-async function legacyInitialLoad_DoNotUse() {
-    if (isMainProcessing) {
-        return;
-    }
-    await loadSettingsIntoState();
-    activeSummaryFilter = null;
-    previewSummaryFilter = null;
-    const surfaceMode = getScholarSurfaceMode();
-    if (surfaceMode !== 'profile') {
-        teardownOffProfileSurfaceUi();
-        return;
-    }
-    const userId = getScholarUserId();
-    if (userId) {
-        const cached = await loadCachedData(userId);
-        if (cached && cached.publicationRanks) {
-            const pubRanksArr = unpackRanks(cached.publicationRanks);
-            displaySummaryPanel(cached.coreRankCounts, cached.sjrRankCounts, userId, pubRanksArr, cached.timestamp, cached.dblpAuthorPid, null, {
-                authorName: getScholarAuthorName(),
-                dblpPidSource: cached.dblpPidSource || (cached.dblpAuthorPid ? 'cached' : null)
-            });
-            return;
-        }
-    }
-    if (currentSettings.autoRun === false) {
-        displayDormantStatus();
-        return;
-    }
-    main().catch(error => {
-        // Errors are now handled inside main(), so this top-level catch is a final fallback.
-        if (!(error instanceof DblpRateLimitError) && !(error instanceof DblpBusyError)) {
-            console.error("GSR: Error during initial full analysis in main():", error);
-            const statusElem = document.getElementById(STATUS_ELEMENT_ID) || createStatusElement("A critical error occurred.");
-            const statusText = statusElem.querySelector('.gsr-status-text');
-            if (statusText)
-                statusText.textContent = "Critical Error. Check console.";
-            const progressBar = statusElem.querySelector('.gsr-progress-bar-inner');
-            if (progressBar)
-                progressBar.style.backgroundColor = 'red';
-            appendStatusScanControls(statusElem);
-        }
-    });
 }
 async function main(options = {}) {
     if (getScholarSurfaceMode() !== 'profile') {
