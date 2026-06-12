@@ -826,13 +826,15 @@ function testManualDblpUiSmoke() {
 
   assert.ok(contentSource.includes('Rescan Me'));
   assert.ok(contentSource.includes('Add My DBLP Profile'));
-  assert.ok(contentSource.includes('Change DBLP'));
-  assert.ok(contentSource.includes('Clear Manual DBLP'));
-  // Trust line: matched PID + provenance + correction affordance.
+  // Trust line: matched PID + provenance + correction affordance. Manual-PID
+  // management lives in the override dialog (set + clear), reached from the
+  // trust line — no separate header buttons.
   assert.ok(contentSource.includes('matched automatically'));
   assert.ok(contentSource.includes('set manually'));
   assert.ok(contentSource.includes('Wrong author?'));
   assert.ok(contentSource.includes('openManualDblpOverrideOverlay()'));
+  assert.ok(contentSource.includes('Use automatic matching'));
+  assert.ok(contentSource.includes('clearManualDblpOverrideForCurrentProfile()'));
 }
 
 function testDblpPersonXmlScholarUrlParsing() {

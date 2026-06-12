@@ -6370,6 +6370,20 @@ function ensureManualDblpOverrideOverlay() {
     body.appendChild(status);
     const actions = document.createElement('div');
     actions.className = 'gsr-dialog-actions';
+    // Shown only while a manual override is active: returns this profile to
+    // automatic DBLP matching. This is the ONLY clear affordance now that the
+    // header no longer carries manual-override buttons.
+    const clearButton = document.createElement('button');
+    clearButton.type = 'button';
+    clearButton.className = 'gsr-button gsr-button--ghost gsr-manual-dblp__clear';
+    clearButton.textContent = 'Use automatic matching';
+    clearButton.setAttribute('title', 'Remove the manual override and rescan with automatic DBLP matching');
+    clearButton.setAttribute('data-role', 'manual-dblp-clear');
+    clearButton.addEventListener('click', () => {
+        closeDialogOverlay(overlay, panel);
+        clearManualDblpOverrideForCurrentProfile().catch((error) => console.error('GSR: Failed to clear manual DBLP override.', error));
+    });
+    actions.appendChild(clearButton);
     const cancelButton = document.createElement('button');
     cancelButton.type = 'button';
     cancelButton.className = 'gsr-button gsr-button--ghost';
@@ -6456,6 +6470,10 @@ async function openManualDblpOverrideOverlay() {
     input.value = storedManualPid || currentProfileContext.dblpAuthorPid || '';
     status.textContent = '';
     status.dataset.tone = 'neutral';
+    const clearButton = overlay.querySelector('[data-role="manual-dblp-clear"]');
+    if (clearButton instanceof HTMLElement) {
+        clearButton.style.display = storedManualPid ? '' : 'none';
+    }
     openDialogOverlay(overlay, panel, '.gsr-manual-dblp__input');
 }
 function findPublicationInfoByUrl(url) {
@@ -8028,6 +8046,13 @@ function displayFacultyScorePanel(summaryState) {
     scoreValue.textContent = Number(facultyScore.gsvrScore || 0).toFixed(4);
     hero.appendChild(scoreValue);
     panel.appendChild(hero);
+    // Plain-English caption so first-time readers know what the number IS
+    // before they decide whether to trust it.
+    const scoreCaption = document.createElement('div');
+    scoreCaption.className = 'gsr-faculty-score-card__caption';
+    const eligibleCount = Number(facultyScore.eligibleRankedPublications) || 0;
+    scoreCaption.textContent = `Sum of venue values ÷ author counts across ${eligibleCount} DBLP-verified ranked paper${eligibleCount === 1 ? '' : 's'}.`;
+    panel.appendChild(scoreCaption);
     const completeness = normalizeScoringCompleteness(facultyScore.completeness, facultyScore.diagnostics || facultyScore.coverage, facultyScore.combinedIndex || facultyScore.rawProfileScore?.scores, summaryState.publicationRanks || []);
     const completenessCard = document.createElement('div');
     completenessCard.setAttribute('role', 'button');
@@ -8286,26 +8311,8 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
                 rescanCurrentProfile().catch((error) => console.error('GSR: Failed to start rescan.', error));
             }
         }));
-        if (currentProfileContext.dblpPidSource === 'manual') {
-            headerActions.appendChild(createHeaderActionButton({
-                label: 'Change DBLP',
-                iconText: '✎',
-                title: 'Update the manually selected DBLP profile for this Scholar page',
-                variant: 'explore',
-                onClick: () => {
-                    openManualDblpOverrideOverlay().catch((error) => console.error('GSR: Failed to open manual DBLP overlay.', error));
-                }
-            }));
-            headerActions.appendChild(createHeaderActionButton({
-                label: 'Clear Manual DBLP',
-                iconText: '×',
-                title: 'Remove the local manual DBLP override and return to automatic matching',
-                variant: 'neutral',
-                onClick: () => {
-                    clearManualDblpOverrideForCurrentProfile().catch((error) => console.error('GSR: Failed to clear manual DBLP override.', error));
-                }
-            }));
-        }
+        // NOTE: manual-DBLP management intentionally lives ONLY in the footer
+        // trust line ("Change or reset"), keeping the header to three actions.
         headerActions.appendChild(createHeaderActionButton({
             label: 'Explore Venues',
             iconText: '⌕',
@@ -8494,18 +8501,56 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
     panel.appendChild(summarySectionsContainer);
     const timelineYear = currentSummaryState.timeline?.currentYear || getTimelineCurrentYear();
     const recentFocusedHistograms = getTimelineFocusedHistograms(currentSummaryState.timeline, 'recent');
-    panel.appendChild(createTimelineHistogramSection(recentFocusedHistograms.topCoreHistogram || [], {
+    // Tier-3 "Explore": the tall timeline charts are secondary to the verdict
+    // (score) and distribution tiers, so they collapse by default. Native
+    // <details> keeps this keyboard-accessible for free; the open state
+    // persists per browser.
+    const EXPLORE_OPEN_STORAGE_KEY = 'gsvrExploreTimelinesOpen';
+    const exploreSection = document.createElement('details');
+    exploreSection.className = 'gsr-explore-section';
+    try {
+        exploreSection.open = window.localStorage?.getItem(EXPLORE_OPEN_STORAGE_KEY) === '1';
+    }
+    catch {
+        exploreSection.open = false;
+    }
+    exploreSection.addEventListener('toggle', () => {
+        try {
+            window.localStorage?.setItem(EXPLORE_OPEN_STORAGE_KEY, exploreSection.open ? '1' : '0');
+        }
+        catch {
+            // Storage may be unavailable; the toggle still works for this view.
+        }
+    });
+    const exploreSummary = document.createElement('summary');
+    exploreSummary.className = 'gsr-explore-section__summary';
+    const exploreTitle = document.createElement('span');
+    exploreTitle.className = 'gsr-explore-section__title';
+    exploreTitle.textContent = 'Timelines';
+    const exploreMeta = document.createElement('span');
+    exploreMeta.className = 'gsr-explore-section__meta';
+    exploreMeta.textContent = `A*/A and Q1 per year, ${timelineYear - 7}-${timelineYear}`;
+    const exploreChevron = document.createElement('span');
+    exploreChevron.className = 'gsr-explore-section__chevron';
+    exploreChevron.setAttribute('aria-hidden', 'true');
+    exploreChevron.textContent = '▸';
+    exploreSummary.appendChild(exploreChevron);
+    exploreSummary.appendChild(exploreTitle);
+    exploreSummary.appendChild(exploreMeta);
+    exploreSection.appendChild(exploreSummary);
+    exploreSection.appendChild(createTimelineHistogramSection(recentFocusedHistograms.topCoreHistogram || [], {
         titleText: 'Top CORE Timeline',
         subtitleText: `A*/A papers, recent 8 years (${timelineYear - 7}-${timelineYear})`,
         rankOrder: getTopCoreHistogramRankOrder(),
         variant: 'top-core'
     }));
-    panel.appendChild(createTimelineHistogramSection(recentFocusedHistograms.q1Histogram || [], {
+    exploreSection.appendChild(createTimelineHistogramSection(recentFocusedHistograms.q1Histogram || [], {
         titleText: 'Q1 Journal Timeline',
         subtitleText: `Q1 papers, recent 8 years (${timelineYear - 7}-${timelineYear})`,
         rankOrder: getQ1HistogramRankOrder(),
         variant: 'q1'
     }));
+    panel.appendChild(exploreSection);
     const finalFooterDiv = document.createElement('div');
     finalFooterDiv.className = 'gsr-card__footer gsr-summary-footer';
     const footerMeta = document.createElement('div');

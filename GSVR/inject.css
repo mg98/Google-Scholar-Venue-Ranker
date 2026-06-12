@@ -3132,6 +3132,81 @@ tr.gsc_a_tr.gsr-row--preview.gsr-row--dimmed {
   white-space: nowrap;
 }
 
+.gsr-faculty-score-card__caption {
+  margin: 6px 2px 0;
+  color: var(--gsr-muted);
+  font-size: 10.5px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+/* Tier-3 collapsible: timeline charts fold away under a native <details>. */
+.gsr-explore-section {
+  margin-top: 10px;
+  border: 1px solid var(--gsr-border-soft);
+  border-radius: 10px;
+  background: var(--gsr-card-tint);
+}
+
+.gsr-explore-section__summary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 10px;
+  cursor: pointer;
+  list-style: none;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--gsr-ink-strong);
+}
+
+.gsr-explore-section__summary::-webkit-details-marker {
+  display: none;
+}
+
+.gsr-explore-section__summary:hover,
+.gsr-explore-section__summary:focus-visible {
+  background: var(--gsr-surface-sunken);
+  outline: none;
+}
+
+.gsr-explore-section__summary:focus-visible {
+  outline: 2px solid var(--gsr-glow-strong);
+  outline-offset: -2px;
+}
+
+.gsr-explore-section__chevron {
+  font-size: 10px;
+  color: var(--gsr-muted);
+  transition: transform 0.15s ease;
+}
+
+.gsr-explore-section[open] .gsr-explore-section__chevron {
+  transform: rotate(90deg);
+}
+
+.gsr-explore-section__meta {
+  margin-left: auto;
+  color: var(--gsr-muted);
+  font-size: 9.5px;
+  font-weight: 600;
+}
+
+.gsr-explore-section > .gsr-timeline-histogram {
+  margin: 0 8px 8px;
+}
+
+.gsr-manual-dblp__clear {
+  margin-right: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gsr-explore-section__chevron {
+    transition: none;
+  }
+}
+
 .gsr-completeness-card {
   width: 100%;
   display: grid;

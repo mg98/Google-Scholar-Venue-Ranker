@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GSVR UI fixture — sidebar tiers</title>
+<link rel="stylesheet" href="../../GSVR/inject.css">
+<style>
+  body { font: 13px/1.4 Arial, sans-serif; background: #fff; margin: 24px; }
+  .gsc_rsb { width: 300px; }
+  h2 { font-size: 13px; color: #555; }
+</style>
+</head>
+<body>
+  <h1 style="font-size:16px">Sidebar tier fixture (renders GSVR/inject.css verbatim)</h1>
+  <div class="gsc_rsb">
+
+    <h2>Tier 1 — score card with caption</h2>
+    <div class="gsc_rsb_s gsc_prf_pnl gsr-card gsr-faculty-score-card">
+      <div class="gsr-card__header">
+        <div class="gsr-card__title-group"><div class="gsr-card__title">GSVR Score</div></div>
+        <button type="button" class="gsr-button gsr-button--secondary gsr-button--compact gsr-faculty-score-card__evidence">Evidence</button>
+      </div>
+      <div class="gsr-faculty-score-card__hero"><span class="gsr-faculty-score-card__value">12.3456</span></div>
+      <div id="score-caption" class="gsr-faculty-score-card__caption">Sum of venue values ÷ author counts across 87 DBLP-verified ranked papers.</div>
+    </div>
+
+    <h2>Tier 3 — collapsible timelines (default collapsed)</h2>
+    <div class="gsc_rsb_s gsc_prf_pnl gsr-card gsr-summary-card">
+      <details id="explore" class="gsr-explore-section">
+        <summary class="gsr-explore-section__summary">
+          <span class="gsr-explore-section__chevron" aria-hidden="true">▸</span>
+          <span class="gsr-explore-section__title">Timelines</span>
+          <span class="gsr-explore-section__meta">A*/A and Q1 per year, 2019-2026</span>
+        </summary>
+        <div class="gsr-timeline-histogram gsr-timeline-histogram--top-core" style="min-height:120px">
+          <div style="padding:12px;font-size:11px;color:#888">histogram placeholder</div>
+        </div>
+      </details>
+    </div>
+
+  </div>
+</body>
+</html>

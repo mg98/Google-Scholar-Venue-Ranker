@@ -19,6 +19,13 @@ Google Scholar Venue Ranker is an open-source Chrome extension developed by [Nav
 
 ## Changelog
 
+### Unreleased (UI workstream C — sidebar hierarchy)
+
+- `Score caption`: the GSVR Score card now states in plain English what the number is ("Sum of venue values ÷ author counts across N DBLP-verified ranked papers") so first-time readers can judge it before trusting it.
+- `Collapsible timelines`: the two timeline charts fold into a native, keyboard-accessible "Timelines" disclosure, collapsed by default (saving ~150px of sidebar height) with the open state persisted per browser.
+- `Header de-clutter`: the summary header now carries exactly three actions (Rescan, Explore Venues, Download Report). Manual-DBLP management is consolidated into the override dialog — reached from the trust line — which gains a "Use automatic matching" action shown while an override is active.
+- Live-verified in the Chrome extension on a 700-publication profile: sidebar Q1-Q4 chips render full text (the "Q.." regression is fixed), all 401 inline badges healthy with no renderer freeze, the theme detector reports light on Scholar, and force-flipping to dark swaps every themed surface (cards to the dark veil, ink to light) while rank chips keep their bright identity.
+
 ### Unreleased (UI workstream B — design tokens and dark theme)
 
 - `Design tokens`: migrated 424 hardcoded colors in the injected Scholar UI onto 57 semantic design tokens via a property-role-aware migration (`scripts/apply_token_migration.mjs` + reviewed mapping in `scripts/data/color_token_map.json`). 137 colors stay deliberately literal: data-visualization fills, the dark tooltip, export-button gradients, and shadow tints are theme-stable by design.
