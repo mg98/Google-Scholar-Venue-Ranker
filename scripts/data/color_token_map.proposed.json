@@ -1,0 +1,820 @@
+{
+ "tokens": {
+  "gsr-surface": "#f3f7ff",
+  "gsr-card": "#ffffff",
+  "gsr-card-tint": "#fbfdff",
+  "gsr-surface-sunken": "#edf3ff",
+  "gsr-accent-soft": "#e7efff",
+  "gsr-ink": "#13264a",
+  "gsr-ink-strong": "#17315f",
+  "gsr-muted": "#5d7198",
+  "gsr-text-soft": "#7890a8",
+  "gsr-accent-ink": "#ffffff",
+  "gsr-accent": "#1f5fe0",
+  "gsr-accent-strong": "#184fc3",
+  "gsr-link": "#214ca6",
+  "gsr-border": "#c8d6f0",
+  "gsr-border-strong": "#809ddb",
+  "gsr-border-soft": "#dce7f6",
+  "gsr-neutral": "#e3ebff",
+  "gsr-neutral-border": "#afc0ec",
+  "gsr-neutral-ink": "#2f446b",
+  "gsr-success": "#247a57",
+  "gsr-warning": "#c5961c",
+  "gsr-orange": "#d06a32",
+  "gsr-danger": "#db536a",
+  "gsr-purple": "#a65bd4",
+  "gsr-a-star": "#ffd84f",
+  "gsr-a": "#8cdf63",
+  "gsr-b": "#b6dd48",
+  "gsr-c": "#ff9a68",
+  "gsr-q1": "#f4c942",
+  "gsr-q2": "#7ccc5c",
+  "gsr-q3": "#a7cd44",
+  "gsr-q4": "#ff8b63",
+  "gsr-a-star-border": "#d6b335",
+  "gsr-a-star-ink": "#664c00",
+  "gsr-a-border": "#60b54c",
+  "gsr-a-ink": "#1a5016",
+  "gsr-b-border": "#91b42a",
+  "gsr-b-ink": "#465c0d",
+  "gsr-c-border": "#e17b44",
+  "gsr-c-ink": "#7b2f09",
+  "gsr-q1-border": "#d3aa29",
+  "gsr-q1-ink": "#664c00",
+  "gsr-q2-border": "#5ab243",
+  "gsr-q2-ink": "#1f4f16",
+  "gsr-q3-border": "#8cae28",
+  "gsr-q3-ink": "#4d5e13",
+  "gsr-q4-border": "#e0693f",
+  "gsr-q4-ink": "#7b2a0e",
+  "gsr-glow": "rgba(31, 95, 224, 0.12)",
+  "gsr-glow-strong": "rgba(31, 95, 224, 0.2)",
+  "gsr-veil": "rgba(255, 255, 255, 0.9)",
+  "gsr-veil-strong": "rgba(255, 255, 255, 0.97)",
+  "gsr-veil-faint": "rgba(255, 255, 255, 0.5)",
+  "gsr-shadow-tint": "rgba(24, 50, 102, 0.16)",
+  "gsr-scrim": "rgba(15, 28, 55, 0.45)",
+  "gsr-success-soft": "rgba(34, 197, 94, 0.1)"
+ },
+ "mappings": {
+  "#ffffff|background": "gsr-card",
+  "#17315f|text": "gsr-ink-strong",
+  "#17315d|text": "gsr-ink-strong",
+  "#fbfdff|background": "gsr-card-tint",
+  "#ffffff|text": "gsr-accent-ink",
+  "#fff|background": "gsr-card",
+  "#dce7f6|border": "gsr-border-soft",
+  "#fff|text": "gsr-accent-ink",
+  "#dbe5f4|border": "gsr-border-soft",
+  "rgba(255,255,255,0.82)|shadow": "gsr-veil",
+  "rgba(160,181,225,0.42)|border": "gsr-neutral-border",
+  "#f8fbff|background": "gsr-card-tint",
+  "rgba(31,95,224,0.12)|shadow": "gsr-glow",
+  "#18315e|text": "gsr-ink-strong",
+  "#2f6ee6|background": "gsr-accent",
+  "#2f63d8|background": "gsr-accent",
+  "#f6f9ff|background": "gsr-surface",
+  "#edf3ff|background": "gsr-surface-sunken",
+  "#f5f8ff|background": "gsr-surface",
+  "rgba(255,255,255,0.96)|background": "gsr-veil-strong",
+  "#e8eefb|background": "gsr-accent-soft",
+  "#5b7299|text": "gsr-muted",
+  "#5b6f8e|text": "gsr-muted",
+  "#1f5fe0|background": "gsr-accent",
+  "rgba(255,255,255,0.82)|background": "gsr-veil",
+  "rgba(31,95,224,0.1)|shadow": "gsr-glow",
+  "rgba(31,95,224,0.1)|background": "gsr-glow",
+  "rgba(31,95,224,0.18)|shadow": "gsr-glow-strong",
+  "rgba(31,95,224,0.22)|shadow": "gsr-glow-strong",
+  "rgba(255,255,255,0.9)|shadow": "gsr-veil",
+  "rgba(31,95,224,0.16)|shadow": "gsr-glow-strong",
+  "rgba(255,255,255,0.78)|background": "gsr-veil",
+  "#f4f7ff|background": "gsr-surface",
+  "#51698f|text": "gsr-muted",
+  "#1745a1|text": "gsr-link",
+  "rgba(255,255,255,0.94)|background": "gsr-veil-strong",
+  "#2f67df|border": "gsr-accent",
+  "#1848a7|text": "gsr-link",
+  "#f1f6ff|background": "gsr-surface",
+  "#46629d|text": "gsr-muted",
+  "#f2f6ff|background": "gsr-surface",
+  "#214ca6|text": "gsr-link",
+  "#664c00|text": "gsr-a-star-ink",
+  "#274063|text": "gsr-neutral-ink",
+  "rgba(106,136,201,0.18)|border": "gsr-glow-strong",
+  "rgba(244,248,255,0.95)|background": "gsr-veil-strong",
+  "rgba(255,255,255,0.76)|background": "gsr-veil",
+  "rgba(37,70,140,0.12)|shadow": "gsr-shadow-tint",
+  "rgba(160,181,225,0.5)|border": "gsr-neutral-border",
+  "#245fdd|background": "gsr-accent",
+  "#d7e3f4|border": "gsr-border-soft",
+  "#60728c|text": "gsr-muted",
+  "#5f708b|text": "gsr-muted",
+  "#556d91|text": "gsr-muted",
+  "#9db9ed|border": "gsr-neutral-border",
+  "#edf4ff|background": "gsr-surface-sunken",
+  "#1d365e|text": "gsr-ink-strong",
+  "rgba(164,185,229,0.44)|border": "gsr-neutral-border",
+  "#247a57|background": "gsr-success",
+  "#d06a32|background": "gsr-orange",
+  "#a65bd4|background": "gsr-purple",
+  "#c5961c|background": "gsr-warning",
+  "#db536a|background": "gsr-danger",
+  "#53677c|background": "gsr-success",
+  "#f6f9fe|background": "gsr-surface",
+  "#62728a|text": "gsr-muted",
+  "#b8ccef|border": "gsr-neutral-border",
+  "#245fd4|border": "gsr-accent",
+  "#dce7f6|background": "gsr-neutral",
+  "#1f5fe0|other": "gsr-accent",
+  "#1f5fe0|border": "gsr-accent",
+  "#1f5fe0|text": "gsr-accent",
+  "#2f63d8|text": "gsr-accent",
+  "rgba(31,95,224,0.18)|border": "gsr-glow-strong",
+  "rgba(31,95,224,0.22)|border": "gsr-glow-strong",
+  "rgba(255,255,255,0.9)|background": "gsr-veil",
+  "rgba(31,95,224,0.16)|background": "gsr-glow-strong",
+  "rgba(255,255,255,0.78)|shadow": "gsr-veil",
+  "#5d7198|text": "gsr-muted",
+  "#e7efff|other": "gsr-border",
+  "#e7efff|background": "gsr-accent-soft",
+  "#2f5cc6|text": "gsr-accent",
+  "#2f5cc6|background": "gsr-accent",
+  "#184fc3|background": "gsr-accent-strong",
+  "#184fc3|border": "gsr-accent-strong",
+  "rgba(255,255,255,0.72)|shadow": "gsr-veil-faint",
+  "rgba(255,255,255,0.72)|background": "gsr-veil-faint",
+  "rgba(34,197,94,0.08)|background": "gsr-success-soft",
+  "rgba(34,197,94,0.08)|shadow": "gsr-success-soft",
+  "rgba(255,255,255,0.22)|shadow": "gsr-veil-faint",
+  "rgba(255,255,255,0.22)|background": "gsr-veil-faint",
+  "rgba(255,255,255,0.86)|shadow": "gsr-veil",
+  "rgba(255,255,255,0.86)|background": "gsr-veil",
+  "rgba(84,116,184,0.3)|other": "gsr-glow-strong",
+  "rgba(84,116,184,0.3)|background": "gsr-glow-strong",
+  "#f3f7ff|other": "gsr-border",
+  "#c8d6f0|other": "gsr-border",
+  "#13264a|other": "gsr-ink",
+  "#4b70d8|other": "gsr-accent",
+  "rgba(24,50,102,0.16)|shadow": "gsr-shadow-tint",
+  "rgba(24,50,102,0.1)|shadow": "gsr-shadow-tint",
+  "#e3ebff|other": "gsr-border",
+  "#afc0ec|other": "gsr-border",
+  "#a8bde9|border": "gsr-neutral-border",
+  "rgba(31,95,224,0.34)|border": "gsr-glow-strong",
+  "#eef3ff|background": "gsr-surface-sunken",
+  "#e9f0ff|background": "gsr-accent-soft",
+  "#b8c9f0|border": "gsr-neutral-border",
+  "#244eb2|text": "gsr-link",
+  "#c7d4f2|border": "gsr-border",
+  "#e3e9f2|background": "gsr-neutral",
+  "rgba(146,170,216,0.72)|border": "gsr-border-strong",
+  "#e8f0fb|background": "gsr-accent-soft",
+  "#506996|text": "gsr-muted",
+  "rgba(255,255,255,0.56)|background": "gsr-veil-faint",
+  "rgba(47,99,216,0.26)|shadow": "gsr-glow-strong",
+  "#b8c8e8|border": "gsr-neutral-border",
+  "#214fae|text": "gsr-link",
+  "rgba(31,95,224,0.07)|shadow": "gsr-glow",
+  "rgba(31,95,224,0.11)|shadow": "gsr-glow",
+  "#8baaf0|border": "gsr-border-strong",
+  "#1b57cc|text": "gsr-accent-strong",
+  "#245fd7|text": "gsr-accent",
+  "#4c69c5|text": "gsr-muted",
+  "rgba(159,184,235,0.42)|border": "gsr-neutral-border",
+  "#fdfefe|background": "gsr-card",
+  "rgba(28,63,128,0.05)|shadow": "gsr-shadow-tint",
+  "#355089|text": "gsr-neutral-ink",
+  "rgba(76,132,244,0.26)|border": "gsr-glow-strong",
+  "#1c4aa5|text": "gsr-link",
+  "rgba(75,194,124,0.24)|border": "gsr-success-soft",
+  "#fcfffd|background": "gsr-card-tint",
+  "#f2fbf5|background": "gsr-surface",
+  "#1d6b43|text": "gsr-success",
+  "rgba(245,158,11,0.24)|border": "gsr-warning",
+  "#fffdf9|background": "gsr-card",
+  "#fff8ea|background": "gsr-card-tint",
+  "#9a5717|text": "gsr-orange",
+  "rgba(34,197,94,0.12)|background": "gsr-success-soft",
+  "rgba(245,158,11,0.14)|background": "gsr-warning",
+  "#18325d|text": "gsr-ink-strong",
+  "#18439a|text": "gsr-link",
+  "#1a6a44|text": "gsr-success",
+  "#60779f|text": "gsr-muted",
+  "#5670a1|text": "gsr-muted",
+  "#5d7b67|text": "gsr-muted",
+  "rgba(35,145,86,0.12)|border": "gsr-success-soft",
+  "rgba(255,255,255,0.8)|shadow": "gsr-veil",
+  "rgba(34,197,94,0.16)|background": "gsr-success-soft",
+  "rgba(35,145,86,0.2)|border": "gsr-success-soft",
+  "rgba(34,197,94,0.09)|background": "gsr-success-soft",
+  "rgba(34,197,94,0.18)|background": "gsr-success-soft",
+  "#c6d5f3|border": "gsr-border",
+  "#5a6f97|text": "gsr-muted",
+  "#1345aa|background": "gsr-accent-strong",
+  "#bfd0ee|border": "gsr-border",
+  "#f7faff|background": "gsr-surface",
+  "#2a63df|border": "gsr-accent",
+  "#eff4ff|background": "gsr-surface-sunken",
+  "#e3edff|background": "gsr-neutral",
+  "#163f93|text": "gsr-link",
+  "#a0b7ec|border": "gsr-neutral-border",
+  "#aec2ef|border": "gsr-neutral-border",
+  "#fafcff|background": "gsr-card-tint",
+  "#35589d|text": "gsr-link",
+  "rgba(143,172,236,0.22)|shadow": "gsr-shadow-tint",
+  "#24457f|text": "gsr-neutral-ink",
+  "rgba(191,208,238,0.38)|shadow": "gsr-shadow-tint",
+  "#dce7ff|background": "gsr-neutral",
+  "#94aced|border": "gsr-border-strong",
+  "#214481|text": "gsr-neutral-ink",
+  "#e6ebff|background": "gsr-neutral",
+  "#aab8e6|border": "gsr-neutral-border",
+  "#e4ebf7|background": "gsr-neutral",
+  "#d0a61c|background": "gsr-warning",
+  "#5dbb40|background": "gsr-q2",
+  "rgba(178,196,228,0.78)|border": "gsr-neutral-border",
+  "rgba(247,250,255,0.94)|background": "gsr-veil-strong",
+  "#647696|text": "gsr-muted",
+  "#5b6e91|text": "gsr-muted",
+  "#f3f6fb|background": "gsr-surface",
+  "#e8eef8|background": "gsr-accent-soft",
+  "#d97836|background": "gsr-orange",
+  "#c08c12|background": "gsr-warning",
+  "#1f9467|background": "gsr-success",
+  "#d56f3d|background": "gsr-orange",
+  "#52688f|text": "gsr-muted",
+  "rgba(0,0,0,0.08)|shadow": "gsr-shadow-tint",
+  "rgba(95,124,184,0.42)|border": "gsr-glow-strong",
+  "#f1f5ff|background": "gsr-surface",
+  "#e6eefc|background": "gsr-accent-soft",
+  "#173a7d|background": "gsr-accent-strong",
+  "#4a78df|background": "gsr-accent",
+  "rgba(205,163,55,0.38)|border": "gsr-q1-border",
+  "rgba(255,250,238,0.92)|background": "gsr-card-tint",
+  "#6f4d08|text": "gsr-a-star-ink",
+  "#fff8e9|background": "gsr-card-tint",
+  "#f3ead6|background": "gsr-accent-soft",
+  "#d8a72b|background": "gsr-warning",
+  "#12367f|text": "gsr-ink-strong",
+  "#d4def4|background": "gsr-neutral",
+  "#dde6f8|background": "gsr-neutral",
+  "#6a7fa6|text": "gsr-muted",
+  "#355cae|text": "gsr-link",
+  "#16336f|text": "gsr-ink-strong",
+  "rgba(74,103,161,0.35)|border": "gsr-glow-strong",
+  "#7a91bd|text": "gsr-text-soft",
+  "#b2c4ea|border": "gsr-neutral-border",
+  "#2a57b4|text": "gsr-link",
+  "#82a7ee|border": "gsr-border-strong",
+  "#d87037|background": "gsr-orange",
+  "#2f446b|text": "gsr-neutral-ink",
+  "#d3dcef|border": "gsr-border",
+  "#d6b335|border": "gsr-a-star-border",
+  "#60b54c|border": "gsr-a-border",
+  "#1a5016|text": "gsr-a-ink",
+  "#91b42a|border": "gsr-b-border",
+  "#465c0d|text": "gsr-b-ink",
+  "#e17b44|border": "gsr-c-border",
+  "#7b2f09|text": "gsr-c-ink",
+  "#d3aa29|border": "gsr-q1-border",
+  "#5ab243|border": "gsr-q2-border",
+  "#1f4f16|text": "gsr-q2-ink",
+  "#8cae28|border": "gsr-q3-border",
+  "#4d5e13|text": "gsr-q3-ink",
+  "#e0693f|border": "gsr-q4-border",
+  "#7b2a0e|text": "gsr-q4-ink",
+  "rgba(111,137,203,0.34)|border": "gsr-glow-strong",
+  "rgba(10,19,42,0.3)|shadow": "gsr-shadow-tint",
+  "#f8fafc|text": "gsr-accent-ink",
+  "rgba(231,239,255,0.78)|background": "gsr-accent-soft",
+  "rgba(243,247,255,0.32)|background": "gsr-veil-faint",
+  "rgba(31,95,224,0.38)|shadow": "gsr-glow-strong",
+  "#1d4fae|text": "gsr-link",
+  "#66799c|text": "gsr-muted",
+  "rgba(236,111,78,0.62)|shadow": "gsr-shadow-tint",
+  "rgba(217,229,255,0.98)|background": "gsr-neutral",
+  "rgba(240,245,255,0.98)|background": "gsr-veil-strong",
+  "rgba(235,242,255,0.92)|background": "gsr-surface-sunken",
+  "rgba(244,247,255,0.88)|background": "gsr-veil",
+  "#123984|text": "gsr-ink-strong",
+  "#607395|text": "gsr-muted",
+  "#36558f|text": "gsr-link",
+  "rgba(31,95,224,0.2)|shadow": "gsr-glow-strong",
+  "rgba(15,23,42,0.28)|background": "gsr-shadow-tint",
+  "rgba(74,103,161,0.12)|border": "gsr-glow",
+  "#5d7199|text": "gsr-muted",
+  "rgba(84,116,184,0.32)|background": "gsr-glow-strong",
+  "rgba(237,243,255,0.8)|background": "gsr-veil",
+  "#14346e|text": "gsr-ink-strong",
+  "#102f67|text": "gsr-ink-strong",
+  "#eef3fb|background": "gsr-surface-sunken",
+  "rgba(12,21,39,0.42)|background": "gsr-scrim",
+  "rgba(133,158,214,0.42)|border": "gsr-border-strong",
+  "rgba(173,191,227,0.46)|border": "gsr-neutral-border",
+  "#1a2f57|text": "gsr-ink-strong",
+  "rgba(124,149,205,0.46)|border": "gsr-border-strong",
+  "rgba(93,120,181,0.3)|background": "gsr-glow-strong",
+  "rgba(31,95,224,0.24)|border": "gsr-glow-strong",
+  "rgba(152,176,227,0.46)|border": "gsr-neutral-border",
+  "#2b58b6|text": "gsr-link",
+  "#19335f|text": "gsr-ink-strong",
+  "#50678f|text": "gsr-muted",
+  "rgba(161,182,226,0.55)|border": "gsr-neutral-border",
+  "#355381|text": "gsr-neutral-ink",
+  "rgba(162,182,225,0.42)|border": "gsr-neutral-border",
+  "rgba(162,182,225,0.48)|border": "gsr-neutral-border",
+  "rgba(37,70,140,0.08)|shadow": "gsr-shadow-tint",
+  "rgba(74,121,219,0.34)|border": "gsr-glow-strong",
+  "rgba(111,143,212,0.32)|border": "gsr-border-strong",
+  "rgba(126,167,111,0.28)|border": "gsr-success-soft",
+  "rgba(58,109,220,0.5)|border": "gsr-glow-strong",
+  "rgba(86,133,230,0.48)|border": "gsr-glow-strong",
+  "rgba(74,163,120,0.42)|border": "gsr-success-soft",
+  "#647ba4|text": "gsr-muted",
+  "#3f81f0|background": "gsr-accent",
+  "rgba(36,95,221,0.22)|shadow": "gsr-glow-strong",
+  "#546b93|text": "gsr-muted",
+  "#24426f|text": "gsr-neutral-ink",
+  "#2f63d2|background": "gsr-accent",
+  "rgba(48,100,213,0.22)|border": "gsr-glow-strong",
+  "rgba(84,132,229,0.44)|border": "gsr-glow-strong",
+  "#2150b0|text": "gsr-link",
+  "#3d7af0|background": "gsr-accent",
+  "rgba(31,88,211,0.7)|border": "gsr-glow-strong",
+  "#2b63d8|background": "gsr-accent",
+  "rgba(47,99,216,0.68)|border": "gsr-glow-strong",
+  "rgba(30,117,165,0.68)|border": "gsr-glow-strong",
+  "rgba(62,116,225,0.56)|border": "gsr-glow-strong",
+  "#18459d|text": "gsr-link",
+  "#1f58d3|background": "gsr-accent",
+  "rgba(25,79,191,0.88)|border": "gsr-glow-strong",
+  "#245ed3|background": "gsr-accent",
+  "rgba(34,88,198,0.86)|border": "gsr-glow-strong",
+  "#16305b|text": "gsr-ink-strong",
+  "rgba(160,181,225,0.46)|border": "gsr-neutral-border",
+  "#566a88|text": "gsr-muted",
+  "rgba(135,160,212,0.42)|border": "gsr-border-strong",
+  "#203a63|text": "gsr-ink-strong",
+  "#d9e5f5|border": "gsr-border-soft",
+  "#52698f|text": "gsr-muted",
+  "#61728b|text": "gsr-muted",
+  "#6880a4|text": "gsr-muted",
+  "#eef5ff|background": "gsr-surface-sunken",
+  "#2456a5|text": "gsr-link",
+  "rgba(250,252,255,0.96)|background": "gsr-veil-strong",
+  "rgba(244,248,255,0.94)|background": "gsr-veil-strong",
+  "rgba(250,252,255,0.98)|background": "gsr-veil-strong",
+  "rgba(164,185,229,0.42)|border": "gsr-neutral-border",
+  "rgba(252,253,255,0.98)|background": "gsr-veil-strong",
+  "rgba(245,248,255,0.94)|background": "gsr-veil-strong",
+  "#5c739a|text": "gsr-muted",
+  "rgba(31,95,224,0.08)|background": "gsr-glow",
+  "#d8e3f5|border": "gsr-border-soft",
+  "#9eb8ee|border": "gsr-neutral-border",
+  "rgba(47,99,216,0.12)|shadow": "gsr-glow",
+  "#294568|text": "gsr-neutral-ink",
+  "#edf2fb|background": "gsr-surface-sunken",
+  "#d9e3f2|background": "gsr-neutral",
+  "#5a718f|text": "gsr-muted",
+  "#6b7f9d|text": "gsr-muted",
+  "#d3e0f5|border": "gsr-border-soft",
+  "#657895|text": "gsr-muted",
+  "#334c73|text": "gsr-neutral-ink",
+  "#627796|text": "gsr-muted",
+  "#e3ebf8|border": "gsr-border-soft",
+  "#6a7e9e|text": "gsr-muted",
+  "#fbfcff|background": "gsr-card-tint",
+  "#d6e3f5|border": "gsr-border-soft",
+  "#2b5ca9|text": "gsr-link",
+  "#182f55|text": "gsr-ink-strong",
+  "#526681|text": "gsr-muted",
+  "#18315a|text": "gsr-ink-strong",
+  "#edf2f9|background": "gsr-surface-sunken",
+  "#263f66|text": "gsr-neutral-ink",
+  "rgba(31,52,92,0.08)|shadow": "gsr-shadow-tint",
+  "#d4e0f2|border": "gsr-border-soft",
+  "#285cae|text": "gsr-link",
+  "#63728a|text": "gsr-muted",
+  "#172f56|text": "gsr-ink-strong",
+  "#4f637f|text": "gsr-muted",
+  "#94a3b8|text": "gsr-text-soft",
+  "#b9cbea|border": "gsr-neutral-border",
+  "#244b86|text": "gsr-link",
+  "#1f54bd|border": "gsr-accent-strong",
+  "#285fcf|background": "gsr-accent",
+  "#9db7e2|border": "gsr-neutral-border",
+  "#1f4278|text": "gsr-neutral-ink"
+ },
+ "flagged": [
+  {
+   "color": "#102a5f",
+   "role": "background",
+   "count": 2,
+   "contexts": [
+    "background @ .gsr-timeline-histogram__segment[data-gsr-rank=\"astar\"], .gsr-timeline-histogram__legend-s",
+    "background @ .gsr-timeline-histogram--top-core .gsr-timeline-histogram__segment[data-gsr-rank=\"astar\"]"
+   ],
+   "reason": "nearest gsr-accent-strong d=43.9, second gsr-accent d=59.6"
+  },
+  {
+   "color": "#7890a8",
+   "role": "background",
+   "count": 2,
+   "contexts": [
+    "background @ .gsr-completeness-bar__segment--excludedType",
+    "background @ .gsr-completeness-panel__swatch--excludedType, .gsr-completeness-panel__marker--excludedTy"
+   ],
+   "reason": "nearest gsr-purple d=50.1, second gsr-q2 d=52.6"
+  },
+  {
+   "color": "#7da4e8",
+   "role": "background",
+   "count": 2,
+   "contexts": [
+    "background @ .gsr-export-panel__ranked-bar-segment--journal",
+    "background @ .gsr-export-panel__ranked-split-item--journal span::before"
+   ],
+   "reason": "nearest gsr-purple d=60.8, second gsr-accent d=73.9"
+  },
+  {
+   "color": "#ffffff",
+   "role": "other",
+   "count": 1,
+   "contexts": [
+    "--gsr-card @ /* * inject.css * Scholar-native styles for GSVR injected UI. */ :root"
+   ],
+   "reason": "nearest gsr-border d=43.9, second gsr-accent d=174.0"
+  },
+  {
+   "color": "#17315d",
+   "role": "border",
+   "count": 1,
+   "contexts": [
+    "border-bottom @ .gsr-score-details__math-numerator"
+   ],
+   "reason": "nearest gsr-accent-strong d=40.9, second gsr-accent d=56.2"
+  },
+  {
+   "color": "#1f5fe0",
+   "role": "shadow",
+   "count": 1,
+   "contexts": [
+    "box-shadow @ tr.gsc_a_tr.gsr-row--highlighted-strong td.gsc_a_t, tr.gsc_a_tr.gsr-row--selected.gsr-row-"
+   ],
+   "reason": "opaque shadow color"
+  },
+  {
+   "color": "#5d7198",
+   "role": "other",
+   "count": 1,
+   "contexts": [
+    "--gsr-muted @ /* * inject.css * Scholar-native styles for GSVR injected UI. */ :root"
+   ],
+   "reason": "nearest gsr-accent d=43.8, second gsr-ink d=75.0"
+  },
+  {
+   "color": "#809ddb",
+   "role": "other",
+   "count": 1,
+   "contexts": [
+    "--gsr-border-strong @ /* * inject.css * Scholar-native styles for GSVR injected UI. */ :root"
+   ],
+   "reason": "nearest gsr-border d=59.3, second gsr-accent d=71.4"
+  },
+  {
+   "color": "#ffd84f",
+   "role": "other",
+   "count": 1,
+   "contexts": [
+    "--gsr-a-star @ /* * inject.css * Scholar-native styles for GSVR injected UI. */ :root"
+   ],
+   "reason": "nearest gsr-border d=61.3, second gsr-accent d=161.3"
+  },
+  {
+   "color": "#8cdf63",
+   "role": "other",
+   "count": 1,
+   "contexts": [
+    "--gsr-a @ /* * inject.css * Scholar-native styles for GSVR injected UI. */ :root"
+   ],
+   "reason": "nearest gsr-border d=57.6, second gsr-accent d=122.3"
+  },
+  {
+   "color": "#b6dd48",
+   "role": "other",
+   "count": 1,
+   "contexts": [
+    "--gsr-b @ /* * inject.css * Scholar-native styles for GSVR injected UI. */ :root"
+   ],
+   "reason": "nearest gsr-border d=56.8, second gsr-accent d=136.9"
+  },
+  {
+   "color": "#ff9a68",
+   "role": "other",
+   "count": 1,
+   "contexts": [
+    "--gsr-c @ /* * inject.css * Scholar-native styles for GSVR injected UI. */ :root"
+   ],
+   "reason": "nearest gsr-border d=71.2, second gsr-accent d=136.7"
+  },
+  {
+   "color": "#7a91c0",
+   "role": "background",
+   "count": 1,
+   "contexts": [
+    "background @ .gsr-progress-bar-inner"
+   ],
+   "reason": "nearest gsr-purple d=48.4, second gsr-success d=61.2"
+  },
+  {
+   "color": "#4a67a1",
+   "role": "background",
+   "count": 1,
+   "contexts": [
+    "background @ .gsr-progress-bar-inner"
+   ],
+   "reason": "nearest gsr-accent d=32.1, second gsr-accent-strong d=34.9"
+  },
+  {
+   "color": "#153064",
+   "role": "background",
+   "count": 1,
+   "contexts": [
+    "background @ .gsr-date-range-toggle__button.is-active"
+   ],
+   "reason": "nearest gsr-accent-strong d=39.5, second gsr-accent d=55.0"
+  },
+  {
+   "color": "#935014",
+   "role": "text",
+   "count": 1,
+   "contexts": [
+    "color @ .gsr-summary-lifecycle--failed .gsr-summary-lifecycle__title"
+   ],
+   "reason": "nearest gsr-orange d=40.2, second gsr-danger d=48.7"
+  },
+  {
+   "color": "#89673f",
+   "role": "text",
+   "count": 1,
+   "contexts": [
+    "color @ .gsr-summary-lifecycle--failed .gsr-summary-lifecycle__message"
+   ],
+   "reason": "nearest gsr-muted d=38.9, second gsr-orange d=39.2"
+  },
+  {
+   "color": "#495b8c",
+   "role": "text",
+   "count": 1,
+   "contexts": [
+    "color @ .gsr-summary-row__status-chip[data-gsr-status-chip=\"unranked\"]"
+   ],
+   "reason": "nearest gsr-muted d=20.5, second gsr-neutral-ink d=25.2"
+  },
+  {
+   "color": "#d8af21",
+   "role": "background",
+   "count": 1,
+   "contexts": [
+    "background @ .gsr-summary-row__bar-fill[data-gsr-rank=\"astar\"]"
+   ],
+   "reason": "nearest gsr-warning d=21.9, second gsr-q1 d=27.5"
+  },
+  {
+   "color": "#52b14b",
+   "role": "background",
+   "count": 1,
+   "contexts": [
+    "background @ .gsr-summary-row__bar-fill[data-gsr-rank=\"a\"]"
+   ],
+   "reason": "nearest gsr-success d=49.3, second gsr-warning d=68.1"
+  },
+  {
+   "color": "#8bb62f",
+   "role": "background",
+   "count": 1,
+   "contexts": [
+    "background @ .gsr-summary-row__bar-fill[data-gsr-rank=\"b\"]"
+   ],
+   "reason": "nearest gsr-warning d=40.7, second gsr-orange d=69.5"
+  },
+  {
+   "color": "#ec7f42",
+   "role": "background",
+   "count": 1,
+   "contexts": [
+    "background @ .gsr-summary-row__bar-fill[data-gsr-rank=\"c\"]"
+   ],
+   "reason": "nearest gsr-orange d=22.9, second gsr-warning d=30.5"
+  },
+  {
+   "color": "#95b92a",
+   "role": "background",
+   "count": 1,
+   "contexts": [
+    "background @ .gsr-summary-row__bar-fill[data-gsr-rank=\"q3\"]"
+   ],
+   "reason": "nearest gsr-q3 d=20.2, second gsr-q2 d=26.0"
+  },
+  {
+   "color": "#ec6f4e",
+   "role": "background",
+   "count": 1,
+   "contexts": [
+    "background @ .gsr-summary-row__bar-fill[data-gsr-rank=\"q4\"]"
+   ],
+   "reason": "nearest gsr-orange d=18.3, second gsr-q4 d=24.9"
+  },
+  {
+   "color": "#5e83de",
+   "role": "background",
+   "count": 1,
+   "contexts": [
+    "background @ .gsr-summary-row__bar-fill[data-gsr-rank=\"dblp-entry-missing\"]"
+   ],
+   "reason": "nearest gsr-accent d=44.2, second gsr-purple d=50.1"
+  },
+  {
+   "color": "#7b8fcf",
+   "role": "background",
+   "count": 1,
+   "contexts": [
+    "background @ .gsr-summary-row__bar-fill[data-gsr-rank=\"unranked\"]"
+   ],
+   "reason": "nearest gsr-purple d=46.4, second gsr-accent d=62.7"
+  },
+  {
+   "color": "#c9d4e7",
+   "role": "background",
+   "count": 1,
+   "contexts": [
+    "background @ .gsr-timeline-histogram__empty"
+   ],
+   "reason": "nearest gsr-neutral d=24.0, second gsr-accent-soft d=27.6"
+  },
+  {
+   "color": "#7a9b21",
+   "role": "background",
+   "count": 1,
+   "contexts": [
+    "background @ .gsr-timeline-histogram__segment[data-gsr-rank=\"b\"], .gsr-timeline-histogram__legend-swatc"
+   ],
+   "reason": "nearest gsr-warning d=41.3, second gsr-q2 d=42.4"
+  },
+  {
+   "color": "#8ba728",
+   "role": "background",
+   "count": 1,
+   "contexts": [
+    "background @ .gsr-timeline-histogram__segment[data-gsr-rank=\"q3\"], .gsr-timeline-histogram__legend-swat"
+   ],
+   "reason": "nearest gsr-q2 d=34.2, second gsr-q3 d=34.3"
+  },
+  {
+   "color": "#a9770f",
+   "role": "background",
+   "count": 1,
+   "contexts": [
+    "background @ .gsr-timeline-histogram--q1 .gsr-timeline-histogram__segment[data-gsr-rank=\"q1\"]"
+   ],
+   "reason": "nearest gsr-orange d=26.3, second gsr-warning d=28.6"
+  },
+  {
+   "color": "#4f6ea8",
+   "role": "background",
+   "count": 1,
+   "contexts": [
+    "background @ .gsr-summary-footer__action--about .gsr-summary-footer__action-icon"
+   ],
+   "reason": "nearest gsr-accent d=34.2, second gsr-success d=36.9"
+  },
+  {
+   "color": "#44567d",
+   "role": "text",
+   "count": 1,
+   "contexts": [
+    "color @ .gsr-rank-badge--neutral, .badge-missing-dblp"
+   ],
+   "reason": "nearest gsr-neutral-ink d=18.9, second gsr-link d=24.7"
+  },
+  {
+   "color": "#0f1b3d",
+   "role": "background",
+   "count": 1,
+   "contexts": [
+    "background @ .gsr-badge-popover"
+   ],
+   "reason": "nearest gsr-accent-strong d=60.0, second gsr-success d=74.4"
+  },
+  {
+   "color": "#9fb7f5",
+   "role": "text",
+   "count": 1,
+   "contexts": [
+    "color @ .gsr-badge-popover__label"
+   ],
+   "reason": "nearest gsr-text-soft d=44.8, second gsr-purple d=71.6"
+  },
+  {
+   "color": "#b23a3a",
+   "role": "text",
+   "count": 1,
+   "contexts": [
+    "color @ .gsr-manual-dblp__status[data-tone=\"error\"]"
+   ],
+   "reason": "nearest gsr-danger d=33.6, second gsr-orange d=40.5"
+  },
+  {
+   "color": "#4f88f1",
+   "role": "background",
+   "count": 1,
+   "contexts": [
+    "background @ .gsr-export-panel__action-button[data-gsr-export-action=\"download-html\"]"
+   ],
+   "reason": "nearest gsr-accent d=41.4, second gsr-accent-strong d=55.3"
+  },
+  {
+   "color": "#176ca4",
+   "role": "background",
+   "count": 1,
+   "contexts": [
+    "background @ .gsr-export-panel__action-button[data-gsr-export-action=\"download-csv\"]"
+   ],
+   "reason": "nearest gsr-accent d=22.7, second gsr-accent-strong d=24.5"
+  },
+  {
+   "color": "#2f8cb9",
+   "role": "background",
+   "count": 1,
+   "contexts": [
+    "background @ .gsr-export-panel__action-button[data-gsr-export-action=\"download-csv\"]"
+   ],
+   "reason": "nearest gsr-success d=35.8, second gsr-accent d=37.9"
+  },
+  {
+   "color": "#4b86f6",
+   "role": "background",
+   "count": 1,
+   "contexts": [
+    "background @ .gsr-export-panel__action-button[data-gsr-export-action=\"full-report\"]:hover, .gsr-export-"
+   ],
+   "reason": "nearest gsr-accent d=39.1, second gsr-accent-strong d=53.4"
+  },
+  {
+   "color": "#5b93f5",
+   "role": "background",
+   "count": 1,
+   "contexts": [
+    "background @ .gsr-export-panel__action-button[data-gsr-export-action=\"download-html\"]:hover, .gsr-expor"
+   ],
+   "reason": "nearest gsr-accent d=52.2, second gsr-purple d=60.5"
+  },
+  {
+   "color": "#135f93",
+   "role": "background",
+   "count": 1,
+   "contexts": [
+    "background @ .gsr-export-panel__action-button[data-gsr-export-action=\"download-csv\"]:hover, .gsr-export"
+   ],
+   "reason": "nearest gsr-accent-strong d=20.3, second gsr-accent d=26.4"
+  },
+  {
+   "color": "#3597c5",
+   "role": "background",
+   "count": 1,
+   "contexts": [
+    "background @ .gsr-export-panel__action-button[data-gsr-export-action=\"download-csv\"]:hover, .gsr-export"
+   ],
+   "reason": "nearest gsr-success d=43.7, second gsr-accent d=45.6"
+  },
+  {
+   "color": "rgba(19,95,147,0.82)",
+   "role": "border",
+   "count": 1,
+   "contexts": [
+    "border-color @ .gsr-export-panel__action-button[data-gsr-export-action=\"download-csv\"]:hover, .gsr-export"
+   ],
+   "reason": "nearest gsr-accent-strong d=20.3, second gsr-accent d=26.4"
+  },
+  {
+   "color": "rgba(255,221,112,0.18)",
+   "role": "background",
+   "count": 1,
+   "contexts": [
+    "background @ .gsr-score-details__metric--primary"
+   ],
+   "reason": "nearest gsr-neutral d=51.0, second gsr-accent-soft d=51.1"
+  },
+  {
+   "color": "rgba(255,216,79,0.14)",
+   "role": "background",
+   "count": 1,
+   "contexts": [
+    "background @ .gsr-faculty-score-card__hero"
+   ],
+   "reason": "nearest gsr-neutral d=62.1, second gsr-warning d=62.2"
+  }
+ ]
+}

@@ -1253,6 +1253,50 @@ async function clearCachedData(userId) {
 function getSettingsRootElement() {
     return document.body || document.documentElement;
 }
+// --- Theme detection -------------------------------------------------------
+// The injected UI follows the PAGE's effective theme, not the OS theme:
+// Scholar renders light even on dark-mode systems, while auto-dark extensions
+// invert the page regardless of the OS setting. We sample the page's actual
+// background and flip the design tokens via [data-gsvr-theme="dark"].
+function parseCssRgbColor(value) {
+    const match = String(value || '').match(/rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)(?:[,\s/]+([\d.]+))?\s*\)/i);
+    if (!match) {
+        return null;
+    }
+    return {
+        r: Number(match[1]),
+        g: Number(match[2]),
+        b: Number(match[3]),
+        a: match[4] === undefined ? 1 : Number(match[4])
+    };
+}
+function detectEffectivePageTheme() {
+    try {
+        let element = document.body;
+        let background = null;
+        while (element) {
+            const parsed = parseCssRgbColor(getComputedStyle(element).backgroundColor);
+            if (parsed && parsed.a > 0.1) {
+                background = parsed;
+                break;
+            }
+            element = element.parentElement;
+        }
+        if (!background) {
+            return 'light';
+        }
+        const luma = (0.2126 * background.r + 0.7152 * background.g + 0.0722 * background.b) / 255;
+        return luma < 0.45 ? 'dark' : 'light';
+    }
+    catch {
+        return 'light';
+    }
+}
+function applyGsvrTheme() {
+    if (document.documentElement) {
+        document.documentElement.dataset.gsvrTheme = detectEffectivePageTheme();
+    }
+}
 function syncSettingsClasses() {
     const root = getSettingsRootElement();
     if (!root?.classList)
@@ -1260,6 +1304,7 @@ function syncSettingsClasses() {
     root.classList.toggle('gsr-compact-mode', currentSettings.compactMode);
     root.classList.toggle('gsr-hide-unranked', currentSettings.showUnranked === false);
     root.classList.toggle('gsr-debug-off', currentSettings.showDebugDetails === false);
+    applyGsvrTheme();
 }
 async function loadSettingsIntoState() {
     if (SETTINGS_API?.loadSettings) {
@@ -9866,8 +9911,15 @@ function createPublicationRankInfo(result) {
 }
 // Placeholder chips shown while a row's rank is still being determined, so the
 // page does not jump when the real badges land all at once after the scan.
+// Capped: thousands of simultaneously animated chips on very large profiles
+// would cost more in paint/compositor load than the affordance is worth.
+const MAX_SKELETON_RANK_BADGES = 300;
 function addSkeletonRankBadges(publicationLinkElements) {
+    let added = 0;
     for (const pubInfo of publicationLinkElements || []) {
+        if (added >= MAX_SKELETON_RANK_BADGES) {
+            break;
+        }
         const titleLinkElement = pubInfo?.rowElement?.querySelector?.('td.gsc_a_t a.gsc_a_at');
         if (!titleLinkElement || pubInfo.rowElement.querySelector('.gsr-rank-badge-inline')) {
             continue;
@@ -9876,6 +9928,7 @@ function addSkeletonRankBadges(publicationLinkElements) {
         skeleton.className = 'gsr-rank-badge gsr-rank-badge-inline gsr-rank-badge--pill gsr-rank-badge--skeleton';
         skeleton.setAttribute('aria-hidden', 'true');
         titleLinkElement.insertAdjacentElement('afterend', skeleton);
+        added++;
     }
 }
 function removeSkeletonRankBadges() {

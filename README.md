@@ -19,6 +19,14 @@ Google Scholar Venue Ranker is an open-source Chrome extension developed by [Nav
 
 ## Changelog
 
+### Unreleased (UI workstream B — design tokens and dark theme)
+
+- `Design tokens`: migrated 424 hardcoded colors in the injected Scholar UI onto 57 semantic design tokens via a property-role-aware migration (`scripts/apply_token_migration.mjs` + reviewed mapping in `scripts/data/color_token_map.json`). 137 colors stay deliberately literal: data-visualization fills, the dark tooltip, export-button gradients, and shadow tints are theme-stable by design.
+- `Dark theme for the injected UI`: full `[data-gsvr-theme="dark"]` palette. The content script samples the page's actual background luminance and flips the theme only when the page itself renders dark (auto-dark extensions, forced dark) — Scholar serves light pages on dark-mode systems, so the OS setting alone is deliberately ignored. Rank chips keep their bright identity in both themes.
+- `Contrast gate`: `node scripts/check_token_contrast.mjs` verifies 34 foreground/background token pairs against WCAG in both themes; it caught and fixed a pre-existing 4.41:1 secondary-text failure in light mode.
+- `Sidebar quartile chip fix`: summary-row Q1-Q4 chips no longer ellipsize into "Q.." (a fixed 20px box met the new badge clipping guard); chips are now sized to content and a fixture invariant asserts no ranked chip may ever clip.
+- `Skeleton perf`: placeholder chips pulse opacity (compositor-friendly) instead of animating a background shimmer, and are capped at 300 — a 700-publication profile froze the renderer under the shimmer during live extension verification.
+
 ### Unreleased (UI workstream A — inline badge system)
 
 - `Badge overflow fix`: long-reason journal badges no longer render as fixed 22px circles with text spilling over the publication title (the "N/A: Ambiguous Journal Match" artifact). Any badge carrying a reason is a pill, badges are atomic single-line chips, and the circular style relaxes into a pill if long text ever reaches it.
