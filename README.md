@@ -1,4 +1,4 @@
-![Version 2.0.3](https://img.shields.io/badge/version-2.0.3-blue.svg)
+![Version 2.1.0](https://img.shields.io/badge/version-2.1.0-blue.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 # Google Scholar Venue Ranker (GSVR)
@@ -19,14 +19,36 @@ Google Scholar Venue Ranker is an open-source Chrome extension developed by [Nav
 
 ## Changelog
 
-### Unreleased (UI workstream C — sidebar hierarchy)
+### 2.1.0
+
+Compared with `2.0.0`, `2.1.0` keeps the raw GSVR Score and report workflow introduced in 2.0, but makes the extension more accurate, smaller, easier to audit, and more resilient on large Scholar profiles.
+
+- `Versioning`: extension metadata, package metadata, README badge, and release ZIP now use `2.1.0`.
+- `Ranking accuracy`: fixes SJR journal identity collisions, adds historical CORE snapshots for `2008`, `2010`, and `2013`, expands local journal matching, folds Unicode/diacritics consistently, and avoids risky acronym/title collisions.
+- `Auditability`: adds the DBLP match trust line, manual DBLP correction path, freshness re-checks, richer evidence exports, and optional DBLP-verified first-/last-author markers.
+- `Timeline and reports`: keeps the full-timeline/last-10-years switch from the 2.0.x line and extends reports with focused CORE/SJR charts, authorship fields, and first-/last-author counts.
+- `Scholar UI polish`: hardens inline rank badges against overflow, adds compact abstain labels and scan skeletons, supports dark themed injected UI, collapses timeline charts by default, and simplifies the summary header actions.
+- `Sparse-profile view`: low-volume profiles can show rank chips over the Scholar citation graph instead of spending sidebar space on empty-looking timelines.
+- `Popup and settings`: the popup now reflects the active Scholar tab, can rescan the current profile, reads the live manifest version, and exposes the first-/last-author highlight setting.
+- `Performance and packaging`: the shipped extension drops from about `254 MB` to about `19 MB`, loads the PDF engine only when needed, removes dead scan code, replaces oversized icons, and adds CI/benchmark/size gates.
+
+Detailed `2.1.0` notes:
+
+#### 2.1.0 current additions: authorship and sparse profiles
+
+- `DBLP authorship highlights`: an opt-in setting marks DBLP-verified first-author and last-author publications with row rails, adds first/last filters to the sidebar, and keeps single-author papers out of the first/last counts.
+- `Authorship exports`: CSV, standalone HTML, and canonical report payloads now include DBLP author-position metadata, author roles, and first-/last-author publication counts.
+- `Sparse-profile citation graph chips`: profiles with a small number of ranked publications can annotate Scholar's citation graph with CORE/SJR rank chips by year; dense profiles keep the normal timeline view.
+- `Report download names`: generated reports use a sanitized profile-name plus date/time filename base for easier filing.
+
+#### 2.1.0 UI workstream C: sidebar hierarchy
 
 - `Score caption`: the GSVR Score card now states in plain English what the number is ("Sum of venue values ÷ author counts across N DBLP-verified ranked papers") so first-time readers can judge it before trusting it.
 - `Collapsible timelines`: the two timeline charts fold into a native, keyboard-accessible "Timelines" disclosure, collapsed by default (saving ~150px of sidebar height) with the open state persisted per browser.
 - `Header de-clutter`: the summary header now carries exactly three actions (Rescan, Explore Venues, Download Report). Manual-DBLP management is consolidated into the override dialog — reached from the trust line — which gains a "Use automatic matching" action shown while an override is active.
 - Live-verified in the Chrome extension on a 700-publication profile: sidebar Q1-Q4 chips render full text (the "Q.." regression is fixed), all 401 inline badges healthy with no renderer freeze, the theme detector reports light on Scholar, and force-flipping to dark swaps every themed surface (cards to the dark veil, ink to light) while rank chips keep their bright identity.
 
-### Unreleased (UI workstream B — design tokens and dark theme)
+#### 2.1.0 UI workstream B: design tokens and dark theme
 
 - `Design tokens`: migrated 424 hardcoded colors in the injected Scholar UI onto 57 semantic design tokens via a property-role-aware migration (`scripts/apply_token_migration.mjs` + reviewed mapping in `scripts/data/color_token_map.json`). 137 colors stay deliberately literal: data-visualization fills, the dark tooltip, export-button gradients, and shadow tints are theme-stable by design.
 - `Dark theme for the injected UI`: full `[data-gsvr-theme="dark"]` palette. The content script samples the page's actual background luminance and flips the theme only when the page itself renders dark (auto-dark extensions, forced dark) — Scholar serves light pages on dark-mode systems, so the OS setting alone is deliberately ignored. Rank chips keep their bright identity in both themes.
@@ -34,7 +56,7 @@ Google Scholar Venue Ranker is an open-source Chrome extension developed by [Nav
 - `Sidebar quartile chip fix`: summary-row Q1-Q4 chips no longer ellipsize into "Q.." (a fixed 20px box met the new badge clipping guard); chips are now sized to content and a fixture invariant asserts no ranked chip may ever clip.
 - `Skeleton perf`: placeholder chips pulse opacity (compositor-friendly) instead of animating a background shimmer, and are capped at 300 — a 700-publication profile froze the renderer under the shimmer during live extension verification.
 
-### Unreleased (UI workstream A — inline badge system)
+#### 2.1.0 UI workstream A: inline badge system
 
 - `Badge overflow fix`: long-reason journal badges no longer render as fixed 22px circles with text spilling over the publication title (the "N/A: Ambiguous Journal Match" artifact). Any badge carrying a reason is a pill, badges are atomic single-line chips, and the circular style relaxes into a pill if long text ever reaches it.
 - `Compact abstain chips`: abstain badges now show a short qualifier next to the title (`N/A · Ambiguous`, `N/A · Workshop`, `N/A · Abstract`, `N/A · No SJR data`; `No DBLP` for missing DBLP entries) instead of full sentences. The complete reason remains in the hover/focus popover and in the badge's `aria-label`.
@@ -42,7 +64,7 @@ Google Scholar Venue Ranker is an open-source Chrome extension developed by [Nav
 - `Scan skeletons`: while ranks are being determined, each row shows a small shimmering placeholder chip (static under `prefers-reduced-motion`), removed automatically on completion, error, or cancellation.
 - `Visual fixture harness`: `docs/ui-fixtures/badges.html` renders the real `inject.css` against replica Scholar rows for the full badge state matrix (ranked chips, all abstain qualifiers, forced-circular defense, 60-character torture case, compact mode, skeleton). Verified by rendered-geometry inspection: zero overlaps, zero multi-line badges, Q1-Q4 stay true 22x22 circles, torture case capped at exactly 200px.
 
-### Unreleased (phase 4)
+#### 2.1.0 phase 4
 
 - `DBLP match trust line`: the sidebar footer now shows the matched DBLP PID, how it was matched (automatically or set manually), and a one-click "Wrong author?" correction path into the manual override dialog. Automatic matches are re-verified after 45 days instead of being cached forever, so a wrong homonym match can no longer persist indefinitely; manual overrides never expire.
 - `Popup v2`: the toolbar popup reads its version from the manifest (the badge was hardcoded to "v2.0"), shows the live state of the active Scholar tab (author, publications ranked, GSVR score, last update, scan-in-progress), and gains a "Rescan This Profile" button.
@@ -50,14 +72,14 @@ Google Scholar Venue Ranker is an open-source Chrome extension developed by [Nav
 - `Accessibility`: rank-badge popovers are dismissible with Escape and expose `role="button"` when they open the evidence drawer; muted-text contrast raised in the popup/options palettes.
 - Deferred with rationale: the sidebar three-tier layout restructure and the injected-UI dark theme require visual verification in a live browser session; the out-of-DBLP-scope completeness category is specced in the improvement plan as the next accuracy-diagnostics item.
 
-### Unreleased (phase 3)
+#### 2.1.0 phase 3
 
 - `Package diet`: the shipped extension dropped from ~254 MB to ~19 MB. Raw SCImago CSVs no longer ship in the package (they remain in the repository to build the compact index); the runtime CSV fallback was removed and an index-load failure now reports "lookup unavailable" instead of silently returning "not found".
 - `Lazy PDF engine`: pdfmake and its embedded fonts (~2.2 MB of JavaScript) are no longer parsed on every Scholar page load; they load on demand the first time a PDF report is generated.
 - `Dead code removed`: deleted the unused legacy single-pass scan pipeline (~660 lines shipped to every user, including references to functions that no longer existed).
 - Deferred: the full `src/` + esbuild modular split of `content.js` needs interactive runtime verification in a browser session and is intentionally not part of this automated pass; the highest-value pieces (shared matcher modules, dead-code removal) landed in phases 1-3.
 
-### Unreleased (phase 2)
+#### 2.1.0 phase 2
 
 - `Local journal resolution`: greatly expanded DBLP abbreviation coverage (`Mob.`, `Sel.`, `Mach.`, `Learn.`, `Knowl.`, `Softw.`, `Eng.`, `Empir.`, and ~30 more) plus a generic ambiguous-token variant system (`computer/computing/computation(al)`, `experience/experimental`, `security/secure`, ...). A 48-name battery of real DBLP journal renderings now resolves 48/48 locally with verified identities (previously 20/40, with the rest requiring slow network lookups).
 - `Historical CORE snapshots`: bundled CORE 2013, ERA 2010, and CORE 2008 (downloaded from the CORE portal; converter in `scripts/convert_core_export.mjs`). Papers from 2008-2016 now consult era-appropriate snapshots instead of all being ranked by CORE 2014; for example SIGCOMM 2011 correctly shows ERA 2010's rank A rather than CORE 2014's A*.
@@ -68,7 +90,7 @@ Google Scholar Venue Ranker is an open-source Chrome extension developed by [Nav
 - `Real-world benchmark suite`: new `real` fixture suite (91 cases) of genuine DBLP/Scholar query strings with human-verified identities and authority-data expected values — including identity traps for previously-merged journals and acronym-collision traps. Runs in CI alongside gold/shadow via `--suite all`.
 - `Threshold tuning harness`: `npm run tune:thresholds` sweeps the publication-match similarity threshold over gold+real fixtures; current default 0.88 is measured optimal (raising it makes precision worse because abstention needs to see the runner-up candidate).
 
-### Unreleased (phase 1)
+#### 2.1.0 phase 1
 
 - `SJR identity fix`: the compact SJR index is now keyed by SCImago `sourceId` instead of normalized title. The previous normalization silently merged 2,249 distinct journals onto 1,002 shared keys (883 with conflicting quartiles) and kept the best quartile, inflating ranks (for example, `Journal of Diabetes` inherited Q1 from `Diabetes`). Distinct journals now keep their own quartile histories; title-key collisions resolve via ISSN or exact-title evidence and otherwise abstain as ambiguous.
 - `Shared journal matcher`: journal-name normalization and SJR matching moved into `GSVR/core/journal_match.js`, used identically by the content script, the Node test mirror, the SJR index generator, and the smoke test, so the four previous copies can no longer drift apart.
@@ -125,6 +147,7 @@ GSVR brings that context directly into Scholar with:
 - inline conference and journal badges beside papers
 - a score-first sidebar for quick profile assessment
 - a completeness diagnostic that separates scored publications from missing, ambiguous, unranked, or policy-excluded items
+- optional DBLP-verified first-/last-author context for profiles where author position matters
 - local venue exploration without leaving Scholar
 - explicit unranked and DBLP-missing states when GSVR abstains
 
@@ -140,6 +163,8 @@ GSVR brings that context directly into Scholar with:
 - Shows `Scoring Completeness` so users can see what share of the Scholar profile was usable for scoring.
 - Shows a compact `Venue Ranker` panel for conference and journal distribution with a modernized sidebar UI.
 - Shows focused yearly `A*/A` and `Q1` histograms in the sidebar and downloadable reports.
+- Shows optional first-/last-author row markers and sidebar filters using DBLP author order.
+- Adds rank chips over Scholar's citation graph for sparse profiles where timeline charts would be less useful.
 - Runs a fast first-pass scan, then upgrades results in the background with a deeper pass.
 - Includes a local `Venue Explorer` dialog for ad hoc CORE and SJR checks.
 - Includes a `Download Report` flow for one-page PDF summaries, full PDF audits, HTML, and CSV exports.
@@ -185,7 +210,7 @@ N_scored
   - Google Scholar profiles are user-editable.
   - DBLP entries cannot be freely added the same way, so venue metadata is more trustworthy for ranking decisions.
 - CORE is used for conference ranking.
-  - The extension bundles historical CORE datasets for `2014`, `2017`, `2018`, `2020`, `2021`, `2023`, and `2026`.
+  - The extension bundles historical CORE datasets for `2008`, `2010` (ERA 2010), `2013`, `2014`, `2017`, `2018`, `2020`, `2021`, `2023`, and `2026`.
   - The publication year determines which ranking snapshot to consult.
 - SJR is used for journal ranking.
   - The extension bundles official local SCImago CSVs for `1999` through `2024`.
@@ -207,8 +232,10 @@ N_scored
 On supported Google Scholar profile pages, GSVR injects:
 
 - inline rank chips next to publication titles
+- optional first-/last-author row rails beside DBLP-verified publications
 - a `GSVR Score` panel
 - a compact `Venue Ranker` panel with quick filters
+- sparse-profile rank chips on the Scholar citation graph
 - row highlighting for selected categories
 - links for `DBLP Profile`, `Explore Venues`, `Download Report`, `Report Issue`, and `About`
 
@@ -221,6 +248,7 @@ The extension popup exposes quick controls for:
 - `Run Automatically`
 - `Compact Mode`
 - `Show Unranked`
+- `Highlight first- and last-author publications`
 - `Default Highlight Mode`
 
 ### Full settings page
@@ -228,6 +256,7 @@ The extension popup exposes quick controls for:
 The options page adds:
 
 - `Show Debug Details`
+- `Highlight first- and last-author publications`
 - persistent highlight defaults
 - reset and save controls
 
@@ -244,7 +273,7 @@ The profile-page report workflow exports the current audit in:
 - standalone HTML
 - CSV
 
-PDF and standalone HTML reports include full-width stacked `A*/A` CORE and `Q1` journal histograms with rotated year labels, while top-line report statistics follow the active sidebar date range.
+PDF and standalone HTML reports include full-width stacked `A*/A` CORE and `Q1` journal histograms with rotated year labels, while top-line report statistics follow the active sidebar date range. CSV, HTML, and canonical report payloads also include DBLP authorship fields when author order is verified.
 
 ### About panel
 
@@ -315,6 +344,8 @@ These tests cover key ranking behavior such as:
 - venue normalization and alias cleanup
 - timeline range filtering and CORE/SJR count recomputation
 - focused `A*/A` and `Q1` histogram generation
+- DBLP author-order parsing and first-/last-author classification
+- sparse-profile citation graph rank chips
 
 ### Accuracy benchmark suite
 
