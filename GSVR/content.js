@@ -434,6 +434,7 @@ let gsrDialogLastFocusedEl = null;
 let currentRankingPacks = [...DEFAULT_RANKING_PACKS];
 let currentSummaryState = null;
 let activeDateRangeMode = TIMELINE_STATS_API?.RANGE_FULL || 'full';
+let dateRangeToggleInstanceCounter = 0;
 let currentProfileContext = {
     userId: null,
     authorName: null,
@@ -4045,9 +4046,13 @@ function createDateRangeToggle(summaryState) {
     const range = summaryState?.timeline?.range || buildTimelineViewState([], activeDateRangeMode).range;
     const currentYear = summaryState?.timeline?.currentYear || getTimelineCurrentYear();
     const last10Start = currentYear - 9;
+    const activeMode = range.mode === 'last10' ? 'last10' : 'full';
+    const toggleInstanceId = ++dateRangeToggleInstanceCounter;
+    const inputName = `gsr-date-range-toggle-${toggleInstanceId}`;
     const control = document.createElement('div');
     control.className = 'gsr-date-range-toggle';
-    control.setAttribute('role', 'group');
+    control.dataset.gsrActiveDateRangeMode = activeMode;
+    control.setAttribute('role', 'radiogroup');
     control.setAttribute('aria-label', 'Statistics date range');
     const options = [
         {
@@ -4061,19 +4066,50 @@ function createDateRangeToggle(summaryState) {
             title: `Use ${last10Start}-${currentYear} for all statistics`
         }
     ];
+    const updateToggleVisualState = (nextMode) => {
+        const normalizedMode = nextMode === 'last10' ? 'last10' : 'full';
+        control.dataset.gsrActiveDateRangeMode = normalizedMode;
+        control.querySelectorAll('.gsr-date-range-toggle__input').forEach((item) => {
+            if (item instanceof HTMLInputElement) {
+                item.checked = item.value === normalizedMode;
+            }
+        });
+        control.querySelectorAll('.gsr-date-range-toggle__label').forEach((item) => {
+            const isActive = item instanceof HTMLElement && item.dataset.gsrDateRangeMode === normalizedMode;
+            item.classList.toggle('is-active', isActive);
+        });
+    };
     for (const option of options) {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'gsr-date-range-toggle__button';
-        button.dataset.gsrDateRangeMode = option.mode;
-        button.textContent = option.label;
-        button.title = option.title;
-        const isActive = range.mode === option.mode;
-        button.classList.toggle('is-active', isActive);
-        button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-        button.addEventListener('click', () => setActiveDateRangeMode(option.mode));
-        control.appendChild(button);
+        const input = document.createElement('input');
+        input.type = 'radio';
+        input.className = 'gsr-date-range-toggle__input';
+        input.name = inputName;
+        input.id = `${inputName}-${option.mode}`;
+        input.value = option.mode;
+        input.checked = activeMode === option.mode;
+        input.addEventListener('change', () => {
+            if (!input.checked || (control.dataset.gsrActiveDateRangeMode || 'full') === option.mode) {
+                return;
+            }
+            updateToggleVisualState(option.mode);
+            window.setTimeout(() => setActiveDateRangeMode(option.mode), 180);
+        });
+        control.appendChild(input);
     }
+    for (const option of options) {
+        const label = document.createElement('label');
+        label.className = 'gsr-date-range-toggle__label';
+        label.dataset.gsrDateRangeMode = option.mode;
+        label.htmlFor = `${inputName}-${option.mode}`;
+        label.textContent = option.label;
+        label.title = option.title;
+        label.classList.toggle('is-active', activeMode === option.mode);
+        control.appendChild(label);
+    }
+    const slider = document.createElement('span');
+    slider.className = 'gsr-date-range-toggle__slider';
+    slider.setAttribute('aria-hidden', 'true');
+    control.appendChild(slider);
     return control;
 }
 function getHistogramRankOrder() {
@@ -4256,6 +4292,14 @@ function getDialogFocusableElements(container) {
 function closeDialogOverlay(overlay, panel, { restoreFocus = true } = {}) {
     overlay.classList.remove('is-open');
     panel.setAttribute('aria-hidden', 'true');
+    if (typeof overlay.__gsrOnClose === 'function') {
+        try {
+            overlay.__gsrOnClose();
+        }
+        catch (error) {
+            console.warn('GSR: dialog onClose hook failed.', error);
+        }
+    }
     if (restoreFocus && gsrDialogLastFocusedEl instanceof HTMLElement) {
         gsrDialogLastFocusedEl.focus();
     }
@@ -4271,9 +4315,12 @@ function openDialogOverlay(overlay, panel, initialFocusSelector = '.gsr-icon-but
         }
     }, 0);
 }
-function createDialogOverlay({ overlayId, panelClass, titleId, titleText, descriptionId, descriptionText }) {
+function createDialogOverlay({ overlayId, panelClass, titleId, titleText, descriptionId, descriptionText, onClose = null }) {
     const overlay = document.createElement('div');
     overlay.id = overlayId;
+    if (typeof onClose === 'function') {
+        overlay.__gsrOnClose = onClose;
+    }
     overlay.className = 'search-utility-overlay gsr-dialog-overlay';
     const panel = document.createElement('div');
     panel.className = `gsr-dialog-panel ${panelClass}`.trim();
@@ -5794,42 +5841,33 @@ function ensureSearchUtilityOverlay() {
     if (gsrSearchOverlayEl && document.body.contains(gsrSearchOverlayEl)) {
         return gsrSearchOverlayEl;
     }
-    const overlay = document.createElement('div');
-    overlay.className = 'search-utility-overlay';
-    overlay.id = 'gsr-search-utility-overlay';
-    const panel = document.createElement('div');
-    panel.className = 'gsr-search-panel';
-    panel.setAttribute('role', 'dialog');
-    panel.setAttribute('aria-modal', 'true');
-    panel.setAttribute('aria-labelledby', 'gsr-search-panel-title');
-    panel.setAttribute('aria-describedby', 'gsr-search-panel-description');
-    const header = document.createElement('div');
-    header.className = 'gsr-search-panel__header';
-    const titleGroup = document.createElement('div');
-    const title = document.createElement('h3');
-    title.id = 'gsr-search-panel-title';
-    title.textContent = 'Venue Explorer';
-    titleGroup.appendChild(title);
-    const description = document.createElement('p');
-    description.id = 'gsr-search-panel-description';
-    description.className = 'gsr-search-panel__description';
-    description.textContent = 'Search across the bundled CORE and SJR datasets, review historical snapshots, and inspect ambiguity or alias hints without leaving Google Scholar.';
-    titleGroup.appendChild(description);
-    header.appendChild(titleGroup);
-    const closeButton = document.createElement('button');
-    closeButton.type = 'button';
-    closeButton.className = 'gsr-icon-button';
-    closeButton.setAttribute('aria-label', 'Close ranking search');
-    closeButton.textContent = '×';
-    header.appendChild(closeButton);
-    panel.appendChild(header);
+    // Built on the shared dialog scaffold (header/close/Escape/backdrop/focus
+    // trap come from createDialogOverlay); only the search form is bespoke.
+    const scaffold = createDialogOverlay({
+        overlayId: 'gsr-search-utility-overlay',
+        panelClass: 'gsr-search-panel',
+        titleId: 'gsr-search-panel-title',
+        titleText: 'Venue Explorer',
+        descriptionId: 'gsr-search-panel-description',
+        descriptionText: 'Search across the bundled CORE and SJR datasets, review historical snapshots, and inspect ambiguity or alias hints without leaving Google Scholar.',
+        onClose: () => {
+            hideBadgePopover(true);
+            const input = document.getElementById('gsr-venue-search-input');
+            const year = document.getElementById('gsr-venue-search-year');
+            const resultHost = document.getElementById('gsr-venue-search-result');
+            if (input instanceof HTMLInputElement) input.value = '';
+            if (year instanceof HTMLSelectElement) year.value = '';
+            if (resultHost instanceof HTMLElement) resultHost.textContent = 'Choose a scope, enter a venue and optionally a year, then press Search.';
+        }
+    });
+    const { overlay, panel, body } = scaffold;
     const row1 = document.createElement('div');
     row1.className = 'gsr-search-row';
     const venueLabel = document.createElement('label');
     venueLabel.className = 'gsr-search-label';
     venueLabel.htmlFor = 'gsr-venue-search-input';
     venueLabel.textContent = 'Venue Name or Acronym';
-    panel.appendChild(venueLabel);
+    body.appendChild(venueLabel);
     const venueInput = document.createElement('input');
     venueInput.type = 'text';
     venueInput.placeholder = 'Venue name or acronym (e.g., SIGCOMM, TPAMI)';
@@ -5838,7 +5876,7 @@ function ensureSearchUtilityOverlay() {
     venueInput.autocomplete = 'off';
     venueInput.setAttribute('list', 'gsr-venue-datalist');
     row1.appendChild(venueInput);
-    panel.appendChild(row1);
+    body.appendChild(row1);
     const rowType = document.createElement('div');
     rowType.className = 'gsr-search-row gsr-search-type-row';
     const typeLabel = document.createElement('span');
@@ -5866,14 +5904,14 @@ function ensureSearchUtilityOverlay() {
     rowType.appendChild(mkRadio('gsr-type-auto', 'auto', 'Auto', true));
     rowType.appendChild(mkRadio('gsr-type-conference', 'conference', 'Conference', false));
     rowType.appendChild(mkRadio('gsr-type-journal', 'journal', 'Journal/Transaction', false));
-    panel.appendChild(rowType);
+    body.appendChild(rowType);
     const row2 = document.createElement('div');
     row2.className = 'gsr-search-row';
     const yearLabel = document.createElement('label');
     yearLabel.className = 'gsr-search-label';
     yearLabel.htmlFor = 'gsr-venue-search-year';
     yearLabel.textContent = 'Publication Year';
-    panel.appendChild(yearLabel);
+    body.appendChild(yearLabel);
     const yearSelect = document.createElement('select');
     yearSelect.id = 'gsr-venue-search-year';
     yearSelect.name = 'year';
@@ -5888,7 +5926,7 @@ function ensureSearchUtilityOverlay() {
         yearSelect.appendChild(opt);
     }
     row2.appendChild(yearSelect);
-    panel.appendChild(row2);
+    body.appendChild(row2);
     const actions = document.createElement('div');
     actions.className = 'gsr-search-actions';
     const clearBtn = document.createElement('button');
@@ -5899,38 +5937,19 @@ function ensureSearchUtilityOverlay() {
     searchBtn.textContent = 'Search';
     searchBtn.className = 'gsr-button gsr-button--primary';
     clearBtn.className = 'gsr-button gsr-button--ghost';
-    closeButton.classList.add('gsr-icon-button');
     actions.appendChild(clearBtn);
     actions.appendChild(searchBtn);
-    panel.appendChild(actions);
+    body.appendChild(actions);
     const result = document.createElement('div');
     result.className = 'gsr-search-result';
     result.id = 'gsr-venue-search-result';
     result.setAttribute('role', 'status');
     result.setAttribute('aria-live', 'polite');
     result.textContent = 'Choose a scope, enter a venue and optionally a year, then press Search.';
-    panel.appendChild(result);
-    const getFocusableElements = () => Array.from(panel.querySelectorAll('button, input, select, a[href], [tabindex]:not([tabindex="-1"])'))
-        .filter(el => !el.hasAttribute('disabled') && !el.getAttribute('aria-hidden'));
-    const closeOverlay = (clear = true) => {
-        overlay.classList.remove('is-open');
-        panel.setAttribute('aria-hidden', 'true');
-        hideBadgePopover(true);
-        if (clear) {
-            venueInput.value = '';
-            yearSelect.value = '';
-            result.textContent = 'Choose a scope, enter a venue and optionally a year, then press Search.';
-        }
-        if (gsrDialogLastFocusedEl instanceof HTMLElement) {
-            gsrDialogLastFocusedEl.focus();
-        }
-    };
-    overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) {
-            closeOverlay(true);
-        }
-    });
-    closeButton.addEventListener('click', () => closeOverlay(true));
+    body.appendChild(result);
+    // Backdrop click, the header close button, Escape, and the focus trap are
+    // wired by the shared scaffold; field clearing happens in onClose above.
+    const closeOverlay = () => closeDialogOverlay(overlay, panel);
     clearBtn.addEventListener('click', () => {
         venueInput.value = '';
         yearSelect.value = '';
@@ -6074,57 +6093,22 @@ function ensureSearchUtilityOverlay() {
             e.preventDefault();
             doSearch();
         }
-        if (e.key === 'Escape') {
-            e.preventDefault();
-            closeOverlay(true);
-        }
     });
-    yearSelect.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            e.preventDefault();
-            closeOverlay(true);
-        }
-    });
-    panel.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            e.preventDefault();
-            closeOverlay(true);
-            return;
-        }
-        if (e.key === 'Tab') {
-            const focusable = getFocusableElements();
-            if (focusable.length === 0)
-                return;
-            const first = focusable[0];
-            const last = focusable[focusable.length - 1];
-            if (e.shiftKey && document.activeElement === first) {
-                e.preventDefault();
-                last.focus();
-            }
-            else if (!e.shiftKey && document.activeElement === last) {
-                e.preventDefault();
-                first.focus();
-            }
-        }
-    });
-
-    panel.addEventListener('click', (e) => e.stopPropagation());
-    overlay.appendChild(panel);
-    document.body.appendChild(overlay);
     gsrSearchOverlayEl = overlay;
     return overlay;
 }
 
 function openSearchUtilityOverlay() {
     const overlay = ensureSearchUtilityOverlay();
-    gsrDialogLastFocusedEl = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    overlay.classList.add('is-open');
-    overlay.querySelector('.gsr-search-panel')?.setAttribute('aria-hidden', 'false');
+    const panel = overlay.querySelector('.gsr-search-panel');
+    if (!(panel instanceof HTMLElement)) {
+        return;
+    }
     populateVenueDatalistIfNeeded();
+    openDialogOverlay(overlay, panel, '#gsr-venue-search-input');
     setTimeout(() => {
         const input = document.getElementById('gsr-venue-search-input');
         if (input instanceof HTMLInputElement) {
-            input.focus();
             input.select();
         }
     }, 0);
@@ -6179,35 +6163,16 @@ function ensureAboutOverlay() {
     if (gsrAboutOverlayEl && document.body.contains(gsrAboutOverlayEl)) {
         return gsrAboutOverlayEl;
     }
-    const overlay = document.createElement('div');
-    overlay.className = 'search-utility-overlay';
-    overlay.id = 'gsr-about-overlay';
-    const panel = document.createElement('div');
-    panel.className = 'gsr-search-panel gsr-about-panel';
-    panel.setAttribute('role', 'dialog');
-    panel.setAttribute('aria-modal', 'true');
-    panel.setAttribute('aria-labelledby', 'gsr-about-panel-title');
-    panel.setAttribute('aria-describedby', 'gsr-about-panel-description');
-    const header = document.createElement('div');
-    header.className = 'gsr-search-panel__header';
-    const titleGroup = document.createElement('div');
-    const title = document.createElement('h3');
-    title.id = 'gsr-about-panel-title';
-    title.textContent = 'About Google Scholar Venue Ranker';
-    titleGroup.appendChild(title);
-    const description = document.createElement('p');
-    description.id = 'gsr-about-panel-description';
-    description.className = 'gsr-search-panel__description';
-    description.textContent = 'Open-source ranking logic, data sources, and editorial rules used by the extension.';
-    titleGroup.appendChild(description);
-    header.appendChild(titleGroup);
-    const closeButton = document.createElement('button');
-    closeButton.type = 'button';
-    closeButton.className = 'gsr-icon-button';
-    closeButton.setAttribute('aria-label', 'Close about panel');
-    closeButton.textContent = '×';
-    header.appendChild(closeButton);
-    panel.appendChild(header);
+    // Built on the shared dialog scaffold; only the About content is bespoke.
+    const scaffold = createDialogOverlay({
+        overlayId: 'gsr-about-overlay',
+        panelClass: 'gsr-search-panel gsr-about-panel',
+        titleId: 'gsr-about-panel-title',
+        titleText: 'About Google Scholar Venue Ranker',
+        descriptionId: 'gsr-about-panel-description',
+        descriptionText: 'Open-source ranking logic, data sources, and editorial rules used by the extension.'
+    });
+    const { overlay, panel, body } = scaffold;
     const content = document.createElement('div');
     content.className = 'gsr-about-panel__content';
     const intro = document.createElement('p');
@@ -6267,71 +6232,29 @@ function ensureAboutOverlay() {
             'Show review-needed states when the data is incomplete instead of silently hiding uncertainty.'
         ])
     ]));
-    panel.appendChild(content);
+    body.appendChild(content);
     const actions = document.createElement('div');
-    actions.className = 'gsr-search-actions';
+    actions.className = 'gsr-search-actions gsr-dialog-actions';
     const closeAction = document.createElement('button');
     closeAction.type = 'button';
     closeAction.className = 'gsr-button gsr-button--primary';
     closeAction.textContent = 'Close';
+    closeAction.addEventListener('click', () => closeDialogOverlay(overlay, panel));
     actions.appendChild(closeAction);
-    panel.appendChild(actions);
-    const getFocusableElements = () => Array.from(panel.querySelectorAll('button, input, select, a[href], [tabindex]:not([tabindex="-1"])'))
-        .filter(el => !el.hasAttribute('disabled') && !el.getAttribute('aria-hidden'));
-    const closeOverlay = () => {
-        overlay.classList.remove('is-open');
-        panel.setAttribute('aria-hidden', 'true');
-        if (gsrDialogLastFocusedEl instanceof HTMLElement) {
-            gsrDialogLastFocusedEl.focus();
-        }
-    };
-    overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) {
-            closeOverlay();
-        }
-    });
-    closeButton.addEventListener('click', closeOverlay);
-    closeAction.addEventListener('click', closeOverlay);
-    panel.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            e.preventDefault();
-            closeOverlay();
-            return;
-        }
-        if (e.key === 'Tab') {
-            const focusable = getFocusableElements();
-            if (focusable.length === 0)
-                return;
-            const first = focusable[0];
-            const last = focusable[focusable.length - 1];
-            if (e.shiftKey && document.activeElement === first) {
-                e.preventDefault();
-                last.focus();
-            }
-            else if (!e.shiftKey && document.activeElement === last) {
-                e.preventDefault();
-                first.focus();
-            }
-        }
-    });
-    panel.addEventListener('click', (e) => e.stopPropagation());
-    overlay.appendChild(panel);
-    document.body.appendChild(overlay);
+    body.appendChild(actions);
+    // Backdrop click, the header close button, Escape, and the focus trap are
+    // wired by the shared scaffold.
     gsrAboutOverlayEl = overlay;
     return overlay;
 }
 
 function openAboutOverlay() {
     const overlay = ensureAboutOverlay();
-    gsrDialogLastFocusedEl = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    overlay.classList.add('is-open');
-    overlay.querySelector('.gsr-about-panel')?.setAttribute('aria-hidden', 'false');
-    setTimeout(() => {
-        const closeButton = overlay.querySelector('.gsr-button--primary');
-        if (closeButton instanceof HTMLButtonElement) {
-            closeButton.focus();
-        }
-    }, 0);
+    const panel = overlay.querySelector('.gsr-about-panel');
+    if (!(panel instanceof HTMLElement)) {
+        return;
+    }
+    openDialogOverlay(overlay, panel, '.gsr-button--primary');
 }
 function ensureManualDblpOverrideOverlay() {
     if (gsrManualDblpOverlayEl && document.body.contains(gsrManualDblpOverlayEl)) {
@@ -7345,6 +7268,7 @@ function teardownOffProfileSurfaceUi() {
     document.getElementById(MANUAL_DBLP_OVERLAY_ID)?.remove();
     document.getElementById('gsr-search-utility-overlay')?.remove();
     document.getElementById('gsr-about-overlay')?.remove();
+    removeCitationGraphRankChips();
     document.querySelectorAll('.gsr-citation-detail-badge').forEach((el) => el.remove());
     gsrSearchOverlayEl = null;
     gsrAboutOverlayEl = null;
@@ -8046,13 +7970,6 @@ function displayFacultyScorePanel(summaryState) {
     scoreValue.textContent = Number(facultyScore.gsvrScore || 0).toFixed(4);
     hero.appendChild(scoreValue);
     panel.appendChild(hero);
-    // Plain-English caption so first-time readers know what the number IS
-    // before they decide whether to trust it.
-    const scoreCaption = document.createElement('div');
-    scoreCaption.className = 'gsr-faculty-score-card__caption';
-    const eligibleCount = Number(facultyScore.eligibleRankedPublications) || 0;
-    scoreCaption.textContent = `Sum of venue values ÷ author counts across ${eligibleCount} DBLP-verified ranked paper${eligibleCount === 1 ? '' : 's'}.`;
-    panel.appendChild(scoreCaption);
     const completeness = normalizeScoringCompleteness(facultyScore.completeness, facultyScore.diagnostics || facultyScore.coverage, facultyScore.combinedIndex || facultyScore.rawProfileScore?.scores, summaryState.publicationRanks || []);
     const completenessCard = document.createElement('div');
     completenessCard.setAttribute('role', 'button');
@@ -8117,6 +8034,7 @@ function createStatusElement(initialMessage = "Initializing...") {
     document.getElementById(FACULTY_SCORE_PANEL_ID)?.remove();
     document.getElementById(SUMMARY_PANEL_ID)?.remove();
     document.getElementById(STATUS_ELEMENT_ID)?.remove();
+    removeCitationGraphRankChips();
     const container = document.createElement('div');
     container.id = STATUS_ELEMENT_ID;
     container.className = 'gsc_rsb_s gsc_prf_pnl gsr-card gsr-status-card';
@@ -8125,6 +8043,11 @@ function createStatusElement(initialMessage = "Initializing...") {
     const spinner = document.createElement('span');
     spinner.className = 'gsr-spinner gsr-spinner--status';
     spinner.setAttribute('aria-hidden', 'true');
+    for (let index = 1; index <= 5; index += 1) {
+        const square = document.createElement('span');
+        square.className = `gsr-status-loader-square gsr-status-loader-square--${index}`;
+        spinner.appendChild(square);
+    }
     titleRow.appendChild(spinner);
     const title = document.createElement('div');
     title.className = 'gsr-card__title gsr-status-card__title-text';
@@ -8225,6 +8148,225 @@ function displayDormantStatus() {
     statusElement.appendChild(actions);
     return statusElement;
 }
+// --- Sparse-profile citation-graph chips ------------------------------------
+// Profiles with only a handful of ranked papers get per-year rank chips
+// stacked above Scholar's own citations-per-year bars (richer than the nearly
+// empty aggregate histograms). Dense profiles keep the timeline view instead.
+const CITATION_GRAPH_BADGES_ID = 'gsr-citation-graph-badges';
+const SPARSE_PROFILE_RANKED_LIMIT = 25;
+const SPARSE_CHIP_WINDOW_YEARS = 8;
+const MAX_CITATION_CHIPS_PER_YEAR = 4;
+const CITATION_CHIP_HEIGHT = 15;
+const CITATION_CHIP_GAP = 2;
+const CITATION_CHIP_BAR_GAP = 3;
+const CITATION_GRAPH_RETRY_LIMIT = 2;
+const CITATION_CHIP_EDGE_PADDING = 15;
+const CITATION_GRAPH_GUTTER_CLASS = 'gsr-citation-graph-gutter';
+function removeCitationGraphRankChips() {
+    document.getElementById(CITATION_GRAPH_BADGES_ID)?.remove();
+    document.querySelectorAll('.gsr-citation-graph--with-badges').forEach((graph) => {
+        graph.classList.remove('gsr-citation-graph--with-badges');
+        if (graph instanceof HTMLElement) {
+            graph.querySelector(`:scope > .${CITATION_GRAPH_GUTTER_CLASS}`)?.remove();
+        }
+    });
+}
+function getSparseRankChipState(summaryState) {
+    if (!TIMELINE_STATS_API?.buildSparseRankChips) {
+        return null;
+    }
+    const publications = summaryState?.allPublicationRanks || summaryState?.publicationRanks || [];
+    return TIMELINE_STATS_API.buildSparseRankChips(publications, {
+        currentYear: summaryState?.timeline?.currentYear || getTimelineCurrentYear(),
+        windowYears: SPARSE_CHIP_WINDOW_YEARS,
+        sparseLimit: SPARSE_PROFILE_RANKED_LIMIT
+    });
+}
+function findScholarCitationGraphElement() {
+    return document.getElementById('gsc_g')
+        || document.querySelector('#gsc_rsb_cit .gsc_g_hist_wrp')
+        || document.querySelector('.gsc_g_hist_wrp');
+}
+function getCitationGraphStackDepth(chipState) {
+    let maxDepth = 0;
+    const chipsByYear = chipState?.chipsByYear || {};
+    for (const chips of Object.values(chipsByYear)) {
+        if (!Array.isArray(chips) || !chips.length) {
+            continue;
+        }
+        maxDepth = Math.max(maxDepth, Math.min(chips.length, MAX_CITATION_CHIPS_PER_YEAR));
+    }
+    return maxDepth;
+}
+function getCitationChipStackHeight(chipCount) {
+    const count = Math.max(0, Math.round(Number(chipCount) || 0));
+    if (count <= 0) {
+        return 0;
+    }
+    return CITATION_CHIP_HEIGHT + ((count - 1) * (CITATION_CHIP_HEIGHT + CITATION_CHIP_GAP));
+}
+function getCitationGraphYearLayout(label, bars, graphRect) {
+    const labelRect = label.getBoundingClientRect();
+    const labelCenterX = labelRect.left - graphRect.left + (labelRect.width / 2);
+    let chipCenterX = labelCenterX;
+    let barTop = graphRect.height - labelRect.height - CITATION_CHIP_HEIGHT - 8;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    for (const bar of bars) {
+        const barRect = bar.getBoundingClientRect();
+        const barCenter = barRect.left - graphRect.left + (barRect.width / 2);
+        const distance = Math.abs(barCenter - labelCenterX);
+        if (distance < bestDistance && distance <= Math.max(12, barRect.width * 1.5)) {
+            bestDistance = distance;
+            barTop = barRect.top - graphRect.top;
+            chipCenterX = barCenter;
+        }
+    }
+    return { barTop, chipCenterX };
+}
+function reserveCitationGraphTopGutter(graph, chipState, yearLabels, bars, graphRect) {
+    if (!(graph instanceof HTMLElement)) {
+        return;
+    }
+    const stackDepth = getCitationGraphStackDepth(chipState);
+    if (stackDepth <= 0) {
+        return;
+    }
+    let gutter = 0;
+    for (const label of yearLabels) {
+        const year = parseInt(label.textContent || '', 10);
+        const chips = chipState?.chipsByYear?.[year];
+        if (!Number.isFinite(year) || !Array.isArray(chips) || !chips.length) {
+            continue;
+        }
+        const layout = getCitationGraphYearLayout(label, bars, graphRect);
+        const stackHeight = getCitationChipStackHeight(Math.min(chips.length, MAX_CITATION_CHIPS_PER_YEAR));
+        gutter = Math.max(gutter, stackHeight + CITATION_CHIP_BAR_GAP - layout.barTop);
+    }
+    gutter = Math.max(0, Math.ceil(gutter));
+    let spacer = graph.querySelector(`:scope > .${CITATION_GRAPH_GUTTER_CLASS}`);
+    if (gutter <= 0) {
+        spacer?.remove();
+        graph.classList.remove('gsr-citation-graph--with-badges');
+        return;
+    }
+    if (!(spacer instanceof HTMLElement)) {
+        spacer = document.createElement('div');
+        spacer.className = CITATION_GRAPH_GUTTER_CLASS;
+        spacer.setAttribute('aria-hidden', 'true');
+        graph.insertBefore(spacer, graph.firstChild);
+    }
+    graph.classList.add('gsr-citation-graph--with-badges');
+    spacer.style.height = `${gutter}px`;
+}
+function scheduleCitationGraphRankChips(chipState) {
+    if (!chipState?.isSparse) {
+        removeCitationGraphRankChips();
+        return;
+    }
+    const run = () => annotateScholarCitationGraph(chipState, 0);
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+        window.requestAnimationFrame(run);
+    }
+    else {
+        run();
+    }
+}
+function retryCitationGraphAnnotation(chipState, attempt) {
+    if (attempt >= CITATION_GRAPH_RETRY_LIMIT || !chipState?.isSparse) {
+        return;
+    }
+    const run = () => annotateScholarCitationGraph(chipState, attempt + 1);
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+        window.requestAnimationFrame(run);
+    }
+    else if (typeof window !== 'undefined' && typeof window.setTimeout === 'function') {
+        window.setTimeout(run, 0);
+    }
+    else {
+        run();
+    }
+}
+function annotateScholarCitationGraph(chipState, attempt = 0) {
+    removeCitationGraphRankChips();
+    if (!chipState?.isSparse) {
+        return;
+    }
+    const graph = findScholarCitationGraphElement();
+    if (!graph) {
+        retryCitationGraphAnnotation(chipState, attempt);
+        return;
+    }
+    if (getComputedStyle(graph).position === 'static') {
+        graph.style.position = 'relative';
+    }
+    const yearLabels = Array.from(graph.querySelectorAll('.gsc_g_t'));
+    if (!yearLabels.length) {
+        retryCitationGraphAnnotation(chipState, attempt);
+        return;
+    }
+    let graphRect = graph.getBoundingClientRect();
+    if (!graphRect.width || !graphRect.height) {
+        retryCitationGraphAnnotation(chipState, attempt);
+        return;
+    }
+    const bars = Array.from(graph.querySelectorAll('a.gsc_g_a, .gsc_g_a'));
+    reserveCitationGraphTopGutter(graph, chipState, yearLabels, bars, graphRect);
+    graphRect = graph.getBoundingClientRect();
+    const container = document.createElement('div');
+    container.id = CITATION_GRAPH_BADGES_ID;
+    container.className = 'gsr-citation-chips';
+    container.setAttribute('aria-hidden', 'false');
+    const chipStep = CITATION_CHIP_HEIGHT + CITATION_CHIP_GAP;
+    for (const label of yearLabels) {
+        const year = parseInt(label.textContent || '', 10);
+        const chips = chipState.chipsByYear?.[year];
+        if (!Number.isFinite(year) || !chips?.length) {
+            continue;
+        }
+        const { barTop, chipCenterX } = getCitationGraphYearLayout(label, bars, graphRect);
+        // chips[] is sorted ascending by prestige; keep the TOP of the stack
+        // (the strongest ranks) and fold the rest into a "+N" chip.
+        let visibleChips = chips;
+        let hiddenCount = 0;
+        if (chips.length > MAX_CITATION_CHIPS_PER_YEAR) {
+            hiddenCount = chips.length - (MAX_CITATION_CHIPS_PER_YEAR - 1);
+            visibleChips = chips.slice(-(MAX_CITATION_CHIPS_PER_YEAR - 1));
+        }
+        const chipEntries = [];
+        if (hiddenCount > 0) {
+            chipEntries.push({
+                text: `+${hiddenCount}`,
+                rankClass: null,
+                titleText: `${hiddenCount} more ranked paper${hiddenCount === 1 ? '' : 's'} in ${year}`
+            });
+        }
+        visibleChips.forEach((rank) => {
+            chipEntries.push({
+                text: rank,
+                rankClass: normalizeRankKey(rank),
+                titleText: `${rank} paper published in ${year}`
+            });
+        });
+        const stackTop = Math.max(0, Math.round(barTop - getCitationChipStackHeight(chipEntries.length) - CITATION_CHIP_BAR_GAP));
+        const boundedChipCenterX = Math.max(
+            CITATION_CHIP_EDGE_PADDING,
+            Math.min(graphRect.width - CITATION_CHIP_EDGE_PADDING, chipCenterX)
+        );
+        chipEntries.forEach((entry, stackIndex) => {
+            const chip = document.createElement('span');
+            chip.className = `gsr-citation-chip${entry.rankClass ? ` gsr-citation-chip--${entry.rankClass}` : ' gsr-citation-chip--more'}`;
+            chip.textContent = entry.text;
+            chip.setAttribute('title', entry.titleText);
+            chip.setAttribute('aria-label', entry.titleText);
+            chip.style.left = `${Math.round(boundedChipCenterX)}px`;
+            chip.style.top = `${stackTop + ((chipEntries.length - stackIndex - 1) * chipStep)}px`;
+            container.appendChild(chip);
+        });
+    }
+    if (container.childNodes.length) {
+        graph.appendChild(container);
+    }
+}
 function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initialCachedPubRanks, cacheTimestamp, dblpAuthorPid, scanLifecycle = null, profileContextOverrides = null) {
     document.getElementById(STATUS_ELEMENT_ID)?.remove();
     document.getElementById(SUMMARY_PANEL_ID)?.remove();
@@ -8240,11 +8382,7 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
     };
     currentSummaryState = buildSummaryState(coreRankCounts, sjrRankCounts, initialCachedPubRanks || [], cacheTimestamp, scanLifecycle);
     const countSnapshot = buildSummaryCountSnapshot(currentSummaryState);
-    const totalConferencePapers = countSnapshot.conferenceCount;
-    const totalJournalPapers = countSnapshot.journalCount;
-    const totalReviewPapers = countSnapshot.reviewCount;
     const totalRankedPapers = countSnapshot.rankedCount;
-    const totalProcessedPapers = countSnapshot.totalPapers;
     const panel = document.createElement('div');
     panel.id = SUMMARY_PANEL_ID;
     panel.className = 'gsc_rsb_s gsc_prf_pnl gsr-card gsr-summary-card';
@@ -8269,14 +8407,6 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
         titleLine.appendChild(sourceBadge);
     }
     titleGroup.appendChild(titleLine);
-    const summarySubtitle = document.createElement('span');
-    summarySubtitle.className = 'gsr-card__subtitle';
-    const activeRange = currentSummaryState.timeline?.range || { label: 'Full Timeline' };
-    const rangeLabel = activeRange.mode === 'last10' && activeRange.startYear && activeRange.endYear
-        ? `${activeRange.startYear}-${activeRange.endYear}`
-        : activeRange.label;
-    summarySubtitle.textContent = `${totalConferencePapers} CORE conference | ${totalJournalPapers} SJR journal | ${totalProcessedPapers} processed | ${rangeLabel}`;
-    titleGroup.appendChild(summarySubtitle);
     headerDiv.appendChild(titleGroup);
     headerDiv.appendChild(createDateRangeToggle(currentSummaryState));
     if (currentUserId) {
@@ -8288,14 +8418,19 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
             button.className = `gsr-summary-header__action gsr-summary-header__action--${variant}`;
             button.setAttribute('title', title);
             button.setAttribute('aria-label', ariaLabel);
-            const icon = document.createElement('span');
-            icon.className = 'gsr-summary-header__action-icon';
-            icon.setAttribute('aria-hidden', 'true');
-            icon.textContent = iconText;
+            if (iconText) {
+                const icon = document.createElement('span');
+                icon.className = 'gsr-summary-header__action-icon';
+                icon.setAttribute('aria-hidden', 'true');
+                const iconGlyph = document.createElement('span');
+                iconGlyph.className = 'gsr-summary-header__action-icon-glyph';
+                iconGlyph.textContent = iconText;
+                icon.appendChild(iconGlyph);
+                button.appendChild(icon);
+            }
             const actionLabel = document.createElement('span');
             actionLabel.className = 'gsr-summary-header__action-label';
             actionLabel.textContent = label;
-            button.appendChild(icon);
             button.appendChild(actionLabel);
             if (typeof onClick === 'function') {
                 button.addEventListener('click', onClick);
@@ -8304,7 +8439,6 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
         };
         headerActions.appendChild(createHeaderActionButton({
             label: 'Rescan',
-            iconText: '↻',
             title: 'Clear cached results and rescan this Scholar profile',
             variant: 'rescan',
             onClick: () => {
@@ -8314,14 +8448,13 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
         // NOTE: manual-DBLP management intentionally lives ONLY in the footer
         // trust line ("Change or reset"), keeping the header to three actions.
         headerActions.appendChild(createHeaderActionButton({
-            label: 'Explore Venues',
-            iconText: '⌕',
-            title: 'Open the Venue Explorer across the bundled CORE and SJR datasets',
+            label: 'Find Venues',
+            title: 'Find venues across the bundled CORE and SJR datasets',
             variant: 'explore',
             onClick: () => openSearchUtilityOverlay()
         }));
         headerActions.appendChild(createHeaderActionButton({
-            label: 'Download Report',
+            label: 'Download',
             iconText: '⇩',
             title: 'Download the current DBLP-verified venue profile report',
             variant: 'download',
@@ -8501,56 +8634,61 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
     panel.appendChild(summarySectionsContainer);
     const timelineYear = currentSummaryState.timeline?.currentYear || getTimelineCurrentYear();
     const recentFocusedHistograms = getTimelineFocusedHistograms(currentSummaryState.timeline, 'recent');
-    // Tier-3 "Explore": the tall timeline charts are secondary to the verdict
-    // (score) and distribution tiers, so they collapse by default. Native
-    // <details> keeps this keyboard-accessible for free; the open state
-    // persists per browser.
-    const EXPLORE_OPEN_STORAGE_KEY = 'gsvrExploreTimelinesOpen';
-    const exploreSection = document.createElement('details');
-    exploreSection.className = 'gsr-explore-section';
-    try {
-        exploreSection.open = window.localStorage?.getItem(EXPLORE_OPEN_STORAGE_KEY) === '1';
-    }
-    catch {
-        exploreSection.open = false;
-    }
-    exploreSection.addEventListener('toggle', () => {
+    // Sparse profiles (<25 ranked papers in the recent window) replace the
+    // timeline charts with per-year rank chips on Scholar's citation graph.
+    const citationChipState = getSparseRankChipState(currentSummaryState);
+    if (!citationChipState?.isSparse) {
+        // Tier-3 "Explore": the tall timeline charts are secondary to the verdict
+        // (score) and distribution tiers, so they collapse by default. Native
+        // <details> keeps this keyboard-accessible for free; the open state
+        // persists per browser.
+        const EXPLORE_OPEN_STORAGE_KEY = 'gsvrExploreTimelinesOpen';
+        const exploreSection = document.createElement('details');
+        exploreSection.className = 'gsr-explore-section';
         try {
-            window.localStorage?.setItem(EXPLORE_OPEN_STORAGE_KEY, exploreSection.open ? '1' : '0');
+            exploreSection.open = window.localStorage?.getItem(EXPLORE_OPEN_STORAGE_KEY) === '1';
         }
         catch {
-            // Storage may be unavailable; the toggle still works for this view.
+            exploreSection.open = false;
         }
-    });
-    const exploreSummary = document.createElement('summary');
-    exploreSummary.className = 'gsr-explore-section__summary';
-    const exploreTitle = document.createElement('span');
-    exploreTitle.className = 'gsr-explore-section__title';
-    exploreTitle.textContent = 'Timelines';
-    const exploreMeta = document.createElement('span');
-    exploreMeta.className = 'gsr-explore-section__meta';
-    exploreMeta.textContent = `A*/A and Q1 per year, ${timelineYear - 7}-${timelineYear}`;
-    const exploreChevron = document.createElement('span');
-    exploreChevron.className = 'gsr-explore-section__chevron';
-    exploreChevron.setAttribute('aria-hidden', 'true');
-    exploreChevron.textContent = '▸';
-    exploreSummary.appendChild(exploreChevron);
-    exploreSummary.appendChild(exploreTitle);
-    exploreSummary.appendChild(exploreMeta);
-    exploreSection.appendChild(exploreSummary);
-    exploreSection.appendChild(createTimelineHistogramSection(recentFocusedHistograms.topCoreHistogram || [], {
-        titleText: 'Top CORE Timeline',
-        subtitleText: `A*/A papers, recent 8 years (${timelineYear - 7}-${timelineYear})`,
-        rankOrder: getTopCoreHistogramRankOrder(),
-        variant: 'top-core'
-    }));
-    exploreSection.appendChild(createTimelineHistogramSection(recentFocusedHistograms.q1Histogram || [], {
-        titleText: 'Q1 Journal Timeline',
-        subtitleText: `Q1 papers, recent 8 years (${timelineYear - 7}-${timelineYear})`,
-        rankOrder: getQ1HistogramRankOrder(),
-        variant: 'q1'
-    }));
-    panel.appendChild(exploreSection);
+        exploreSection.addEventListener('toggle', () => {
+            try {
+                window.localStorage?.setItem(EXPLORE_OPEN_STORAGE_KEY, exploreSection.open ? '1' : '0');
+            }
+            catch {
+                // Storage may be unavailable; the toggle still works for this view.
+            }
+        });
+        const exploreSummary = document.createElement('summary');
+        exploreSummary.className = 'gsr-explore-section__summary';
+        const exploreTitle = document.createElement('span');
+        exploreTitle.className = 'gsr-explore-section__title';
+        exploreTitle.textContent = 'Timelines';
+        const exploreMeta = document.createElement('span');
+        exploreMeta.className = 'gsr-explore-section__meta';
+        exploreMeta.textContent = `A*/A and Q1 per year, ${timelineYear - 7}-${timelineYear}`;
+        const exploreChevron = document.createElement('span');
+        exploreChevron.className = 'gsr-explore-section__chevron';
+        exploreChevron.setAttribute('aria-hidden', 'true');
+        exploreChevron.textContent = '▸';
+        exploreSummary.appendChild(exploreChevron);
+        exploreSummary.appendChild(exploreTitle);
+        exploreSummary.appendChild(exploreMeta);
+        exploreSection.appendChild(exploreSummary);
+        exploreSection.appendChild(createTimelineHistogramSection(recentFocusedHistograms.topCoreHistogram || [], {
+            titleText: 'Top CORE Timeline',
+            subtitleText: `A*/A papers, recent 8 years (${timelineYear - 7}-${timelineYear})`,
+            rankOrder: getTopCoreHistogramRankOrder(),
+            variant: 'top-core'
+        }));
+        exploreSection.appendChild(createTimelineHistogramSection(recentFocusedHistograms.q1Histogram || [], {
+            titleText: 'Q1 Journal Timeline',
+            subtitleText: `Q1 papers, recent 8 years (${timelineYear - 7}-${timelineYear})`,
+            rankOrder: getQ1HistogramRankOrder(),
+            variant: 'q1'
+        }));
+        panel.appendChild(exploreSection);
+    }
     const finalFooterDiv = document.createElement('div');
     finalFooterDiv.className = 'gsr-card__footer gsr-summary-footer';
     const footerMeta = document.createElement('div');
@@ -8720,6 +8858,7 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
         activeSummaryFilter = { type: 'preset', mode: currentSettings.defaultHighlightMode };
     }
     applyActiveSummaryFilter();
+    scheduleCitationGraphRankChips(citationChipState);
 }
 // --- NEW: Function to display the specific DBLP rate limit error ---
 function displayDblpRateLimitError() {
@@ -11024,6 +11163,7 @@ function clearStaleInitializationMarkers() {
     document.getElementById(STATUS_ELEMENT_ID)?.remove();
     document.getElementById(SUMMARY_PANEL_ID)?.remove();
     document.getElementById(FACULTY_SCORE_PANEL_ID)?.remove();
+    removeCitationGraphRankChips();
     currentSummaryState = null;
 }
 function attemptPageInitialization() {

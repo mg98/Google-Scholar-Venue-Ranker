@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="../../GSVR/inject.css">
 <style>
   body { font: 13px/1.4 Arial, sans-serif; background: #fff; margin: 24px; }
-  .gsc_rsb { width: 300px; }
+  .gsc_rsb { width: 560px; }
   h2 { font-size: 13px; color: #555; }
 </style>
 </head>
@@ -14,14 +14,56 @@
   <h1 style="font-size:16px">Sidebar tier fixture (renders GSVR/inject.css verbatim)</h1>
   <div class="gsc_rsb">
 
-    <h2>Tier 1 — score card with caption</h2>
+    <h2>Tier 1 — score card</h2>
     <div class="gsc_rsb_s gsc_prf_pnl gsr-card gsr-faculty-score-card">
       <div class="gsr-card__header">
         <div class="gsr-card__title-group"><div class="gsr-card__title">GSVR Score</div></div>
         <button type="button" class="gsr-button gsr-button--secondary gsr-button--compact gsr-faculty-score-card__evidence">Evidence</button>
       </div>
       <div class="gsr-faculty-score-card__hero"><span class="gsr-faculty-score-card__value">12.3456</span></div>
-      <div id="score-caption" class="gsr-faculty-score-card__caption">Sum of venue values ÷ author counts across 87 DBLP-verified ranked papers.</div>
+    </div>
+
+    <h2>Status loader</h2>
+    <div class="gsc_rsb_s gsc_prf_pnl gsr-card gsr-status-card">
+      <div class="gsr-status-card__title-row">
+        <span class="gsr-spinner gsr-spinner--status" aria-hidden="true">
+          <span class="gsr-status-loader-square gsr-status-loader-square--1"></span>
+          <span class="gsr-status-loader-square gsr-status-loader-square--2"></span>
+          <span class="gsr-status-loader-square gsr-status-loader-square--3"></span>
+          <span class="gsr-status-loader-square gsr-status-loader-square--4"></span>
+          <span class="gsr-status-loader-square gsr-status-loader-square--5"></span>
+        </span>
+        <div class="gsr-card__title gsr-status-card__title-text">Rank Processing</div>
+      </div>
+      <div class="gsr-progress"><div class="gsr-progress-bar-inner" style="width:42%"></div></div>
+      <div class="gsr-status-text">Ranking: Processing 12 of 28 publications...</div>
+    </div>
+
+    <h2>Date range slider</h2>
+    <div class="gsc_rsb_s gsc_prf_pnl gsr-card gsr-summary-card">
+      <div id="date-range-fixture" class="gsr-date-range-toggle" data-gsr-active-date-range-mode="full" role="radiogroup" aria-label="Statistics date range">
+        <input class="gsr-date-range-toggle__input" type="radio" name="date-range-fixture" id="date-range-fixture-full" value="full" checked>
+        <input class="gsr-date-range-toggle__input" type="radio" name="date-range-fixture" id="date-range-fixture-last10" value="last10">
+        <label class="gsr-date-range-toggle__label is-active" data-gsr-date-range-mode="full" for="date-range-fixture-full">Full Timeline</label>
+        <label class="gsr-date-range-toggle__label" data-gsr-date-range-mode="last10" for="date-range-fixture-last10">Last 10 Years</label>
+        <span class="gsr-date-range-toggle__slider" aria-hidden="true"></span>
+      </div>
+    </div>
+
+    <h2>Header action buttons</h2>
+    <div class="gsc_rsb_s gsc_prf_pnl gsr-card gsr-summary-card">
+      <div class="gsr-summary-header__actions">
+        <button type="button" class="gsr-summary-header__action gsr-summary-header__action--rescan" title="Clear cached results and rescan this Scholar profile">
+          <span class="gsr-summary-header__action-label">Rescan</span>
+        </button>
+        <button type="button" class="gsr-summary-header__action gsr-summary-header__action--explore" title="Find venues across the bundled CORE and SJR datasets">
+          <span class="gsr-summary-header__action-label">Find Venues</span>
+        </button>
+        <button type="button" class="gsr-summary-header__action gsr-summary-header__action--download" title="Download the current DBLP-verified venue profile report">
+          <span class="gsr-summary-header__action-icon" aria-hidden="true"><span class="gsr-summary-header__action-icon-glyph">⇩</span></span>
+          <span class="gsr-summary-header__action-label">Download</span>
+        </button>
+      </div>
     </div>
 
     <h2>Tier 3 — collapsible timelines (default collapsed)</h2>
@@ -39,5 +81,59 @@
     </div>
 
   </div>
+
+  <h2>Sparse-profile chips over a Scholar citation-graph replica</h2>
+  <div id="gsc_g_replica" style="position:relative;width:420px;height:158px;border-bottom:1px solid #ccc">
+    <a style="position:absolute;left:40px;bottom:18px;width:18px;height:30px;background:#777" href="#"></a>
+    <a style="position:absolute;left:100px;bottom:18px;width:18px;height:70px;background:#777" href="#"></a>
+    <a style="position:absolute;left:160px;bottom:18px;width:18px;height:55px;background:#777" href="#"></a>
+    <span style="position:absolute;left:36px;bottom:0;font-size:11px;color:#777">2019</span>
+    <span style="position:absolute;left:96px;bottom:0;font-size:11px;color:#777">2022</span>
+    <span style="position:absolute;left:156px;bottom:0;font-size:11px;color:#777">2024</span>
+    <div class="gsr-citation-chips">
+      <span class="gsr-citation-chip gsr-citation-chip--c" style="left:49px;top:34px">C</span>
+      <span id="chip-q1" class="gsr-citation-chip gsr-citation-chip--q1" style="left:49px;top:8px">Q1</span>
+      <span class="gsr-citation-chip gsr-citation-chip--astar" style="left:109px;top:0">A*</span>
+      <span id="chip-more" class="gsr-citation-chip gsr-citation-chip--more" style="left:169px;top:26px">+3</span>
+      <span class="gsr-citation-chip gsr-citation-chip--a" style="left:169px;top:0">A</span>
+    </div>
+  </div>
+
+  <h2>Live Scholar chart wrapper variant</h2>
+  <div class="gsc_g_hist_wrp" style="position:relative;width:301px;height:271px;border-bottom:1px solid #ddd;overflow:visible">
+    <div class="gsr-citation-graph-gutter" style="height:65px"></div>
+    <div class="gsc_md_hist_w" style="position:relative;overflow:hidden;width:258px;height:174px;left:0;top:32px">
+      <div class="gsc_md_hist_b" style="position:relative;width:258px;height:174px">
+        <span class="gsc_g_t" style="position:absolute;left:6px;bottom:0;color:#777;font-size:11px">2019</span>
+        <span class="gsc_g_t" style="position:absolute;left:102px;bottom:0;color:#777;font-size:11px">2022</span>
+        <span class="gsc_g_t" style="position:absolute;left:166px;bottom:0;color:#777;font-size:11px">2024</span>
+        <a class="gsc_g_a" style="position:absolute;left:11px;top:107px;width:15px;height:53px;background:#777" href="#">60</a>
+        <a class="gsc_g_a" style="position:absolute;left:107px;top:9px;width:15px;height:151px;background:#777" href="#">170</a>
+        <a class="gsc_g_a" style="position:absolute;left:171px;top:4px;width:15px;height:156px;background:#777" href="#">176</a>
+      </div>
+    </div>
+    <div class="gsr-citation-chips">
+      <span class="gsr-citation-chip gsr-citation-chip--q1" style="left:20px;top:186px">Q1</span>
+      <span class="gsr-citation-chip gsr-citation-chip--astar" style="left:114px;top:88px">A*</span>
+      <span class="gsr-citation-chip gsr-citation-chip--astar" style="left:178px;top:32px">A*</span>
+      <span class="gsr-citation-chip gsr-citation-chip--a" style="left:178px;top:49px">A</span>
+      <span class="gsr-citation-chip gsr-citation-chip--b" style="left:178px;top:66px">B</span>
+      <span class="gsr-citation-chip gsr-citation-chip--b" style="left:178px;top:83px">B</span>
+    </div>
+  </div>
+  <script>
+    const fixtureToggle = document.getElementById('date-range-fixture');
+    fixtureToggle?.querySelectorAll('.gsr-date-range-toggle__input').forEach((input) => {
+      input.addEventListener('change', () => {
+        if (!input.checked) return;
+        const mode = input.value === 'last10' ? 'last10' : 'full';
+        fixtureToggle.dataset.gsrActiveDateRangeMode = mode;
+        fixtureToggle.querySelectorAll('.gsr-date-range-toggle__label').forEach((item) => {
+          const isActive = item.dataset.gsrDateRangeMode === mode;
+          item.classList.toggle('is-active', isActive);
+        });
+      });
+    });
+  </script>
 </body>
 </html>

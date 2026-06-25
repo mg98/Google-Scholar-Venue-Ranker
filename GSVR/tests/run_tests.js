@@ -412,6 +412,36 @@ function testHistoricalCoreSnapshots() {
   assert.strictEqual(sigcomm2008.rank, 'A*');
 }
 
+function testSparseRankChips() {
+  const pubs = [
+    { publicationYear: 2024, system: 'CORE', rank: 'A*' },
+    { publicationYear: 2024, system: 'CORE', rank: 'A*' },
+    { publicationYear: 2019, system: 'SJR', rank: 'Q1' },
+    { publicationYear: 2019, system: 'CORE', rank: 'C' },
+    { publicationYear: 2010, system: 'CORE', rank: 'A' },   // outside the 8y window
+    { publicationYear: 2023, system: 'CORE', rank: 'N/A' }, // unranked ignored
+    { system: 'SJR', rank: 'Q2' },                          // unknown year ignored
+  ];
+  const sparse = timelineStats.buildSparseRankChips(pubs, { currentYear: 2026 });
+  assert.strictEqual(sparse.isSparse, true);
+  assert.strictEqual(sparse.totalRanked, 4);
+  assert.strictEqual(sparse.startYear, 2019);
+  assert.strictEqual(sparse.endYear, 2026);
+  assert.deepStrictEqual(sparse.chipsByYear[2024], ['A*', 'A*']);
+  // Ascending prestige: C renders at the bottom of the stack, Q1 on top.
+  assert.deepStrictEqual(sparse.chipsByYear[2019], ['C', 'Q1']);
+
+  const dense = timelineStats.buildSparseRankChips(
+    Array.from({ length: 25 }, () => ({ publicationYear: 2024, system: 'CORE', rank: 'A' })),
+    { currentYear: 2026 }
+  );
+  assert.strictEqual(dense.isSparse, false);
+  assert.strictEqual(dense.totalRanked, 25);
+
+  // Zero ranked papers: nothing to draw, not sparse.
+  assert.strictEqual(timelineStats.buildSparseRankChips([], { currentYear: 2026 }).isSparse, false);
+}
+
 function testTitleAtSignDoesNotMakeWorkshop() {
   // A paper TITLE containing "@" (or the word "workshop") must not classify a
   // main-track paper as a workshop; only venue metadata carries that signal.
@@ -676,6 +706,13 @@ function testSummaryDistributionRenderUsesFilteredCounts() {
   assert.ok(
     source.includes("getTimelineFocusedHistograms(currentSummaryState.timeline, 'recent')"),
     'Sidebar should render focused recent histograms from currentSummaryState'
+  );
+  assert.ok(
+    source.includes('const SPARSE_PROFILE_RANKED_LIMIT = 25') &&
+    source.includes("document.querySelector('#gsc_rsb_cit .gsc_g_hist_wrp')") &&
+    source.includes('if (!citationChipState?.isSparse)') &&
+    source.includes('scheduleCitationGraphRankChips(citationChipState)'),
+    'Sparse profiles should annotate the citation graph while dense profiles keep the timeline view'
   );
 }
 
@@ -1175,6 +1212,7 @@ async function run() {
   testJournalIdentityModelRegression();
   testDiacriticFoldingInMatching();
   testHistoricalCoreSnapshots();
+  testSparseRankChips();
   testTitleAtSignDoesNotMakeWorkshop();
   testTruncatedTitleMatching();
   testAcronymTitleCrossCheck();

@@ -223,6 +223,55 @@
     };
   }
 
+  // Stacking weight for sparse-profile chips on the Scholar citation graph:
+  // chips render bottom-up in ascending weight, so the most prestigious rank
+  // ends up on top of each year's stack.
+  const SPARSE_CHIP_STACK_ORDER = Object.freeze({
+    Q4: 1, Q3: 2, C: 3, Q2: 4, B: 5, Q1: 6, A: 7, "A*": 8,
+  });
+
+  // For profiles with only a handful of ranked papers, aggregate histograms
+  // are nearly empty; per-year rank chips over Scholar's own citation chart
+  // communicate more. This computes the data for that view: which ranked
+  // papers fall inside the recent window, grouped by year.
+  function buildSparseRankChips(publications, options = {}) {
+    const currentYear = getCurrentYear(options);
+    const windowYears = Number.isFinite(options.windowYears) && options.windowYears > 0
+      ? Math.round(options.windowYears)
+      : 8;
+    const sparseLimit = Number.isFinite(options.sparseLimit) && options.sparseLimit > 0
+      ? Math.round(options.sparseLimit)
+      : 25;
+    const startYear = currentYear - windowYears + 1;
+    const chipsByYear = {};
+    let totalRanked = 0;
+
+    for (const info of Array.isArray(publications) ? publications : []) {
+      const rank = String(info?.rank || "").trim().toUpperCase();
+      if (!HISTOGRAM_RANKS.includes(rank)) continue;
+      const year = getPublicationYear(info);
+      if (year == null || year < startYear || year > currentYear) continue;
+      totalRanked += 1;
+      if (!chipsByYear[year]) chipsByYear[year] = [];
+      chipsByYear[year].push(rank);
+    }
+
+    for (const year of Object.keys(chipsByYear)) {
+      chipsByYear[year].sort(
+        (left, right) => (SPARSE_CHIP_STACK_ORDER[left] || 0) - (SPARSE_CHIP_STACK_ORDER[right] || 0)
+      );
+    }
+
+    return {
+      isSparse: totalRanked > 0 && totalRanked < sparseLimit,
+      totalRanked,
+      sparseLimit,
+      startYear,
+      endYear: currentYear,
+      chipsByYear,
+    };
+  }
+
   return {
     RANGE_FULL,
     RANGE_LAST_10_YEARS,
@@ -246,5 +295,6 @@
     buildFocusedHistogram,
     buildFocusedHistograms,
     buildTimelineStats,
+    buildSparseRankChips,
   };
 });
