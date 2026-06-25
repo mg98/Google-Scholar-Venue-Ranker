@@ -234,11 +234,13 @@ function createEmptySjrRankCounts() {
 /** array → map */
 function packRanks(arr) {
     const obj = {};
-    for (const { url, paperTitle, publicationYear, authorCount, rank, system, reason, matchConfidence, matchedVenue, venueMatchConfidence, dblpVenue, sourceYear, sourceYearFallback, decisionVersion, decisionStatus, confidence, matchedKey, matchedSourceId, dblpKey, decisionEvidence, topCandidates } of arr) {
+    for (const { url, paperTitle, publicationYear, authorCount, authors, authorship, rank, system, reason, matchConfidence, matchedVenue, venueMatchConfidence, dblpVenue, sourceYear, sourceYearFallback, decisionVersion, decisionStatus, confidence, matchedKey, matchedSourceId, dblpKey, decisionEvidence, topCandidates } of arr) {
         obj[url] = {
             paperTitle: paperTitle ?? null,
             publicationYear: (typeof publicationYear === 'number' ? publicationYear : null),
             authorCount: (typeof authorCount === 'number' ? authorCount : null),
+            authors: normalizeDblpAuthorsForPublication(authors),
+            authorship: normalizePublicationAuthorship(authorship, authorCount),
             rank,
             system,
             reason: reason ?? null,
@@ -267,6 +269,8 @@ function unpackRanks(map) {
         paperTitle: entry.paperTitle ?? "",
         publicationYear: (typeof entry.publicationYear === 'number' ? entry.publicationYear : null),
         authorCount: (typeof entry.authorCount === 'number' ? entry.authorCount : null),
+        authors: normalizeDblpAuthorsForPublication(entry.authors),
+        authorship: normalizePublicationAuthorship(entry.authorship, entry.authorCount),
         rank: entry.rank,
         system: entry.system ?? 'UNKNOWN',
         reason: entry.reason ?? null,
@@ -293,6 +297,7 @@ const SCORE_SENSITIVITY_API = (typeof window !== 'undefined' && window.GSVRScore
 const REPORT_SCHEMA_API = (typeof window !== 'undefined' && window.GSVRReportSchema) ? window.GSVRReportSchema : null;
 const TIMELINE_STATS_API = (typeof window !== 'undefined' && window.GSVRTimelineStats) ? window.GSVRTimelineStats : null;
 const JOURNAL_MATCH_API = (typeof window !== 'undefined' && window.GSVRJournalMatch) ? window.GSVRJournalMatch : null;
+const AUTHORSHIP_API = (typeof window !== 'undefined' && window.GSVRAuthorship) ? window.GSVRAuthorship : null;
 const SCORE_MODEL_VERSION = SCORE_CONFIG_API?.SCORE_MODEL_VERSION || 'gsvr-fractional-venue-v1';
 const DEFAULT_SCORE_CONFIG = SCORE_CONFIG_API?.DEFAULT_SCORE_CONFIG || null;
 const VALID_RANKS = ["A*", "A", "B", "C"];
@@ -377,7 +382,7 @@ const DECISION_STATUS = RANKING_UTILS?.DECISION_STATUS ?? {
     MISSING: 'missing'
 };
 // Cache schema retained for v2.0.3 (ranking decision pipeline metadata).
-const CACHE_VERSION = 11;
+const CACHE_VERSION = 13;
 const CACHE_PREFIX = `scholarRanker_profile_v${CACHE_VERSION}_`;
 const DBLP_PID_CACHE_KEY_PREFIX = 'scholarRanker_dblpPid_v1_';
 const MANUAL_DBLP_PID_KEY_PREFIX = 'scholarRanker_manualDblpPid_v1_';
@@ -405,7 +410,8 @@ const DEFAULT_SETTINGS = SETTINGS_API?.DEFAULT_SETTINGS ?? {
     compactMode: false,
     showUnranked: true,
     defaultHighlightMode: 'none',
-    showDebugDetails: true
+    showDebugDetails: true,
+    showAuthorshipHighlights: false
 };
 const coreDataCache = {};
 let isMainProcessing = false;
@@ -1305,7 +1311,38 @@ function syncSettingsClasses() {
     root.classList.toggle('gsr-compact-mode', currentSettings.compactMode);
     root.classList.toggle('gsr-hide-unranked', currentSettings.showUnranked === false);
     root.classList.toggle('gsr-debug-off', currentSettings.showDebugDetails === false);
+    root.classList.toggle('gsr-authorship-off', currentSettings.showAuthorshipHighlights !== true);
+    root.classList.toggle('gsr-authorship-on', currentSettings.showAuthorshipHighlights === true);
     applyGsvrTheme();
+    syncAuthorshipSettingControls();
+}
+function syncAuthorshipSettingControls() {
+    const enabled = currentSettings.showAuthorshipHighlights === true;
+    document.querySelectorAll('[data-gsr-authorship-toggle-input]').forEach((input) => {
+        if (input instanceof HTMLInputElement) {
+            input.checked = enabled;
+        }
+    });
+    document.querySelectorAll('[data-gsr-authorship-toggle-state]').forEach((stateEl) => {
+        stateEl.textContent = enabled ? 'On' : 'Off';
+    });
+}
+async function setAuthorshipHighlightsEnabled(enabled) {
+    currentSettings = { ...currentSettings, showAuthorshipHighlights: enabled === true };
+    syncSettingsClasses();
+    if (currentSettings.showAuthorshipHighlights !== true && activeSummaryFilter?.type === 'authorship') {
+        activeSummaryFilter = null;
+    }
+    if (currentSettings.showAuthorshipHighlights !== true && previewSummaryFilter?.type === 'authorship') {
+        previewSummaryFilter = null;
+    }
+    applyActiveSummaryFilter();
+    if (SETTINGS_API?.saveSettings) {
+        await SETTINGS_API.saveSettings({ showAuthorshipHighlights: currentSettings.showAuthorshipHighlights });
+    }
+    else if (chrome?.storage?.local && SETTINGS_API?.SETTINGS_KEY) {
+        await chrome.storage.local.set({ [SETTINGS_API.SETTINGS_KEY]: currentSettings });
+    }
 }
 async function loadSettingsIntoState() {
     if (SETTINGS_API?.loadSettings) {
@@ -1889,6 +1926,121 @@ function formatTimestamp(value) {
 function getTopCandidates(info) {
     return Array.isArray(info?.topCandidates) ? info.topCandidates : [];
 }
+function normalizeDblpAuthorsForPublication(authors) {
+    if (AUTHORSHIP_API?.normalizeDblpAuthors) {
+        return AUTHORSHIP_API.normalizeDblpAuthors(Array.isArray(authors) ? authors : []);
+    }
+    const list = Array.isArray(authors) ? authors : [];
+    return list.map((author, index) => ({
+        name: String(author?.name || '').replace(/\s+/g, ' ').trim() || null,
+        pid: String(author?.pid || '').trim() || null,
+        index,
+        position: index + 1,
+        authorCount: list.length || null,
+    }));
+}
+function normalizePublicationAuthorship(authorship, authorCount = null) {
+    if (AUTHORSHIP_API?.normalizeAuthorship) {
+        return AUTHORSHIP_API.normalizeAuthorship({
+            ...(authorship && typeof authorship === 'object' ? authorship : {}),
+            authorCount: authorship?.authorCount ?? authorCount ?? null,
+        });
+    }
+    const input = authorship && typeof authorship === 'object' ? authorship : {};
+    const normalizedAuthorCount = Number.isFinite(Number(input.authorCount ?? authorCount)) ? Math.round(Number(input.authorCount ?? authorCount)) : null;
+    const status = input.status === 'verified' ? 'verified' : 'unknown';
+    const roles = status === 'verified' && normalizedAuthorCount !== 1 && Array.isArray(input.roles)
+        ? Array.from(new Set(input.roles.filter((role) => role === 'first' || role === 'last')))
+        : [];
+    return {
+        status,
+        roles,
+        position: Number.isFinite(Number(input.position)) ? Math.round(Number(input.position)) : null,
+        authorCount: normalizedAuthorCount,
+        profilePid: input.profilePid || null,
+        source: 'dblp-author-order',
+        reason: input.reason || (status === 'verified' && normalizedAuthorCount === 1 ? 'single_author' : null),
+    };
+}
+function classifyDblpAuthorship(profilePid, authors, authorCount = null) {
+    if (AUTHORSHIP_API?.classifyAuthorPosition) {
+        return AUTHORSHIP_API.classifyAuthorPosition({ profilePid, authors, authorCount });
+    }
+    return normalizePublicationAuthorship(null, authorCount);
+}
+function getAuthorshipRoles(info) {
+    const authorship = normalizePublicationAuthorship(info?.authorship, info?.authorCount ?? null);
+    if (authorship.authorCount === 1) {
+        return [];
+    }
+    return Array.isArray(authorship.roles) ? authorship.roles : [];
+}
+function hasAuthorshipRole(info, role) {
+    return getAuthorshipRoles(info).includes(role);
+}
+function buildAuthorshipCounts(publicationRanks) {
+    const counts = { first: 0, last: 0 };
+    for (const info of publicationRanks || []) {
+        if (hasAuthorshipRole(info, 'first')) {
+            counts.first += 1;
+        }
+        if (hasAuthorshipRole(info, 'last')) {
+            counts.last += 1;
+        }
+    }
+    return counts;
+}
+function formatAuthorshipLabel(authorship) {
+    const normalized = normalizePublicationAuthorship(authorship);
+    if (normalized.status !== 'verified' || normalized.authorCount === 1) {
+        return '';
+    }
+    const roles = normalized.roles || [];
+    if (roles.includes('first')) {
+        return '1st';
+    }
+    if (roles.includes('last')) {
+        return 'Last';
+    }
+    return '';
+}
+function formatAuthorshipRailLabel(authorship) {
+    const normalized = normalizePublicationAuthorship(authorship);
+    if (normalized.status !== 'verified' || normalized.authorCount === 1) {
+        return '';
+    }
+    const roles = normalized.roles || [];
+    if (roles.includes('first')) {
+        return 'First';
+    }
+    if (roles.includes('last')) {
+        return 'Last';
+    }
+    return '';
+}
+function getAuthorshipRailRoleClass(authorship) {
+    const normalized = normalizePublicationAuthorship(authorship);
+    if (normalized.authorCount === 1) {
+        return 'unknown';
+    }
+    const roles = normalized.roles || [];
+    if (roles.includes('first')) {
+        return 'first';
+    }
+    if (roles.includes('last')) {
+        return 'last';
+    }
+    return 'unknown';
+}
+function formatAuthorshipSummary(authorship) {
+    const normalized = normalizePublicationAuthorship(authorship);
+    if (normalized.status !== 'verified' || !normalized.position || !normalized.authorCount) {
+        return 'DBLP author position unavailable';
+    }
+    const label = formatAuthorshipRailLabel(normalized) || formatAuthorshipLabel(normalized);
+    const roleSuffix = label ? ` · ${label}` : '';
+    return `DBLP position ${normalized.position} of ${normalized.authorCount}${roleSuffix}`;
+}
 function buildEvidenceItems(info) {
     const items = [];
     for (const token of getDecisionEvidenceTokens(info)) {
@@ -2253,6 +2405,7 @@ function buildSummaryState(coreRankCounts, sjrRankCounts, publicationRanks, cach
     const effectiveSjrRankCounts = timeline.sjrRankCounts || sjrRankCounts || createEmptySjrRankCounts();
     const reviewItems = filteredPublicationRanks.filter((info) => !isRankedResultInfo(info));
     const venueProfileIndex = buildFacultyScoreState(filteredPublicationRanks);
+    const authorshipCounts = buildAuthorshipCounts(filteredPublicationRanks);
     return {
         coreRankCounts: effectiveCoreRankCounts,
         sjrRankCounts: effectiveSjrRankCounts,
@@ -2262,6 +2415,7 @@ function buildSummaryState(coreRankCounts, sjrRankCounts, publicationRanks, cach
         allPublicationRanks,
         cacheTimestamp: cacheTimestamp ?? null,
         reviewItems,
+        authorshipCounts,
         insights: buildSummaryInsights(effectiveCoreRankCounts, effectiveSjrRankCounts, filteredPublicationRanks),
         timeline,
         dateRangeMode: timeline.rangeMode || activeDateRangeMode,
@@ -2298,6 +2452,7 @@ function buildExportRows(summaryState) {
             : null;
         const score = scored?.score || {};
         const ranking = scored?.ranking || {};
+        const authorship = normalizePublicationAuthorship(info?.authorship, score.authorCount ?? info?.authorCount ?? null);
         return {
             title: getPaperTitle(info),
             year: getPublicationYear(info),
@@ -2307,6 +2462,10 @@ function buildExportRows(summaryState) {
             rank: score.rank || ranking.rank || info?.rank || 'N/A',
             rankingSnapshotYear: score.rankingSnapshotYear ?? ranking.rankingSnapshotYear ?? info?.sourceYear ?? '',
             authorCount: score.authorCount ?? '',
+            authorshipStatus: authorship.status || 'unknown',
+            authorPosition: authorship.position ?? '',
+            authorRoles: (authorship.roles || []).join('+'),
+            authorshipSource: authorship.source || '',
             venueValue: Number.isFinite(score.venueValue) ? Number(score.venueValue.toFixed(4)) : '',
             fractionalCredit: Number.isFinite(score.fractionalCredit) ? Number(score.fractionalCredit.toFixed(10)) : '',
             scoreContribution: Number.isFinite(score.contribution) ? Number(score.contribution.toFixed(10)) : 0,
@@ -2332,7 +2491,7 @@ function csvEscape(value) {
 }
 function buildCsvExport(summaryState) {
     const rows = buildExportRows(summaryState);
-    const headers = ['title', 'year', 'dblpKey', 'publicationType', 'rankSource', 'rank', 'rankingSnapshotYear', 'authorCount', 'venueValue', 'fractionalCredit', 'scoreContribution', 'scoreEligible', 'exclusionReason'];
+    const headers = ['title', 'year', 'dblpKey', 'publicationType', 'rankSource', 'rank', 'rankingSnapshotYear', 'authorCount', 'authorshipStatus', 'authorPosition', 'authorRoles', 'authorshipSource', 'venueValue', 'fractionalCredit', 'scoreContribution', 'scoreEligible', 'exclusionReason'];
     const lines = [headers.join(',')];
     for (const row of rows) {
         lines.push(headers.map((header) => csvEscape(row[header])).join(','));
@@ -2369,6 +2528,7 @@ function buildCanonicalProfileReport(summaryState) {
         const scored = scoredPublications[index] || (SCORE_MODEL_API?.computePublicationScore
             ? SCORE_MODEL_API.computePublicationScore(info, DEFAULT_SCORE_CONFIG || undefined)
             : null);
+        const authorship = normalizePublicationAuthorship(info?.authorship, scored?.score?.authorCount ?? info?.authorCount ?? null);
         const payload = {
             scholar: {
                 title: getPaperTitle(info),
@@ -2390,6 +2550,7 @@ function buildCanonicalProfileReport(summaryState) {
                 authorCount: info?.authorCount ?? null,
                 authors: Array.isArray(info?.authors) ? info.authors : [],
             },
+            authorship,
             match: {
                 status: info?.decisionStatus || null,
                 probability: scored?.match?.probability ?? info?.matchConfidence ?? info?.confidence ?? null,
@@ -2502,11 +2663,11 @@ function buildMarkdownExport(summaryState) {
         `- Fractional Publication Weight: ${Number(report.scores?.fractionalPublicationWeight || 0).toFixed(4)}`,
         `- Eligible Ranked Publications: ${Number(report.scores?.eligibleRankedPublications || 0)}`,
         '',
-        '| Title | Year | Source | Rank | Score Eligible | Exclusion Reason | Contribution |',
-        '| --- | --- | --- | --- | --- | --- | --- |',
+        '| Title | Year | Source | Rank | Authorship | Position | Score Eligible | Exclusion Reason | Contribution |',
+        '| --- | --- | --- | --- | --- | --- | --- | --- | --- |',
     ];
     for (const row of rows) {
-        lines.push(`| ${String(row.title || '').replace(/\|/g, '\\|')} | ${row.year || ''} | ${row.rankSource} | ${row.rank} | ${row.scoreEligible} | ${String(row.exclusionReason || '').replace(/\|/g, '\\|')} | ${row.scoreContribution} |`);
+        lines.push(`| ${String(row.title || '').replace(/\|/g, '\\|')} | ${row.year || ''} | ${row.rankSource} | ${row.rank} | ${row.authorRoles || ''} | ${row.authorPosition || ''} | ${row.scoreEligible} | ${String(row.exclusionReason || '').replace(/\|/g, '\\|')} | ${row.scoreContribution} |`);
     }
     return lines.join('\n');
 }
@@ -2532,6 +2693,7 @@ function buildDownloadReportData(summaryState) {
             totalPapers: countSnapshot.totalPapers || rows.length,
             rankedCount: countSnapshot.rankedCount,
             reviewCount: countSnapshot.reviewCount,
+            authorship: { ...(summaryState?.authorshipCounts || buildAuthorshipCounts(summaryState?.publicationRanks || [])) },
             diagnostics: canonicalReport.diagnostics || {},
             completeness: canonicalReport.completeness || {},
             byReasonCode: canonicalReport.diagnostics?.byReasonCode || {}
@@ -2584,6 +2746,10 @@ function buildHtmlReport(summaryState) {
     const tierRows = ['A*', 'A', 'B', 'C', 'Q1', 'Q2', 'Q3', 'Q4']
         .map((rank) => `<tr><th>${rank}</th><td>${Number(report.score.tierCredits?.[rank] || 0).toFixed(2)}</td></tr>`)
         .join('');
+    const authorshipRows = [
+        `<tr><th>First-author publications</th><td>${Number(report.counts.authorship?.first || 0)}</td></tr>`,
+        `<tr><th>Last-author publications</th><td>${Number(report.counts.authorship?.last || 0)}</td></tr>`
+    ].join('');
     const distributionRows = [
         ...['A*', 'A', 'B', 'C'].map((rank) => `<tr><th>Conference ${rank}</th><td>${Number(report.counts.conferences?.[rank] || 0)}</td></tr>`),
         ...['Q1', 'Q2', 'Q3', 'Q4'].map((rank) => `<tr><th>Journal ${rank}</th><td>${Number(report.counts.journals?.[rank] || 0)}</td></tr>`),
@@ -2599,6 +2765,8 @@ function buildHtmlReport(summaryState) {
         <td>${escapeHtml(row.exclusionReason || '')}</td>
         <td>${escapeHtml(row.matchedVenue || row.dblpVenue || '')}</td>
         <td>${escapeHtml(row.authorCount || '')}</td>
+        <td>${escapeHtml(row.authorRoles || '')}</td>
+        <td>${escapeHtml(row.authorPosition || '')}</td>
         <td>${escapeHtml(row.venueValue || '')}</td>
         <td>${escapeHtml(row.fractionalCredit || '')}</td>
         <td>${escapeHtml(row.scoreContribution ?? '')}</td>
@@ -2612,6 +2780,8 @@ function buildHtmlReport(summaryState) {
         <td>${escapeHtml(row.rankingSnapshotYear || '')}</td>
         <td>${escapeHtml(row.confidence || '')}</td>
         <td>${escapeHtml(row.authorCount || '')}</td>
+        <td>${escapeHtml(row.authorRoles || '')}</td>
+        <td>${escapeHtml(row.authorPosition || '')}</td>
         <td>${escapeHtml(row.venueValue || '')}</td>
         <td>${escapeHtml(row.fractionalCredit || '')}</td>
         <td>${escapeHtml(row.scoreContribution ?? '')}</td>
@@ -2658,7 +2828,9 @@ function buildHtmlReport(summaryState) {
     .hero{padding:18px 20px;border:1px solid #c9d7f2;border-radius:16px;background:linear-gradient(135deg,#eef4ff,#fff8e6);margin-bottom:22px}
     .hero-score{font-size:44px;font-weight:800;line-height:1;margin-top:8px}
     .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:20px 0}
+    .panel-stack{display:flex;flex-direction:column;gap:16px}
     .panel{border:1px solid #d8e2f5;border-radius:14px;padding:14px 16px}
+    .grid>.panel,.panel-stack>.panel{margin-top:0}
     .timeline-grid{display:grid;grid-template-columns:1fr;gap:18px}
     .timeline-panel{break-inside:avoid;page-break-inside:avoid;border:1px solid #d8e2f5;border-radius:16px;padding:16px 18px;background:linear-gradient(180deg,#ffffff,#f8fbff);box-shadow:0 12px 28px rgba(23,49,95,.07)}
     .timeline-panel h3{font-size:18px;margin-bottom:8px}
@@ -2694,10 +2866,17 @@ function buildHtmlReport(summaryState) {
       <h2>Profile Summary</h2>
       <table><tbody>${summaryRows}</tbody></table>
     </section>
-    <section class="panel">
-      <h2>Fractional Venue Contribution Breakdown</h2>
-      <table><tbody>${tierRows}</tbody></table>
-    </section>
+    <div class="panel-stack">
+      <section class="panel">
+        <h2>Fractional Venue Contribution Breakdown</h2>
+        <table><tbody>${tierRows}</tbody></table>
+      </section>
+      <section class="panel">
+        <h2>First/Last Author Publications</h2>
+        <table><tbody>${authorshipRows}</tbody></table>
+        <p class="small">DBLP author order only; single-author papers are not counted here.</p>
+      </section>
+    </div>
   </div>
   <section>
     <h2>Rank Distribution</h2>
@@ -2721,14 +2900,14 @@ function buildHtmlReport(summaryState) {
   <section>
     <h2>Full Audit</h2>
     <table>
-      <thead><tr><th>Title</th><th>Year</th><th>Source</th><th>Rank</th><th>Exclusion Reason</th><th>Venue</th><th>Authors</th><th>Venue Value</th><th>Fractional Credit</th><th>Contribution</th></tr></thead>
+      <thead><tr><th>Title</th><th>Year</th><th>Source</th><th>Rank</th><th>Exclusion Reason</th><th>Venue</th><th>Authors</th><th>Authorship</th><th>Position</th><th>Venue Value</th><th>Fractional Credit</th><th>Contribution</th></tr></thead>
       <tbody>${auditRows}</tbody>
     </table>
   </section>
   <section>
     <h2>Evidence Appendix</h2>
     <table>
-      <thead><tr><th>Title</th><th>Status</th><th>Matched Venue</th><th>DBLP Key</th><th>Ranking Snapshot Year</th><th>Confidence</th><th>Authors</th><th>Venue Value</th><th>Fractional Credit</th><th>Contribution</th><th>Decision Evidence</th></tr></thead>
+      <thead><tr><th>Title</th><th>Status</th><th>Matched Venue</th><th>DBLP Key</th><th>Ranking Snapshot Year</th><th>Confidence</th><th>Authors</th><th>Authorship</th><th>Position</th><th>Venue Value</th><th>Fractional Credit</th><th>Contribution</th><th>Decision Evidence</th></tr></thead>
       <tbody>${evidenceRows}</tbody>
     </table>
   </section>
@@ -2868,6 +3047,10 @@ function buildPdfReportDefinition(summaryState, reportVariant = 'full') {
         ['Ranked Total', report.counts.rankedCount],
         ['Unranked', report.counts.reviewCount]
     ];
+    const authorshipPositionRows = [
+        ['First-author publications', Number(report.counts.authorship?.first || 0)],
+        ['Last-author publications', Number(report.counts.authorship?.last || 0)]
+    ];
     function createKeyValueRows(rows) {
         return rows.map(([label, value]) => [
             { text: String(label), style: 'tableKey' },
@@ -2879,6 +3062,24 @@ function buildPdfReportDefinition(summaryState, reportVariant = 'full') {
             { text: String(label), style: 'summaryTableKey' },
             { text: String(value), style: 'summaryTableValue', alignment: 'right' }
         ]);
+    }
+    function createAuthorshipPositionBody(compact = false) {
+        return {
+            stack: [
+                {
+                    table: {
+                        widths: ['*', 'auto'],
+                        body: compact ? createSummaryKeyValueRows(authorshipPositionRows) : createKeyValueRows(authorshipPositionRows)
+                    },
+                    layout: compact ? summaryCompactTableLayout : compactTableLayout
+                },
+                {
+                    text: 'DBLP author order only; single-author papers are not counted here.',
+                    style: compact ? 'summaryLegendTight' : 'metricNote',
+                    margin: [0, compact ? 6 : 8, 0, 0]
+                }
+            ]
+        };
     }
     function wrapCard(title, subtitle, bodyNode) {
         const cardStack = [
@@ -3294,43 +3495,57 @@ function buildPdfReportDefinition(summaryState, reportVariant = 'full') {
         },
         {
             columns: [
-                createSummaryCard('Venue Distribution', {
+                {
+                    width: '*',
                     stack: [
-                        { text: 'Conference', style: 'summarySubsectionTitle', margin: [0, 0, 0, 5] },
+                        createSummaryCard('Venue Distribution', {
+                            stack: [
+                                { text: 'Conference', style: 'summarySubsectionTitle', margin: [0, 0, 0, 5] },
+                                {
+                                    table: {
+                                        widths: ['*', 'auto'],
+                                        body: createSummaryKeyValueRows(conferenceDistributionRows)
+                                    },
+                                    layout: summaryCompactTableLayout,
+                                    margin: [0, 0, 0, 8]
+                                },
+                                { text: 'Journal', style: 'summarySubsectionTitle', margin: [0, 0, 0, 5] },
+                                {
+                                    table: {
+                                        widths: ['*', 'auto'],
+                                        body: createSummaryKeyValueRows(journalDistributionRows)
+                                    },
+                                    layout: summaryCompactTableLayout
+                                }
+                            ]
+                        })
+                    ]
+                },
+                {
+                    width: '*',
+                    stack: [
+                        createSummaryCard('Score Breakdown', {
+                            stack: [
+                                {
+                                    columns: ['A*', 'A', 'B', 'C'].map((rank) => createSummaryBreakdownTile(rank, report.score.tierCredits?.[rank] || 0)),
+                                    columnGap: 6,
+                                    margin: [0, 0, 0, 6]
+                                },
+                                {
+                                    columns: ['Q1', 'Q2', 'Q3', 'Q4'].map((rank) => createSummaryBreakdownTile(rank, report.score.tierCredits?.[rank] || 0)),
+                                    columnGap: 6,
+                                    margin: [0, 0, 0, 6]
+                                },
+                                { text: 'Contribution is venue value divided by DBLP author count.', style: 'summaryLegend', margin: [0, 0, 0, 3] },
+                                { text: `Venue values: A*=${VENUE_PROFILE_INDEX_WEIGHTS['A*'].toFixed(2)} • A=${VENUE_PROFILE_INDEX_WEIGHTS.A.toFixed(2)} • B=${VENUE_PROFILE_INDEX_WEIGHTS.B.toFixed(2)} • C=${VENUE_PROFILE_INDEX_WEIGHTS.C.toFixed(2)} • Q1=${VENUE_PROFILE_INDEX_WEIGHTS.Q1.toFixed(2)} • Q2=${VENUE_PROFILE_INDEX_WEIGHTS.Q2.toFixed(2)} • Q3=${VENUE_PROFILE_INDEX_WEIGHTS.Q3.toFixed(2)} • Q4=${VENUE_PROFILE_INDEX_WEIGHTS.Q4.toFixed(2)}`, style: 'summaryLegendTight' }
+                            ]
+                        }),
                         {
-                            table: {
-                                widths: ['*', 'auto'],
-                                body: createSummaryKeyValueRows(conferenceDistributionRows)
-                            },
-                            layout: summaryCompactTableLayout,
-                            margin: [0, 0, 0, 8]
-                        },
-                        { text: 'Journal', style: 'summarySubsectionTitle', margin: [0, 0, 0, 5] },
-                        {
-                            table: {
-                                widths: ['*', 'auto'],
-                                body: createSummaryKeyValueRows(journalDistributionRows)
-                            },
-                            layout: summaryCompactTableLayout
+                            ...createSummaryCard('First/Last Author Publications', createAuthorshipPositionBody(true)),
+                            margin: [0, 10, 0, 0]
                         }
                     ]
-                }),
-                createSummaryCard('Score Breakdown', {
-                    stack: [
-                        {
-                            columns: ['A*', 'A', 'B', 'C'].map((rank) => createSummaryBreakdownTile(rank, report.score.tierCredits?.[rank] || 0)),
-                            columnGap: 6,
-                            margin: [0, 0, 0, 6]
-                        },
-                        {
-                            columns: ['Q1', 'Q2', 'Q3', 'Q4'].map((rank) => createSummaryBreakdownTile(rank, report.score.tierCredits?.[rank] || 0)),
-                            columnGap: 6,
-                            margin: [0, 0, 0, 6]
-                        },
-                    { text: 'Contribution is venue value divided by DBLP author count.', style: 'summaryLegend', margin: [0, 0, 0, 3] },
-                    { text: `Venue values: A*=${VENUE_PROFILE_INDEX_WEIGHTS['A*'].toFixed(2)} • A=${VENUE_PROFILE_INDEX_WEIGHTS.A.toFixed(2)} • B=${VENUE_PROFILE_INDEX_WEIGHTS.B.toFixed(2)} • C=${VENUE_PROFILE_INDEX_WEIGHTS.C.toFixed(2)} • Q1=${VENUE_PROFILE_INDEX_WEIGHTS.Q1.toFixed(2)} • Q2=${VENUE_PROFILE_INDEX_WEIGHTS.Q2.toFixed(2)} • Q3=${VENUE_PROFILE_INDEX_WEIGHTS.Q3.toFixed(2)} • Q4=${VENUE_PROFILE_INDEX_WEIGHTS.Q4.toFixed(2)}`, style: 'summaryLegendTight' }
-                    ]
-                })
+                }
             ],
             columnGap: 10,
             margin: [0, 0, 0, 10]
@@ -3353,6 +3568,8 @@ function buildPdfReportDefinition(summaryState, reportVariant = 'full') {
             { text: 'Exclusion Reason', style: 'tableHeader' },
             { text: 'Venue', style: 'tableHeader' },
             { text: 'Authors', style: 'tableHeader', alignment: 'center' },
+            { text: 'Authorship', style: 'tableHeader', alignment: 'center' },
+            { text: 'Pos.', style: 'tableHeader', alignment: 'center' },
             { text: 'Venue Value', style: 'tableHeader', alignment: 'center' },
             { text: 'Contribution', style: 'tableHeader', alignment: 'center' }
         ];
@@ -3367,6 +3584,8 @@ function buildPdfReportDefinition(summaryState, reportVariant = 'full') {
                 { text: row.exclusionReason || '', style: 'tableCell', fillColor },
                 { text: row.matchedVenue || row.dblpVenue || '', style: 'tableCell', fillColor },
                 { text: row.authorCount == null ? '' : String(row.authorCount), style: 'tableCell', fillColor, alignment: 'center' },
+                { text: row.authorRoles || '', style: 'tableCell', fillColor, alignment: 'center' },
+                { text: row.authorPosition == null ? '' : String(row.authorPosition), style: 'tableCell', fillColor, alignment: 'center' },
                 { text: row.venueValue == null ? '' : String(row.venueValue), style: 'tableCell', fillColor, alignment: 'center' },
                 { text: row.scoreContribution == null ? '' : String(row.scoreContribution), style: 'tableCell', fillColor, alignment: 'center' }
             ]);
@@ -3382,6 +3601,8 @@ function buildPdfReportDefinition(summaryState, reportVariant = 'full') {
             { text: 'Ranking Snapshot Year', style: 'tableHeader', alignment: 'center' },
             { text: 'Confidence', style: 'tableHeader', alignment: 'center' },
             { text: 'Authors', style: 'tableHeader', alignment: 'center' },
+            { text: 'Authorship', style: 'tableHeader', alignment: 'center' },
+            { text: 'Pos.', style: 'tableHeader', alignment: 'center' },
             { text: 'Venue Value', style: 'tableHeader', alignment: 'center' },
             { text: 'Contribution', style: 'tableHeader', alignment: 'center' },
             { text: 'Decision Evidence', style: 'tableHeader' }
@@ -3397,6 +3618,8 @@ function buildPdfReportDefinition(summaryState, reportVariant = 'full') {
                 { text: row.rankingSnapshotYear == null ? '' : String(row.rankingSnapshotYear), style: 'tableCell', fillColor, alignment: 'center' },
                 { text: row.confidence == null ? '' : String(row.confidence), style: 'tableCell', fillColor, alignment: 'center' },
                 { text: row.authorCount == null ? '' : String(row.authorCount), style: 'tableCell', fillColor, alignment: 'center' },
+                { text: row.authorRoles || '', style: 'tableCell', fillColor, alignment: 'center' },
+                { text: row.authorPosition == null ? '' : String(row.authorPosition), style: 'tableCell', fillColor, alignment: 'center' },
                 { text: row.venueValue == null ? '' : String(row.venueValue), style: 'tableCell', fillColor, alignment: 'center' },
                 { text: row.scoreContribution == null ? '' : String(row.scoreContribution), style: 'tableCell', fillColor, alignment: 'center' },
                 { text: row.decisionEvidence || '', style: 'tableCell', fillColor }
@@ -3542,6 +3765,7 @@ function buildPdfReportDefinition(summaryState, reportVariant = 'full') {
                 }
             ]
         }),
+        wrapCard('First/Last Author Publications', 'DBLP author-order summary for the verified profile PID.', createAuthorshipPositionBody(false)),
         {
             margin: [0, 16, 0, 0],
             stack: [
@@ -3569,7 +3793,7 @@ function buildPdfReportDefinition(summaryState, reportVariant = 'full') {
                 {
                     table: {
                         headerRows: 1,
-                        widths: ['*', 36, 48, 38, 74, 112, 42, 42, 44],
+                        widths: ['*', 34, 44, 34, 66, 96, 34, 50, 28, 40, 42],
                         body: createAuditBody()
                     },
                     layout: dataTableLayout,
@@ -3585,7 +3809,7 @@ function buildPdfReportDefinition(summaryState, reportVariant = 'full') {
                 {
                     table: {
                         headerRows: 1,
-                        widths: ['*', 54, 92, 80, 48, 48, 42, 42, 44, '*'],
+                        widths: ['*', 48, 82, 72, 44, 42, 32, 48, 28, 38, 42, '*'],
                         body: createEvidenceBody()
                     },
                     layout: dataTableLayout,
@@ -3829,6 +4053,7 @@ function buildReportPayload(info) {
             publicationYear: getPublicationYear(info),
             dblpKey: info.dblpKey || null,
             dblpUrl: getDblpEntryUrl(info),
+            authorship: normalizePublicationAuthorship(info.authorship, info.authorCount ?? null),
         } : null,
         decision: info ? {
             system: info.system || 'UNKNOWN',
@@ -3852,13 +4077,34 @@ function getCurrentSummaryFilenameBase() {
     const surfacePart = sanitizeFilenamePart(currentProfileContext.surfaceMode || 'profile');
     return `${authorPart}-${surfacePart}`;
 }
-function getCurrentReportDownloadFilenameBase() {
-    const authorName = currentSummaryState?.context?.authorName || currentProfileContext.authorName || currentSummaryState?.context?.userId || currentProfileContext.userId || 'profile';
-    const fallback = String(authorName || 'profile').trim();
-    return fallback
+function padFilenameDatePart(value) {
+    return String(value).padStart(2, '0');
+}
+function formatFilenameTimestamp(date = new Date()) {
+    const safeDate = date instanceof Date && Number.isFinite(date.getTime()) ? date : new Date();
+    const datePart = [
+        safeDate.getFullYear(),
+        padFilenameDatePart(safeDate.getMonth() + 1),
+        padFilenameDatePart(safeDate.getDate())
+    ].join('-');
+    const timePart = [
+        padFilenameDatePart(safeDate.getHours()),
+        padFilenameDatePart(safeDate.getMinutes()),
+        padFilenameDatePart(safeDate.getSeconds())
+    ].join('-');
+    return { datePart, timePart };
+}
+function sanitizeReportFilenameName(value) {
+    return String(value || 'profile')
         .replace(/[<>:"/\\|?*\u0000-\u001f]+/g, ' ')
         .replace(/\s+/g, ' ')
         .trim() || 'profile';
+}
+function getCurrentReportDownloadFilenameBase() {
+    const authorName = currentSummaryState?.context?.authorName || currentProfileContext.authorName || currentSummaryState?.context?.userId || currentProfileContext.userId || 'profile';
+    const fullName = sanitizeReportFilenameName(authorName);
+    const { datePart, timePart } = formatFilenameTimestamp();
+    return `${fullName}_${datePart}_${timePart}`;
 }
 function buildSnapshotFromSummary(summaryState) {
     if (!summaryState) {
@@ -5470,6 +5716,10 @@ function buildBadgeDetailItems(rank, system, reason = null, meta = null) {
     if (reason) {
         items.push({ label: 'Reason', value: reason });
     }
+    const authorship = normalizePublicationAuthorship(meta?.authorship, meta?.authorCount ?? null);
+    if (authorship.status === 'verified' && authorship.position && authorship.authorCount) {
+        items.push({ label: 'Authorship', value: formatAuthorshipSummary(authorship) });
+    }
     if (meta && typeof meta === 'object' && currentSettings.showDebugDetails !== false) {
         const pct = (value) => (typeof value === 'number' ? `${Math.round(value * 100)}%` : null);
         if (meta.sourceYear) {
@@ -5595,11 +5845,21 @@ function setRowRankingMetadata(rowElement, info) {
     if (!rowElement || !info)
         return;
     const statusKind = getRowStatusKind(info);
+    const authorRoles = getAuthorshipRoles(info);
     rowElement.dataset.gsrSystem = String(info.system || 'UNKNOWN').toLowerCase();
     rowElement.dataset.gsrRank = normalizeRankKey(info.rank || 'N/A');
     rowElement.dataset.gsrStatus = statusKind;
+    if (authorRoles.length) {
+        rowElement.dataset.gsrAuthorRoles = authorRoles.join(' ');
+    }
+    else {
+        delete rowElement.dataset.gsrAuthorRoles;
+    }
+    rowElement.dataset.gsrAuthorStatus = normalizePublicationAuthorship(info.authorship, info.authorCount ?? null).status || 'unknown';
     rowElement.classList.toggle('gsr-row--needs-review', statusKind !== 'ranked');
     rowElement.classList.toggle('gsr-row--ranked', statusKind === 'ranked');
+    rowElement.classList.toggle('gsr-row--authorship', authorRoles.length > 0);
+    updateRowAuthorshipRail(rowElement, info);
 }
 function isSameSummaryFilter(a, b) {
     return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
@@ -5613,6 +5873,7 @@ function matchesSummaryFilter(rowElement, filter) {
     const status = rowElement.dataset.gsrStatus || '';
     const system = rowElement.dataset.gsrSystem || '';
     const rank = rowElement.dataset.gsrRank || '';
+    const authorRoles = String(rowElement.dataset.gsrAuthorRoles || '').split(/\s+/).filter(Boolean);
     if (filter.type === 'preset') {
         if (filter.mode === 'ranked-only') {
             return status === 'ranked';
@@ -5624,6 +5885,9 @@ function matchesSummaryFilter(rowElement, filter) {
     }
     if (filter.type === 'status') {
         return status === filter.status;
+    }
+    if (filter.type === 'authorship') {
+        return authorRoles.includes(filter.role);
     }
     return system === filter.system && rank === filter.rank;
 }
@@ -5647,6 +5911,9 @@ function syncSummaryFilterButtons() {
         else if (type === 'status' && activeSummaryFilter?.type === 'status') {
             isActive = activeSummaryFilter.status === button.getAttribute('data-gsr-status');
         }
+        else if (type === 'authorship' && activeSummaryFilter?.type === 'authorship') {
+            isActive = activeSummaryFilter.role === button.getAttribute('data-gsr-author-role');
+        }
         else if (type === 'preset' && activeSummaryFilter?.type === 'preset') {
             isActive = activeSummaryFilter.mode === button.getAttribute('data-gsr-mode');
         }
@@ -5656,6 +5923,9 @@ function syncSummaryFilterButtons() {
         }
         else if (type === 'status' && previewSummaryFilter?.type === 'status') {
             isPreviewed = previewSummaryFilter.status === button.getAttribute('data-gsr-status');
+        }
+        else if (type === 'authorship' && previewSummaryFilter?.type === 'authorship') {
+            isPreviewed = previewSummaryFilter.role === button.getAttribute('data-gsr-author-role');
         }
         else if (type === 'preset' && previewSummaryFilter?.type === 'preset') {
             isPreviewed = previewSummaryFilter.mode === button.getAttribute('data-gsr-mode');
@@ -5773,11 +6043,73 @@ function createRankBadgeElement(rank, system, reason = null, meta = null) {
     }
     return null;
 }
+function createAuthorshipRailElement(authorship, meta = null) {
+    const normalized = normalizePublicationAuthorship(authorship, meta?.authorCount ?? null);
+    const label = formatAuthorshipRailLabel(normalized);
+    if (!label) {
+        return null;
+    }
+    const rail = document.createElement('span');
+    rail.className = `gsr-authorship-rail gsr-authorship-rail--${getAuthorshipRailRoleClass(normalized)}`;
+    rail.dataset.gsrKind = 'authorship';
+    rail.dataset.gsrAuthorRoles = normalized.roles.join(' ');
+    rail.setAttribute('tabindex', '0');
+    rail.setAttribute('aria-label', `${label} author: ${formatAuthorshipSummary(normalized)}`);
+    rail.setAttribute('title', formatAuthorshipSummary(normalized));
+    const railText = document.createElement('span');
+    railText.className = 'gsr-authorship-rail__text';
+    railText.textContent = label;
+    rail.appendChild(railText);
+    const items = [
+        { label: 'Authorship', value: label },
+        { label: 'DBLP Position', value: `${normalized.position} of ${normalized.authorCount}` },
+        { label: 'Source', value: 'DBLP author order' },
+    ];
+    rail.setAttribute('aria-describedby', BADGE_POPOVER_ID);
+    if (meta) {
+        rail.setAttribute('role', 'button');
+    }
+    const show = () => showBadgePopover(rail, items);
+    rail.addEventListener('mouseenter', show);
+    rail.addEventListener('focus', show);
+    rail.addEventListener('mouseleave', () => hideBadgePopover(false));
+    rail.addEventListener('blur', () => hideBadgePopover(false));
+    rail.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (meta) {
+            openDetailDrawer(meta);
+        }
+    });
+    rail.addEventListener('keydown', (event) => {
+        if ((event.key === 'Enter' || event.key === ' ') && meta) {
+            event.preventDefault();
+            openDetailDrawer(meta);
+        }
+        if (event.key === 'Escape') {
+            hideBadgePopover(true);
+        }
+    });
+    return rail;
+}
+function updateRowAuthorshipRail(rowElement, info) {
+    const titleCell = rowElement?.querySelector?.('td.gsc_a_t');
+    if (!titleCell) {
+        return;
+    }
+    titleCell.querySelector('span.gsr-authorship-rail')?.remove();
+    const rail = createAuthorshipRailElement(info?.authorship, info);
+    if (rail) {
+        titleCell.insertAdjacentElement('afterbegin', rail);
+    }
+}
 function displayRankBadgeAfterTitle(rowElement, rank, system, reason = null, meta = null) {
     const titleCell = rowElement.querySelector('td.gsc_a_t');
     if (titleCell) {
         const oldBadge = titleCell.querySelector('span.gsr-rank-badge-inline');
         oldBadge?.remove(); // Ensure any previous badge is cleared first
+        const oldAuthorshipRail = titleCell.querySelector('span.gsr-authorship-rail');
+        oldAuthorshipRail?.remove();
     }
     else {
         return; // No title cell found
@@ -6420,6 +6752,7 @@ function buildReportPacketMarkdown(info) {
         lines.push(`- Publication Year: ${payload.paper.publicationYear || 'N/A'}`);
         lines.push(`- DBLP Key: ${payload.paper.dblpKey || 'N/A'}`);
         lines.push(`- DBLP URL: ${payload.paper.dblpUrl || 'N/A'}`);
+        lines.push(`- Authorship: ${formatAuthorshipSummary(payload.paper.authorship)}`);
     }
     if (payload.decision) {
         lines.push(`- System: ${payload.decision.system}`);
@@ -6484,6 +6817,7 @@ function openDetailDrawer(info) {
     const facts = [
         ['Publication Year', getPublicationYear(resolvedInfo) ?? 'N/A'],
         ['Author Count', resolvedInfo?.authorCount ?? 'N/A'],
+        ['Authorship', formatAuthorshipSummary(resolvedInfo?.authorship)],
         ['Ranking Snapshot Year', resolvedInfo?.sourceYear ?? 'N/A'],
         ['Decision Status', resolvedInfo?.decisionStatus || 'N/A'],
         ['Matched Venue', resolvedInfo?.matchedVenue || 'N/A'],
@@ -6627,6 +6961,7 @@ async function openReportPacketOverlay(info = null) {
         ['Scholar URL', payload.paper?.scholarUrl || 'N/A'],
         ['DBLP PID', payload.profile.dblpAuthorPid || 'N/A'],
         ['DBLP Key', payload.paper?.dblpKey || 'N/A'],
+        ['Authorship', payload.paper ? formatAuthorshipSummary(payload.paper.authorship) : 'N/A'],
         ['Rank Outcome', payload.decision?.rank || 'N/A'],
         ['Ranking Snapshot Year', payload.decision?.sourceYear || 'N/A'],
     ];
@@ -6803,7 +7138,7 @@ function openExportOverlay() {
                     preparingText: 'Preparing Summary...',
                     successText: 'Summary Ready',
                     download: async () => {
-                        const filename = `${getCurrentReportDownloadFilenameBase()} - Summary.pdf`;
+                        const filename = `${getCurrentReportDownloadFilenameBase()}.pdf`;
                         const dataUrl = await buildPdfReportDataUrl(currentSummaryState, 'summary');
                         await triggerDataUrlDownload(filename, dataUrl);
                     }
@@ -6813,7 +7148,7 @@ function openExportOverlay() {
                     preparingText: 'Preparing Full Report...',
                     successText: 'Full Report Ready',
                     download: async () => {
-                        const filename = `${getCurrentReportDownloadFilenameBase()} - Full Report.pdf`;
+                        const filename = `${getCurrentReportDownloadFilenameBase()}.pdf`;
                         const dataUrl = await buildPdfReportDataUrl(currentSummaryState, 'full');
                         await triggerDataUrlDownload(filename, dataUrl);
                     }
@@ -8367,6 +8702,36 @@ function annotateScholarCitationGraph(chipState, attempt = 0) {
         graph.appendChild(container);
     }
 }
+function createAuthorshipSettingsControl() {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'gsr-authorship-setting';
+    const label = document.createElement('label');
+    label.className = 'gsr-authorship-setting__label';
+    const title = document.createElement('span');
+    title.className = 'gsr-authorship-setting__title';
+    title.textContent = 'Highlight first- and last-author publications';
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.className = 'gsr-authorship-setting__input';
+    input.dataset.gsrAuthorshipToggleInput = 'true';
+    input.checked = currentSettings.showAuthorshipHighlights === true;
+    input.setAttribute('aria-label', 'Highlight first and last authorship');
+    input.addEventListener('change', () => {
+        setAuthorshipHighlightsEnabled(input.checked).catch((error) => {
+            console.error('GSR: Failed to update authorship highlight setting.', error);
+            input.checked = currentSettings.showAuthorshipHighlights === true;
+            syncAuthorshipSettingControls();
+        });
+    });
+    const switchVisual = document.createElement('span');
+    switchVisual.className = 'gsr-authorship-setting__switch';
+    switchVisual.setAttribute('aria-hidden', 'true');
+    label.appendChild(title);
+    label.appendChild(input);
+    label.appendChild(switchVisual);
+    wrapper.appendChild(label);
+    return wrapper;
+}
 function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initialCachedPubRanks, cacheTimestamp, dblpAuthorPid, scanLifecycle = null, profileContextOverrides = null) {
     document.getElementById(STATUS_ELEMENT_ID)?.remove();
     document.getElementById(SUMMARY_PANEL_ID)?.remove();
@@ -8455,7 +8820,6 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
         }));
         headerActions.appendChild(createHeaderActionButton({
             label: 'Download',
-            iconText: '⇩',
             title: 'Download the current DBLP-verified venue profile report',
             variant: 'download',
             onClick: () => openExportOverlay()
@@ -8541,7 +8905,7 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
         badge.removeAttribute('aria-describedby');
         return badge;
     };
-    const createSummarySection = ({ titleText, metaText = '', counts, orderedRanks, system, getFilter, getLabel, getInlineLabel = () => '', getChipText = () => null }) => {
+    const createSummarySection = ({ titleText, metaText = '', counts, orderedRanks, system, getFilter, getLabel, getInlineLabel = () => '', getChipText = () => null, showBadge = true }) => {
         const sectionWrapper = document.createElement('div');
         sectionWrapper.className = 'gsr-summary-section';
         const sectionHeader = document.createElement('div');
@@ -8577,9 +8941,18 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
                 itemButton.setAttribute('data-gsr-filter-type', 'status');
                 itemButton.setAttribute('data-gsr-status', filter.status);
             }
+            else if (filter.type === 'authorship') {
+                itemButton.setAttribute('data-gsr-filter-type', 'authorship');
+                itemButton.setAttribute('data-gsr-author-role', filter.role);
+            }
             attachSummaryFilterInteractions(itemButton, filter);
             itemButton.setAttribute('aria-label', `${titleText} ${getLabel(rank)} ${count} paper${count === 1 ? '' : 's'}`);
-            itemButton.appendChild(createSummaryBadge(rank, system, getChipText(rank)));
+            if (showBadge !== false) {
+                const summaryBadge = createSummaryBadge(rank, system, getChipText(rank));
+                if (summaryBadge) {
+                    itemButton.appendChild(summaryBadge);
+                }
+            }
             const mainContent = document.createElement('div');
             mainContent.className = 'gsr-summary-row__main';
             const inlineLabelText = getInlineLabel(rank);
@@ -8631,6 +9004,18 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
         getFilter: (rank) => ({ type: 'rank', system: 'sjr', rank: normalizeRankKey(rank) }),
         getLabel: (rank) => rank
     }));
+    const authorshipSummarySection = createSummarySection({
+        titleText: 'Authorship Position',
+        metaText: 'matches',
+        counts: currentSummaryState.authorshipCounts || { first: 0, last: 0 },
+        orderedRanks: ['first', 'last'],
+        system: 'DBLP',
+        getFilter: (role) => ({ type: 'authorship', role }),
+        getLabel: (role) => role === 'first' ? 'First author' : 'Last author',
+        getInlineLabel: (role) => role === 'first' ? 'First author' : 'Last author',
+        showBadge: false
+    });
+    authorshipSummarySection.classList.add('gsr-authorship-summary-section');
     panel.appendChild(summarySectionsContainer);
     const timelineYear = currentSummaryState.timeline?.currentYear || getTimelineCurrentYear();
     const recentFocusedHistograms = getTimelineFocusedHistograms(currentSummaryState.timeline, 'recent');
@@ -8689,6 +9074,11 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
         }));
         panel.appendChild(exploreSection);
     }
+    const authorshipControls = document.createElement('div');
+    authorshipControls.className = 'gsr-authorship-controls';
+    authorshipControls.appendChild(createAuthorshipSettingsControl());
+    authorshipControls.appendChild(authorshipSummarySection);
+    panel.appendChild(authorshipControls);
     const finalFooterDiv = document.createElement('div');
     finalFooterDiv.className = 'gsr-card__footer gsr-summary-footer';
     const footerMeta = document.createElement('div');
@@ -8825,6 +9215,8 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
                     paperTitle: pubRank.paperTitle ?? null,
                     publicationYear: pubRank.publicationYear ?? null,
                     authorCount: pubRank.authorCount ?? null,
+                    authors: normalizeDblpAuthorsForPublication(pubRank.authors),
+                    authorship: normalizePublicationAuthorship(pubRank.authorship, pubRank.authorCount ?? null),
                     rank: pubRank.rank,
                     system: pubRank.system,
                     reason: pubRank.reason ?? null,
@@ -9661,7 +10053,14 @@ function parseDblpPublicationBaseItem(item) {
     const number = item.querySelector('number')?.textContent?.trim() || null;
     const crossref = item.querySelector('crossref')?.textContent?.trim() || null;
     const dblpType = item.tagName ? item.tagName.toLowerCase() : null;
-    const authorCount = Math.max(1, item.querySelectorAll('author').length || 1);
+    const authors = AUTHORSHIP_API?.extractOrderedAuthorsFromDblpElement
+        ? AUTHORSHIP_API.extractOrderedAuthorsFromDblpElement(item)
+        : normalizeDblpAuthorsForPublication(Array.from(item.querySelectorAll('author')).map((node, index) => ({
+            name: node.textContent || '',
+            pid: node.getAttribute?.('pid') || '',
+            index
+        })));
+    const authorCount = Math.max(1, authors.length || item.querySelectorAll('author').length || 1);
     const pubUrl = item.querySelector('url')?.textContent?.trim() || null;
     const numericYear = year ? parseInt(year, 10) : null;
     return {
@@ -9679,6 +10078,7 @@ function parseDblpPublicationBaseItem(item) {
         crossref,
         dblpType,
         authorCount,
+        authors,
         pubUrl,
         numericYear,
         streamCandidates: buildDblpStreamCandidates(dblpKey, pubUrl)
@@ -9955,7 +10355,8 @@ async function enrichDblpPublicationBaseItems(baseItems, statusElement, { phase 
             dblpType: entry.dblpType,
             journalIssns,
             journalShortTitle,
-            authorCount: entry.authorCount
+            authorCount: entry.authorCount,
+            authors: normalizeDblpAuthorsForPublication(entry.authors)
         });
         maybeUpdateUi(i + 1);
     }
@@ -10014,7 +10415,7 @@ function getPageCountFromDblpString(pageStr) {
     }
     return null;
 }
-async function buildDblpInfoMap(scholarPubLinkElements, dblpPublications, mapToFill, statusElement) {
+async function buildDblpInfoMap(scholarPubLinkElements, dblpPublications, mapToFill, statusElement, profilePid = null) {
     if (dblpPublications.length === 0)
         return;
     const statusTextEl = statusElement?.querySelector('.gsr-status-text');
@@ -10040,12 +10441,16 @@ async function buildDblpInfoMap(scholarPubLinkElements, dblpPublications, mapToF
             continue;
         const matched = best.match;
         const pageCount = getPageCountFromDblpString(matched.pages);
+        const authors = normalizeDblpAuthorsForPublication(matched.authors);
+        const authorship = classifyDblpAuthorship(profilePid, authors, matched.authorCount ?? authors.length);
         mapToFill.set(scholarPub.url, {
             title: matched.title ?? null,
             year: matched.year ?? null,
             venue: matched.venue,
             pages: matched.pages ?? null,
             authorCount: matched.authorCount ?? null,
+            authors,
+            authorship,
             pageCount: pageCount,
             dblpKey: matched.dblpKey,
             venue_full: matched.venue_full,
@@ -10072,6 +10477,8 @@ function createPublicationRankInfo(result) {
         paperTitle: result.paperTitle ?? result.titleText,
         publicationYear: result.publicationYear ?? null,
         authorCount: result.authorCount ?? null,
+        authors: normalizeDblpAuthorsForPublication(result.authors),
+        authorship: normalizePublicationAuthorship(result.authorship, result.authorCount ?? null),
         titleText: result.titleText,
         rank: result.rank,
         system: result.system,
@@ -10139,6 +10546,8 @@ async function evaluatePublicationRanks(publicationLinkElements, dblpPublication
             titleText: pubInfo.titleText,
             publicationYear: pubInfo.yearFromProfile ?? null,
             authorCount: null,
+            authors: [],
+            authorship: normalizePublicationAuthorship(null, null),
             url: pubInfo.url,
             shouldPersist: true,
             matchConfidence: null,
@@ -10164,6 +10573,8 @@ async function evaluatePublicationRanks(publicationLinkElements, dblpPublication
         let sourceYear = null;
         let resolvedPublicationYear = pubInfo.yearFromProfile ?? null;
         let authorCount = null;
+        let authors = [];
+        let authorship = normalizePublicationAuthorship(null, null);
         let topCandidates = null;
         let decisionMeta = createDecisionMeta();
         try {
@@ -10172,6 +10583,8 @@ async function evaluatePublicationRanks(publicationLinkElements, dblpPublication
                 if (typeof dblpInfo.matchScore === 'number')
                     matchConfidence = dblpInfo.matchScore;
                 authorCount = typeof dblpInfo.authorCount === 'number' ? dblpInfo.authorCount : authorCount;
+                authors = normalizeDblpAuthorsForPublication(dblpInfo.authors);
+                authorship = normalizePublicationAuthorship(dblpInfo.authorship, authorCount);
                 dblpVenue = (dblpInfo.venue_full || dblpInfo.venue || null);
                 decisionMeta = mergeDecisionMeta(decisionMeta, {
                     decisionStatus: dblpInfo.decisionStatus ?? DECISION_STATUS.MATCHED,
@@ -10313,6 +10726,8 @@ async function evaluatePublicationRanks(publicationLinkElements, dblpPublication
                             titleText: pubInfo.titleText,
                             publicationYear: publicationYear ?? null,
                             authorCount,
+                            authors,
+                            authorship,
                             url: pubInfo.url,
                             shouldPersist: true,
                             matchConfidence,
@@ -10337,6 +10752,8 @@ async function evaluatePublicationRanks(publicationLinkElements, dblpPublication
                             titleText: pubInfo.titleText,
                             publicationYear: publicationYear ?? null,
                             authorCount,
+                            authors,
+                            authorship,
                             url: pubInfo.url,
                             shouldPersist: true,
                             matchConfidence,
@@ -10361,6 +10778,8 @@ async function evaluatePublicationRanks(publicationLinkElements, dblpPublication
                             titleText: pubInfo.titleText,
                             publicationYear: publicationYear ?? null,
                             authorCount,
+                            authors,
+                            authorship,
                             url: pubInfo.url,
                             shouldPersist: true,
                             matchConfidence,
@@ -10517,7 +10936,7 @@ async function evaluatePublicationRanks(publicationLinkElements, dblpPublication
                 decisionStatus: DECISION_STATUS.UNRANKED
             });
         }
-        return { rank: currentRank, system: rankingSystem, reason: (currentRank === 'N/A' ? naReason : null), rowElement: pubInfo.rowElement, paperTitle: pubInfo.paperTitle, titleText: pubInfo.titleText, publicationYear: resolvedPublicationYear, authorCount, url: pubInfo.url, shouldPersist, matchConfidence, matchedVenue, venueMatchConfidence, dblpVenue, sourceYear, dblpKey: dblpKeyUsedForThisRanking, topCandidates, ...decisionMeta };
+        return { rank: currentRank, system: rankingSystem, reason: (currentRank === 'N/A' ? naReason : null), rowElement: pubInfo.rowElement, paperTitle: pubInfo.paperTitle, titleText: pubInfo.titleText, publicationYear: resolvedPublicationYear, authorCount, authors, authorship, url: pubInfo.url, shouldPersist, matchConfidence, matchedVenue, venueMatchConfidence, dblpVenue, sourceYear, dblpKey: dblpKeyUsedForThisRanking, topCandidates, ...decisionMeta };
     };
     try {
         for (const pubInfo of publicationLinkElements) {
@@ -10717,7 +11136,7 @@ async function runScanPass({ phase, sessionId, statusElement = null, context = {
         };
     }
     scholarUrlToDblpInfoMap.clear();
-    await buildDblpInfoMap(publicationLinkElements, dblpPublications, scholarUrlToDblpInfoMap, statusElement);
+    await buildDblpInfoMap(publicationLinkElements, dblpPublications, scholarUrlToDblpInfoMap, statusElement, dblpAuthorPid);
     throwIfStaleScanSession(sessionId);
     updateStatusElement(statusElement, 0, publicationLinkElements.length, `Ranking (${scanPhaseLabel})`);
     const rankingResult = await evaluatePublicationRanks(publicationLinkElements, dblpPublications, statusElement, sessionId);
@@ -11099,6 +11518,12 @@ if (chrome?.storage?.onChanged && SETTINGS_API?.SETTINGS_KEY) {
             activeSummaryFilter = currentSettings.defaultHighlightMode !== 'none'
                 ? { type: 'preset', mode: currentSettings.defaultHighlightMode }
                 : null;
+        }
+        if (currentSettings.showAuthorshipHighlights !== true && activeSummaryFilter?.type === 'authorship') {
+            activeSummaryFilter = null;
+        }
+        if (currentSettings.showAuthorshipHighlights !== true && previewSummaryFilter?.type === 'authorship') {
+            previewSummaryFilter = null;
         }
         previewSummaryFilter = null;
         if (activeCachedPublicationRanks && activeCachedPublicationRanks.length > 0) {

@@ -5,6 +5,7 @@ const path = require('path');
 const core = require('../rank_core.js');
 const settings = require('../settings.js');
 const timelineStats = require('../core/timeline_stats.js');
+const authorship = require('../core/authorship.js');
 const accuracyLib = require('./accuracy_benchmark_lib.js');
 const { runScoreTests } = require('./run_score_tests.js');
 const { runDblpSchedulerTests } = require('./run_dblp_scheduler_tests.js');
@@ -268,6 +269,7 @@ function testSettingsNormalization() {
     showUnranked: false,
     defaultHighlightMode: 'needs-review',
     showDebugDetails: false,
+    showAuthorshipHighlights: true,
   });
 
   assert.deepStrictEqual(normalized, {
@@ -276,10 +278,12 @@ function testSettingsNormalization() {
     showUnranked: false,
     defaultHighlightMode: 'needs-review',
     showDebugDetails: false,
+    showAuthorshipHighlights: true,
   });
 
   const fallback = settings.normalizeSettings({ defaultHighlightMode: 'invalid-mode' });
   assert.strictEqual(fallback.defaultHighlightMode, settings.DEFAULT_SETTINGS.defaultHighlightMode);
+  assert.strictEqual(fallback.showAuthorshipHighlights, false);
   assert.ok(!Object.prototype.hasOwnProperty.call(normalized, 'scanMode'));
   assert.ok(!Object.prototype.hasOwnProperty.call(fallback, 'scanMode'));
 }
@@ -874,6 +878,100 @@ function testManualDblpUiSmoke() {
   assert.ok(contentSource.includes('clearManualDblpOverrideForCurrentProfile()'));
 }
 
+function testDblpAuthorOrderParsing() {
+  const authorNodes = [
+    { textContent: '  First   Author  ', getAttribute: (name) => name === 'pid' ? '10/first' : null },
+    { textContent: 'Middle Author', getAttribute: (name) => name === 'pid' ? '20/middle.html' : null },
+    { textContent: 'Last Author', getAttribute: (name) => name === 'pid' ? '30/last' : null },
+  ];
+  const element = {
+    querySelectorAll: (selector) => selector === 'author' ? authorNodes : [],
+  };
+
+  const parsed = authorship.extractOrderedAuthorsFromDblpElement(element);
+  assert.deepStrictEqual(parsed, [
+    { name: 'First Author', pid: '10/first', index: 0, position: 1, authorCount: 3 },
+    { name: 'Middle Author', pid: '20/middle', index: 1, position: 2, authorCount: 3 },
+    { name: 'Last Author', pid: '30/last', index: 2, position: 3, authorCount: 3 },
+  ]);
+}
+
+function testAuthorshipContentSourceSmoke() {
+  const contentPath = path.join(__dirname, '..', 'content.js');
+  const contentSource = fs.readFileSync(contentPath, 'utf8');
+
+  assert.ok(contentSource.includes('const CACHE_VERSION = 13'), 'Authorship metadata should invalidate stale content caches');
+  assert.ok(
+    contentSource.includes('for (const { url, paperTitle, publicationYear, authorCount, authors, authorship') &&
+    contentSource.includes('authorship: normalizePublicationAuthorship(authorship, authorCount)'),
+    'packRanks should persist ordered authors and authorship metadata'
+  );
+  assert.ok(
+    contentSource.includes('authors: normalizeDblpAuthorsForPublication(entry.authors)') &&
+    contentSource.includes('authorship: normalizePublicationAuthorship(entry.authorship, entry.authorCount)'),
+    'unpackRanks should restore ordered authors and authorship metadata'
+  );
+  assert.ok(
+    contentSource.includes('authorshipStatus') &&
+    contentSource.includes('authorPosition') &&
+    contentSource.includes('authorRoles') &&
+    contentSource.includes('authorshipSource'),
+    'CSV export rows should expose DBLP authorship fields'
+  );
+  assert.ok(
+    contentSource.includes('authorship: normalizePublicationAuthorship(pubRank.authorship, pubRank.authorCount ?? null)'),
+    'cached row restoration should retain authorship metadata'
+  );
+  assert.ok(
+    contentSource.includes('authorship,') &&
+    contentSource.includes('REPORT_SCHEMA_API.buildPublicationDecision'),
+    'canonical report publications should pass authorship into the report schema'
+  );
+  assert.ok(
+    contentSource.includes('classifyDblpAuthorship(profilePid, authors') &&
+    contentSource.includes('buildDblpInfoMap(publicationLinkElements, dblpPublications, scholarUrlToDblpInfoMap, statusElement, dblpAuthorPid)'),
+    'DBLP mapping should classify authorship from the verified profile PID'
+  );
+  assert.ok(
+    contentSource.includes('gsr-authorship-rail') &&
+    contentSource.includes('gsr-authorship-setting') &&
+    contentSource.includes('dataset.gsrAuthorRoles') &&
+    contentSource.includes('showAuthorshipHighlights !== true'),
+    'UI rows should carry authorship rails and data attributes while respecting the opt-in setting'
+  );
+  assert.ok(
+    !contentSource.includes('gsr-authorship-badge-inline'),
+    'Authorship should not render inline first/last chips beside rank badges'
+  );
+  assert.ok(
+    !contentSource.includes("return 'Solo'"),
+    'Single-author papers should not receive an authorship highlight label'
+  );
+  assert.ok(
+    contentSource.includes('First/Last Author Publications') &&
+    contentSource.includes('First-author publications') &&
+    contentSource.includes('DBLP author order only; single-author papers are not counted here.'),
+    'Reports should show first/last authorship publication counts as a separate section'
+  );
+}
+
+function testReportDownloadFilenameSourceSmoke() {
+  const contentPath = path.join(__dirname, '..', 'content.js');
+  const contentSource = fs.readFileSync(contentPath, 'utf8');
+
+  assert.ok(
+    contentSource.includes('function formatFilenameTimestamp') &&
+    contentSource.includes('function sanitizeReportFilenameName') &&
+    contentSource.includes('return `${fullName}_${datePart}_${timePart}`;'),
+    'Report downloads should use Full Name_Date_Time filename bases'
+  );
+  assert.ok(
+    !contentSource.includes(' - Summary.pdf') &&
+    !contentSource.includes(' - Full Report.pdf'),
+    'PDF downloads should not append extra labels after the requested filename format'
+  );
+}
+
 function testDblpPersonXmlScholarUrlParsing() {
   const xml = `<?xml version="1.0"?>
 <dblpperson name="Wolfgang Stuerzlinger" pid="64/4311">
@@ -1224,6 +1322,9 @@ async function run() {
   testProfileCacheReuseRequiresVerifiedPid();
   testDblpPidSelectionPrecedence();
   testManualDblpUiSmoke();
+  testDblpAuthorOrderParsing();
+  testAuthorshipContentSourceSmoke();
+  testReportDownloadFilenameSourceSmoke();
   testDblpPersonXmlScholarUrlParsing();
   testScholarVerificationSampleBuilder();
   testProfileVerificationCandidateSelection();

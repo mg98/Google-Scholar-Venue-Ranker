@@ -7,6 +7,7 @@
     autoRun: document.getElementById("autoRun"),
     compactMode: document.getElementById("compactMode"),
     showUnranked: document.getElementById("showUnranked"),
+    showAuthorshipHighlights: document.getElementById("showAuthorshipHighlights"),
     defaultHighlightMode: document.getElementById("defaultHighlightMode")
   };
   const activePacksEl = document.getElementById("activePacks");
@@ -32,6 +33,7 @@
     controls.autoRun.checked = settings.autoRun;
     controls.compactMode.checked = settings.compactMode;
     controls.showUnranked.checked = settings.showUnranked;
+    controls.showAuthorshipHighlights.checked = settings.showAuthorshipHighlights === true;
     controls.defaultHighlightMode.value = settings.defaultHighlightMode;
     if (activePacksEl) {
       activePacksEl.textContent = `Ranking packs: ${rankingPacks.map((value) => value.toUpperCase()).join(", ")}`;
@@ -137,6 +139,7 @@
       autoRun: controls.autoRun.checked,
       compactMode: controls.compactMode.checked,
       showUnranked: controls.showUnranked.checked,
+      showAuthorshipHighlights: controls.showAuthorshipHighlights.checked,
       defaultHighlightMode: controls.defaultHighlightMode.value
     });
     setStatus("Settings saved. Reload Scholar if the page is already open.");

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Google Scholar Venue Ranker (GSVR)",
   "description": "Adds DBLP-verified CORE/SJR venue ranks, raw GSVR scores, completeness diagnostics, and reports to Scholar profiles.",
-  "version": "2.0.3",
+  "version": "2.1.0",
   "permissions": [
     "storage",
     "downloads"

@@ -7,8 +7,8 @@
 })(typeof self !== "undefined" ? self : this, function (scoreConfig) {
   "use strict";
 
-  const PUBLICATION_DECISION_SCHEMA_VERSION = "gsvr-publication-decision-v2";
-  const PROFILE_REPORT_SCHEMA_VERSION = "gsvr-profile-report-v2";
+  const PUBLICATION_DECISION_SCHEMA_VERSION = "gsvr-publication-decision-v3";
+  const PROFILE_REPORT_SCHEMA_VERSION = "gsvr-profile-report-v3";
 
   function asObject(value) {
     return value && typeof value === "object" && !Array.isArray(value) ? value : {};
@@ -16,6 +16,28 @@
 
   function cloneArray(value) {
     return Array.isArray(value) ? value.slice() : [];
+  }
+
+  function normalizeAuthorship(raw = {}) {
+    const input = asObject(raw);
+    const position = Number(input.position);
+    const authorCount = Number(input.authorCount);
+    const normalizedStatus = input.status === "verified" ? "verified" : "unknown";
+    const normalizedAuthorCount = Number.isFinite(authorCount) && authorCount > 0 ? Math.round(authorCount) : null;
+    const roles = normalizedStatus === "verified" && normalizedAuthorCount !== 1 ? Array.from(new Set(
+      cloneArray(input.roles)
+        .map((role) => String(role || "").trim().toLowerCase())
+        .filter((role) => role === "first" || role === "last")
+    )) : [];
+    return {
+      status: normalizedStatus,
+      roles,
+      position: Number.isFinite(position) && position > 0 ? Math.round(position) : null,
+      authorCount: normalizedAuthorCount,
+      profilePid: input.profilePid ?? null,
+      source: "dblp-author-order",
+      reason: input.reason ?? (normalizedStatus === "verified" && normalizedAuthorCount === 1 ? "single_author" : null),
+    };
   }
 
   function normalizeCompleteness(raw = {}, diagnostics = {}, scores = {}) {
@@ -77,6 +99,7 @@
     const classification = asObject(input.classification);
     const ranking = asObject(input.ranking);
     const score = asObject(input.score);
+    const authorship = normalizeAuthorship(input.authorship ?? input.authorPosition ?? {});
 
     return {
       schemaVersion: PUBLICATION_DECISION_SCHEMA_VERSION,
@@ -100,6 +123,7 @@
         authorCount: dblp.authorCount ?? input.authorCount ?? null,
         authors: cloneArray(dblp.authors),
       },
+      authorship,
       match: {
         status: match.status ?? input.decisionStatus ?? null,
         rawSimilarity: match.rawSimilarity ?? input.rawSimilarity ?? null,
@@ -214,6 +238,7 @@
       && value.schemaVersion === PUBLICATION_DECISION_SCHEMA_VERSION
       && !!value.scholar
       && !!value.dblp
+      && !!value.authorship
       && !!value.match
       && !!value.evidence
       && !!value.classification

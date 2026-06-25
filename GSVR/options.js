@@ -9,6 +9,7 @@
     compactMode: document.getElementById("compactMode"),
     showUnranked: document.getElementById("showUnranked"),
     showDebugDetails: document.getElementById("showDebugDetails"),
+    showAuthorshipHighlights: document.getElementById("showAuthorshipHighlights"),
     defaultHighlightMode: document.getElementById("defaultHighlightMode")
   };
   const freshnessSummary = document.getElementById("freshnessSummary");
@@ -27,6 +28,7 @@
     controls.compactMode.checked = settings.compactMode;
     controls.showUnranked.checked = settings.showUnranked;
     controls.showDebugDetails.checked = settings.showDebugDetails;
+    controls.showAuthorshipHighlights.checked = settings.showAuthorshipHighlights === true;
     controls.defaultHighlightMode.value = settings.defaultHighlightMode;
     if (freshnessSummary) {
       const version = freshness?.lastSeenVersion || "unknown";
@@ -46,6 +48,7 @@
       compactMode: controls.compactMode.checked,
       showUnranked: controls.showUnranked.checked,
       showDebugDetails: controls.showDebugDetails.checked,
+      showAuthorshipHighlights: controls.showAuthorshipHighlights.checked,
       defaultHighlightMode: controls.defaultHighlightMode.value
     });
     await api.saveRankingPacks(buildSelectedPacks());

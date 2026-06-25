@@ -140,6 +140,69 @@ function testAuthorship() {
   assert.strictEqual(authorship.getFractionalCredit(0), null);
   assert.strictEqual(authorship.getFractionalCredit(null), null);
   assert.strictEqual(authorship.getAuthorshipFactor(10), 0.1);
+
+  const orderedAuthors = [
+    { name: 'First Author', pid: '10/first' },
+    { name: 'Middle Author', pid: '20/middle' },
+    { name: 'Last Author', pid: '30/last' },
+  ];
+
+  const first = authorship.classifyAuthorPosition({ profilePid: '10/first', authors: orderedAuthors });
+  assert.strictEqual(first.status, 'verified');
+  assert.deepStrictEqual(first.roles, ['first']);
+  assert.strictEqual(first.position, 1);
+  assert.strictEqual(first.authorCount, 3);
+  assert.strictEqual(first.source, 'dblp-author-order');
+
+  const middle = authorship.classifyAuthorPosition({ profilePid: '20/middle', authors: orderedAuthors });
+  assert.strictEqual(middle.status, 'verified');
+  assert.deepStrictEqual(middle.roles, []);
+  assert.strictEqual(middle.reason, 'middle_author');
+
+  const last = authorship.classifyAuthorPosition({ profilePid: '30/last', authors: orderedAuthors });
+  assert.strictEqual(last.status, 'verified');
+  assert.deepStrictEqual(last.roles, ['last']);
+  assert.strictEqual(last.position, 3);
+
+  const single = authorship.classifyAuthorPosition({
+    profilePid: '40/solo',
+    authors: [{ name: 'Solo Author', pid: '40/solo' }],
+  });
+  assert.strictEqual(single.status, 'verified');
+  assert.deepStrictEqual(single.roles, []);
+  assert.strictEqual(single.position, 1);
+  assert.strictEqual(single.authorCount, 1);
+  assert.strictEqual(single.reason, 'single_author');
+
+  const missing = authorship.classifyAuthorPosition({ profilePid: '99/missing', authors: orderedAuthors });
+  assert.strictEqual(missing.status, 'unknown');
+  assert.deepStrictEqual(missing.roles, []);
+  assert.strictEqual(missing.reason, 'profile_pid_not_found');
+
+  const duplicate = authorship.classifyAuthorPosition({
+    profilePid: '10/first',
+    authors: orderedAuthors.concat({ name: 'Duplicate Author', pid: '10/first' }),
+  });
+  assert.strictEqual(duplicate.status, 'unknown');
+  assert.deepStrictEqual(duplicate.roles, []);
+  assert.strictEqual(duplicate.reason, 'duplicate_profile_pid');
+
+  const empty = authorship.classifyAuthorPosition({ profilePid: '10/first', authors: [] });
+  assert.strictEqual(empty.status, 'unknown');
+  assert.deepStrictEqual(empty.roles, []);
+  assert.strictEqual(empty.reason, 'empty_author_list');
+
+  const normalizedUnknown = authorship.normalizeAuthorship({ status: 'unknown', roles: ['first', 'last'] });
+  assert.deepStrictEqual(normalizedUnknown.roles, []);
+
+  const normalizedSingle = authorship.normalizeAuthorship({
+    status: 'verified',
+    roles: ['first', 'last'],
+    position: 1,
+    authorCount: 1,
+  });
+  assert.deepStrictEqual(normalizedSingle.roles, []);
+  assert.strictEqual(normalizedSingle.reason, 'single_author');
 }
 
 function testSnapshotSelection() {
@@ -269,6 +332,16 @@ function testReportSchemaValidation() {
     score: publicationScore.score,
   });
   assert.strictEqual(reportSchema.validatePublicationDecision(publication), true);
+  assert.strictEqual(publication.schemaVersion, 'gsvr-publication-decision-v3');
+  assert.deepStrictEqual(publication.authorship, {
+    status: 'unknown',
+    roles: [],
+    position: null,
+    authorCount: null,
+    profilePid: null,
+    source: 'dblp-author-order',
+    reason: null,
+  });
   assert.ok(!Object.prototype.hasOwnProperty.call(publication.score, 'temporalFactor'));
   assert.ok(!Object.prototype.hasOwnProperty.call(publication.score, 'coverageFactor'));
   assert.ok(!Object.prototype.hasOwnProperty.call(publication.score, 'contributionSd'));
@@ -303,6 +376,7 @@ function testReportSchemaValidation() {
   });
 
   assert.strictEqual(reportSchema.validateProfileReport(report), true);
+  assert.strictEqual(report.schemaVersion, 'gsvr-profile-report-v3');
   assert.strictEqual(report.scores.gsvrScore, 0.25);
   assert.strictEqual(report.completeness.completeness, 1);
   assert.strictEqual(report.completeness.segments.length, 7);

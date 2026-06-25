@@ -29,7 +29,8 @@
     compactMode: false,
     showUnranked: true,
     defaultHighlightMode: "none",
-    showDebugDetails: true
+    showDebugDetails: true,
+    showAuthorshipHighlights: false
   });
   const DEFAULT_FEATURE_STATE = Object.freeze({
     reportDraft: Object.freeze({
@@ -82,7 +83,8 @@
       defaultHighlightMode: HIGHLIGHT_MODES.includes(settings.defaultHighlightMode)
         ? settings.defaultHighlightMode
         : DEFAULT_SETTINGS.defaultHighlightMode,
-      showDebugDetails: settings.showDebugDetails !== false
+      showDebugDetails: settings.showDebugDetails !== false,
+      showAuthorshipHighlights: settings.showAuthorshipHighlights === true
     };
     return next;
   }

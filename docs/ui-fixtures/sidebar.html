@@ -60,9 +60,82 @@
           <span class="gsr-summary-header__action-label">Find Venues</span>
         </button>
         <button type="button" class="gsr-summary-header__action gsr-summary-header__action--download" title="Download the current DBLP-verified venue profile report">
-          <span class="gsr-summary-header__action-icon" aria-hidden="true"><span class="gsr-summary-header__action-icon-glyph">⇩</span></span>
           <span class="gsr-summary-header__action-label">Download</span>
         </button>
+      </div>
+    </div>
+
+    <h2>Authorship summary filters</h2>
+    <div class="gsc_rsb_s gsc_prf_pnl gsr-card gsr-summary-card gsr-authorship-on">
+      <div class="gsr-authorship-controls">
+        <div class="gsr-authorship-setting">
+          <label class="gsr-authorship-setting__label">
+            <span class="gsr-authorship-setting__title">Highlight first- and last-author publications</span>
+            <input class="gsr-authorship-setting__input" type="checkbox" checked>
+            <span class="gsr-authorship-setting__switch" aria-hidden="true"></span>
+          </label>
+        </div>
+        <div class="gsr-summary-section gsr-authorship-summary-section">
+          <div class="gsr-summary-section__header">
+            <div class="gsr-summary-section__title">Authorship Position</div>
+            <div class="gsr-summary-section__meta">matches</div>
+          </div>
+          <div class="gsr-summary-section__list">
+            <button type="button" class="gsr-summary-row" data-gsr-filter-type="authorship" data-gsr-author-role="first" aria-label="Authorship Position First author 7 papers">
+              <div class="gsr-summary-row__main">
+                <span class="gsr-summary-row__label">First author</span>
+                <div class="gsr-summary-row__bar"><div class="gsr-summary-row__bar-fill" style="width:70%"></div></div>
+              </div>
+              <span class="gsr-summary-row__count" aria-label="7 papers" title="7 papers">7</span>
+            </button>
+            <button type="button" class="gsr-summary-row is-active" data-gsr-filter-type="authorship" data-gsr-author-role="last" aria-label="Authorship Position Last author 4 papers">
+              <div class="gsr-summary-row__main">
+                <span class="gsr-summary-row__label">Last author</span>
+                <div class="gsr-summary-row__bar"><div class="gsr-summary-row__bar-fill" style="width:40%"></div></div>
+              </div>
+              <span class="gsr-summary-row__count" aria-label="4 papers" title="4 papers">4</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="gsr-card__footer gsr-summary-footer">
+        <div class="gsr-summary-footer__meta">
+          <a class="gsr-summary-meta__link gsr-summary-meta__link--profile" href="#">
+            <img class="gsr-summary-meta__logo" src="../../GSVR/icons/dblp-logo.png" alt="">
+            <span class="gsr-summary-meta__label">DBLP Profile</span>
+          </a>
+          <span class="gsr-summary-footer__stamp gsr-summary-footer__stamp--pid">pid 146/7880 · matched automatically</span>
+          <button type="button" class="gsr-summary-footer__pid-change">Wrong author?</button>
+          <span class="gsr-summary-footer__stamp">Updated Jun 17 1:29 PM</span>
+        </div>
+      </div>
+    </div>
+
+    <h2>Authorship summary hidden when setting is off</h2>
+    <div class="gsc_rsb_s gsc_prf_pnl gsr-card gsr-summary-card gsr-authorship-off">
+      <div class="gsr-authorship-controls">
+        <div class="gsr-authorship-setting">
+          <label class="gsr-authorship-setting__label">
+            <span class="gsr-authorship-setting__title">Highlight first- and last-author publications</span>
+            <input class="gsr-authorship-setting__input" type="checkbox">
+            <span class="gsr-authorship-setting__switch" aria-hidden="true"></span>
+          </label>
+        </div>
+        <div class="gsr-summary-section gsr-authorship-summary-section">
+          <div class="gsr-summary-section__header">
+            <div class="gsr-summary-section__title">Authorship Position</div>
+            <div class="gsr-summary-section__meta">matches</div>
+          </div>
+          <div class="gsr-summary-section__list">
+            <button type="button" class="gsr-summary-row" data-gsr-filter-type="authorship" data-gsr-author-role="first">
+              <div class="gsr-summary-row__main">
+                <span class="gsr-summary-row__label">First author</span>
+                <div class="gsr-summary-row__bar"><div class="gsr-summary-row__bar-fill" style="width:50%"></div></div>
+              </div>
+              <span class="gsr-summary-row__count">5</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
