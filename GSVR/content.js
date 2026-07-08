@@ -8291,6 +8291,19 @@ const CITATION_CHIP_EDGE_PADDING = 15;
 const CITATION_GRAPH_GUTTER_CLASS = 'gsr-citation-graph-gutter';
 function removeCitationGraphRankChips() {
     document.getElementById(CITATION_GRAPH_BADGES_ID)?.remove();
+    document.querySelectorAll('.gsr-scholar-year-rank-badges').forEach((node) => node.remove());
+    document.querySelectorAll('.gsr-scholar-year-chart--badged').forEach((node) => {
+        node.classList.remove('gsr-scholar-year-chart--badged');
+        if (node instanceof HTMLElement) {
+            node.style.removeProperty('--gsr-scholar-year-badge-gutter');
+        }
+    });
+    document.querySelectorAll('.gsr-scholar-year-chart__shifted-node').forEach((node) => {
+        node.classList.remove('gsr-scholar-year-chart__shifted-node');
+        if (node instanceof HTMLElement) {
+            node.style.removeProperty('--gsr-scholar-year-badge-gutter');
+        }
+    });
     document.querySelectorAll('.gsr-citation-graph--with-badges').forEach((graph) => {
         graph.classList.remove('gsr-citation-graph--with-badges');
         if (graph instanceof HTMLElement) {
@@ -8350,41 +8363,6 @@ function getCitationGraphYearLayout(label, bars, graphRect) {
     }
     return { barTop, chipCenterX };
 }
-function reserveCitationGraphTopGutter(graph, chipState, yearLabels, bars, graphRect) {
-    if (!(graph instanceof HTMLElement)) {
-        return;
-    }
-    const stackDepth = getCitationGraphStackDepth(chipState);
-    if (stackDepth <= 0) {
-        return;
-    }
-    let gutter = 0;
-    for (const label of yearLabels) {
-        const year = parseInt(label.textContent || '', 10);
-        const chips = chipState?.chipsByYear?.[year];
-        if (!Number.isFinite(year) || !Array.isArray(chips) || !chips.length) {
-            continue;
-        }
-        const layout = getCitationGraphYearLayout(label, bars, graphRect);
-        const stackHeight = getCitationChipStackHeight(Math.min(chips.length, MAX_CITATION_CHIPS_PER_YEAR));
-        gutter = Math.max(gutter, stackHeight + CITATION_CHIP_BAR_GAP - layout.barTop);
-    }
-    gutter = Math.max(0, Math.ceil(gutter));
-    let spacer = graph.querySelector(`:scope > .${CITATION_GRAPH_GUTTER_CLASS}`);
-    if (gutter <= 0) {
-        spacer?.remove();
-        graph.classList.remove('gsr-citation-graph--with-badges');
-        return;
-    }
-    if (!(spacer instanceof HTMLElement)) {
-        spacer = document.createElement('div');
-        spacer.className = CITATION_GRAPH_GUTTER_CLASS;
-        spacer.setAttribute('aria-hidden', 'true');
-        graph.insertBefore(spacer, graph.firstChild);
-    }
-    graph.classList.add('gsr-citation-graph--with-badges');
-    spacer.style.height = `${gutter}px`;
-}
 function scheduleCitationGraphRankChips(chipState) {
     if (!chipState?.isSparse) {
         removeCitationGraphRankChips();
@@ -8437,8 +8415,8 @@ function annotateScholarCitationGraph(chipState, attempt = 0) {
         return;
     }
     const bars = Array.from(graph.querySelectorAll('a.gsc_g_a, .gsc_g_a'));
-    reserveCitationGraphTopGutter(graph, chipState, yearLabels, bars, graphRect);
-    graphRect = graph.getBoundingClientRect();
+    graph.classList.add('gsr-citation-graph--with-badges');
+    graph.querySelector(`:scope > .${CITATION_GRAPH_GUTTER_CLASS}`)?.remove();
     const container = document.createElement('div');
     container.id = CITATION_GRAPH_BADGES_ID;
     container.className = 'gsr-citation-chips';
@@ -8474,7 +8452,7 @@ function annotateScholarCitationGraph(chipState, attempt = 0) {
                 titleText: `${rank} paper published in ${year}`
             });
         });
-        const stackTop = Math.max(0, Math.round(barTop - getCitationChipStackHeight(chipEntries.length) - CITATION_CHIP_BAR_GAP));
+        const stackTop = Math.round(barTop - getCitationChipStackHeight(chipEntries.length) - CITATION_CHIP_BAR_GAP);
         const boundedChipCenterX = Math.max(
             CITATION_CHIP_EDGE_PADDING,
             Math.min(graphRect.width - CITATION_CHIP_EDGE_PADDING, chipCenterX)
@@ -8956,7 +8934,6 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
         else
             document.body.prepend(panel);
     }
-    scheduleScholarCitationYearChartAnnotation(currentSummaryState);
     displayFacultyScorePanel(currentSummaryState);
     if (initialCachedPubRanks && initialCachedPubRanks.length > 0) {
         activeCachedPublicationRanks = initialCachedPubRanks;
@@ -9536,6 +9513,27 @@ function createUnrankedDblpVenueDecision(match, reason = 'Unranked') {
         topCandidates: null
     };
 }
+function createWorkshopVenueStringDecision(venueName, trackInfo = null, extraEvidence = []) {
+    const evidence = [
+        ...(Array.isArray(trackInfo?.signals) ? trackInfo.signals : []),
+        'workshop',
+        ...extraEvidence
+    ].filter(Boolean);
+    return {
+        system: 'CORE',
+        rank: 'N/A',
+        matchedVenue: String(venueName || '').trim() || null,
+        venueMatchConfidence: null,
+        sourceYear: null,
+        naReason: 'Workshop',
+        decisionStatus: DECISION_STATUS.UNRANKED,
+        decisionEvidence: Array.from(new Set(evidence)),
+        matchedKey: null,
+        matchedSourceId: null,
+        sourceYearFallback: false,
+        topCandidates: null
+    };
+}
 function selectPrecomputedSjrQuartile(qstr, publicationYear, startYear = SJR_DATASET_START_YEAR) {
     const text = String(qstr || '');
     if (!text)
@@ -9708,6 +9706,38 @@ async function resolveCoreRanking(venueName, publicationYear, trackInfo) {
     }
     return result;
 }
+async function resolveCoreRankingWithSnapshotFallback(venueName, publicationYear, trackInfo) {
+    const primary = await resolveCoreRanking(venueName, publicationYear, trackInfo);
+    if (VALID_RANKS.includes(primary.rank) || publicationYear == null) {
+        return primary;
+    }
+    const primaryFile = getCoreDataFileForYear(publicationYear);
+    const primaryYear = getCoreDatasetYear(primaryFile);
+    if (!Number.isFinite(primaryYear)) {
+        return primary;
+    }
+    const fallbackFiles = ORDERED_CORE_DATA_FILES
+        .filter((file) => file !== primaryFile && ((getCoreDatasetYear(file) ?? 0) < primaryYear));
+    for (const fallbackFile of fallbackFiles) {
+        const fallbackYear = getCoreDatasetYear(fallbackFile);
+        if (!Number.isFinite(fallbackYear)) {
+            continue;
+        }
+        const fallback = await resolveCoreRanking(venueName, fallbackYear, trackInfo);
+        if (!VALID_RANKS.includes(fallback.rank)) {
+            continue;
+        }
+        return {
+            ...fallback,
+            sourceYearFallback: true,
+            decisionEvidence: Array.from(new Set([
+                ...(fallback.decisionEvidence || []),
+                'core_prior_snapshot_fallback'
+            ]))
+        };
+    }
+    return primary;
+}
 async function resolveSjrRanking(venueName, publicationYear) {
     const utils = RANKING_UTILS;
     const names = [];
@@ -9842,7 +9872,7 @@ async function pickVenueRanking(venueName, titleText, publicationYear) {
             });
         }
         if (dblpVenueMatch.status === DECISION_STATUS.MISSING || !dblpVenueMatch.entry) {
-            const core = await resolveCoreRanking(venueName, publicationYear, trackInfo);
+            const core = await resolveCoreRankingWithSnapshotFallback(venueName, publicationYear, trackInfo);
             const sjr = await resolveSjrRanking(venueName, publicationYear);
             const coreHit = VALID_RANKS.includes(core.rank);
             const sjrHit = SJR_QUARTILES.includes(sjr.rank);
@@ -9855,6 +9885,9 @@ async function pickVenueRanking(venueName, titleText, publicationYear) {
                     decisionEvidence: Array.from(new Set([...(ranked.decisionEvidence || []), 'dblp_venue_missing'])),
                     decisionStatus: DECISION_STATUS.MATCHED
                 });
+            }
+            if (trackInfo.isWorkshop) {
+                return remember(createWorkshopVenueStringDecision(venueName, trackInfo, ['dblp_venue_missing']));
             }
             return remember({
                 system: 'CORE',
@@ -9894,7 +9927,7 @@ async function pickVenueRanking(venueName, titleText, publicationYear) {
         for (const candidate of rankCandidates) {
             let result = useSjr
                 ? await resolveSjrRanking(candidate, publicationYear)
-                : await resolveCoreRanking(candidate, publicationYear, trackInfo);
+                : await resolveCoreRankingWithSnapshotFallback(candidate, publicationYear, trackInfo);
             let hit = useSjr ? SJR_QUARTILES.includes(result.rank) : VALID_RANKS.includes(result.rank);
             if (!hit && !useSjr && publicationYear != null) {
                 const latestCoreResult = await resolveCoreRanking(candidate, null, trackInfo);
@@ -9939,7 +9972,7 @@ async function pickVenueRanking(venueName, titleText, publicationYear) {
         }
         return remember(createUnrankedDblpVenueDecision(dblpVenueMatch, 'Unranked'));
     }
-    const core = await resolveCoreRanking(venueName, publicationYear, trackInfo);
+    const core = await resolveCoreRankingWithSnapshotFallback(venueName, publicationYear, trackInfo);
     const sjr = await resolveSjrRanking(venueName, publicationYear);
     const coreHit = VALID_RANKS.includes(core.rank);
     const sjrHit = SJR_QUARTILES.includes(sjr.rank);
@@ -9948,6 +9981,7 @@ async function pickVenueRanking(venueName, titleText, publicationYear) {
     }
     if (coreHit) return remember(core);
     if (sjrHit) return remember(sjr);
+    if (trackInfo.isWorkshop) return remember(createWorkshopVenueStringDecision(venueName, trackInfo));
     // Neither system produced a rank: surface the most informative miss.
     if (sjr.naReason || sjr.matchedVenue) return remember(sjr);
     return remember(core);
@@ -10125,12 +10159,146 @@ async function createProductionVenueMatchReport(rawVenue, publicationYear = null
         decision
     };
 }
+function summarizeDebugRankInfo(info) {
+    if (!info || typeof info !== 'object')
+        return null;
+    return {
+        title: info.paperTitle || info.titleText || null,
+        year: info.publicationYear ?? null,
+        scholarVenue: info.scholarVenue || null,
+        rank: info.rank || null,
+        system: info.system || null,
+        reason: info.reason || null,
+        matchedVenue: info.matchedVenue || null,
+        sourceYear: info.sourceYear ?? null,
+        decisionVersion: info.decisionVersion ?? null,
+        decisionStatus: info.decisionStatus || null,
+        matchedKey: info.matchedKey || null,
+        matchedSourceId: info.matchedSourceId || null,
+        decisionEvidence: Array.isArray(info.decisionEvidence) ? info.decisionEvidence.slice() : null,
+        url: info.url || null
+    };
+}
+function debugTextMatches(value, query) {
+    const needle = String(query || '').trim().toLowerCase();
+    if (!needle)
+        return true;
+    return String(value || '').toLowerCase().includes(needle);
+}
+async function getCurrentRankDebugSnapshot(query = '') {
+    const userId = getScholarUserId();
+    const cacheKey = userId ? getCacheKey(userId) : null;
+    let rawCache = null;
+    if (cacheKey && chrome?.storage?.local?.get) {
+        try {
+            rawCache = (await chrome.storage.local.get(cacheKey))?.[cacheKey] || null;
+        }
+        catch {
+            rawCache = null;
+        }
+    }
+    const currentMatches = (currentSummaryState?.publicationRanks || [])
+        .filter(info => debugTextMatches(info?.paperTitle || info?.titleText, query)
+            || debugTextMatches(info?.matchedVenue, query)
+            || debugTextMatches(info?.scholarVenue, query))
+        .map(summarizeDebugRankInfo);
+    const activeCacheMatches = (activeCachedPublicationRanks || [])
+        .filter(info => debugTextMatches(info?.paperTitle || info?.titleText, query)
+            || debugTextMatches(info?.matchedVenue, query)
+            || debugTextMatches(info?.scholarVenue, query))
+        .map(summarizeDebugRankInfo);
+    const visibleRows = collectPublicationLinkElements()
+        .filter(info => debugTextMatches(info?.paperTitle || info?.titleText, query)
+            || debugTextMatches(info?.venueText, query))
+        .map(info => ({
+            title: info.paperTitle,
+            venueText: info.venueText,
+            year: info.yearFromProfile ?? null,
+            url: info.url || null
+        }));
+    return {
+        decisionVersion: DECISION_VERSION,
+        cacheKey,
+        cacheMetadata: rawCache ? {
+            version: rawCache.version ?? null,
+            decisionVersion: rawCache.decisionVersion ?? null,
+            scoreModelVersion: rawCache.scoreModelVersion ?? null,
+            rankingDataVersion: rawCache.rankingDataVersion ?? null,
+            scanStage: rawCache.scanStage || null,
+            timestamp: rawCache.timestamp ?? null,
+            rankCount: rawCache.publicationRanks && typeof rawCache.publicationRanks === 'object'
+                ? Object.keys(rawCache.publicationRanks).length
+                : 0
+        } : null,
+        isMainProcessing,
+        currentSummaryMatches: currentMatches,
+        activeCachedMatches: activeCacheMatches,
+        visibleRows
+    };
+}
+async function clearCurrentProfileCacheAndRescanDebug() {
+    const userId = getScholarUserId();
+    if (userId) {
+        await clearCachedData(userId);
+    }
+    await rescanCurrentProfile();
+    return { ok: true, userId: userId || null, decisionVersion: DECISION_VERSION };
+}
+function installPageWorldDebugBridge(root) {
+    if (!root?.document?.addEventListener || root.__GSVR_DEBUG_BRIDGE_INSTALLED__) {
+        return;
+    }
+    root.__GSVR_DEBUG_BRIDGE_INSTALLED__ = true;
+    const methods = {
+        createProductionVenueMatchReport,
+        getCurrentRankDebugSnapshot,
+        clearCurrentProfileCacheAndRescanDebug
+    };
+    const sendResponse = (id, payload) => {
+        const detail = { id, ...payload };
+        try {
+            root.document.documentElement?.setAttribute('data-gsvr-debug-response', JSON.stringify(detail));
+        }
+        catch {
+            // The event still carries the result for normal DevTools usage.
+        }
+        root.document.dispatchEvent(new CustomEvent('GSVR_DEBUG_RESPONSE', { detail }));
+    };
+    root.document.addEventListener('GSVR_DEBUG_REQUEST', async (event) => {
+        let request = event?.detail;
+        if (!request || typeof request !== 'object') {
+            try {
+                request = JSON.parse(root.document.documentElement?.getAttribute('data-gsvr-debug-request') || '{}');
+            }
+            catch {
+                request = {};
+            }
+        }
+        const id = request?.id || String(Date.now());
+        const methodName = request?.method;
+        const method = methods[methodName];
+        if (typeof method !== 'function') {
+            sendResponse(id, { ok: false, error: `Unknown GSVR debug method: ${methodName || 'missing'}` });
+            return;
+        }
+        try {
+            const args = Array.isArray(request.args) ? request.args : [];
+            const result = await method(...args);
+            sendResponse(id, { ok: true, result });
+        }
+        catch (error) {
+            sendResponse(id, { ok: false, error: error?.message || String(error) });
+        }
+    });
+}
 function installProductionMatcherDebugApi() {
     const root = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : null);
     if (!root)
         return;
     root.GSVRProductionMatcher = {
         createProductionVenueMatchReport,
+        getCurrentRankDebugSnapshot,
+        clearCurrentProfileCacheAndRescanDebug,
         extractVenueFromProfileLine,
         normalizeDblpVenueAlias,
         pickVenueRanking,
@@ -10139,6 +10307,7 @@ function installProductionMatcherDebugApi() {
         resolveSjrRanking,
         loadRankingsData
     };
+    installPageWorldDebugBridge(root);
 }
 installProductionMatcherDebugApi();
 async function runScanPass({ phase, sessionId, statusElement = null, context = {} }) {

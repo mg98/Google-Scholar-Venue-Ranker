@@ -1665,13 +1665,13 @@
 
 #gsc_rsb_cit #gsc_rsb_citb {
   position: relative;
-  margin-top: var(--gsr-scholar-year-badge-gutter, 18px);
-  margin-bottom: var(--gsr-scholar-year-badge-gutter, 18px);
+  margin-top: 0;
+  margin-bottom: 0;
   overflow: visible !important;
 }
 
 #gsc_rsb_cit #gsc_rsb_citb.gsr-scholar-year-chart--badged {
-  min-height: calc(100% + var(--gsr-scholar-year-badge-gutter, 18px));
+  min-height: 0;
 }
 
 #gsc_rsb_cit .gsc_g_t {
@@ -1683,7 +1683,7 @@
 }
 
 #gsc_rsb_cit .gsr-scholar-year-chart__shifted-node {
-  transform: translateY(var(--gsr-scholar-year-badge-gutter, 18px));
+  transform: none;
 }
 
 #gsc_rsb_cit .gsr-scholar-year-rank-badges {
@@ -3875,14 +3875,21 @@ tr.gsc_a_tr.gsr-row--preview.gsr-row--dimmed {
 .gsr-citation-chips {
   position: absolute;
   inset: 0;
+  overflow: visible;
   pointer-events: none;
   z-index: 5;
 }
 
 .gsr-citation-graph-gutter {
-  display: block;
+  display: none;
   width: 100%;
   pointer-events: none;
+}
+
+#gsc_rsb_cit #gsc_g,
+#gsc_rsb_cit .gsc_g_hist_wrp,
+#gsc_rsb_cit .gsr-citation-graph--with-badges {
+  overflow: visible !important;
 }
 
 .gsr-citation-chip {

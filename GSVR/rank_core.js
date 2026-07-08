@@ -24,7 +24,7 @@
     ? textNormalize.foldDiacritics
     : (value) => String(value ?? '');
 
-  const DECISION_VERSION = 3;
+  const DECISION_VERSION = 6;
   const DECISION_STATUS = Object.freeze({
     MATCHED: 'matched',
     UNRANKED: 'unranked',
@@ -213,6 +213,55 @@
     return new Set(tokenIndex.tokenToItems.get(rankedTokens[0].token) || []);
   }
 
+  function stripHistoricalParentheticals(value) {
+    return normalizeSpaces(String(value || '').replace(/\s*\((?=[^)]*\b(?:was|previously)\b)[^)]*\)\s*/gi, ' '));
+  }
+
+  function getVenueSeriesPrefixes(value) {
+    const text = normalizeSpaces(String(value || ''));
+    const match = text.match(/^(.*?\b(?:conference|symposium|workshop|meeting|colloquium|congress|forum))\b(?:\s+(?:on|of|for|in)\b.*)?$/i);
+    if (!match || !match[1]) return [];
+    const prefixes = new Set([match[1].trim()]);
+    const withoutLeadingInternational = match[1].replace(/^international\s+/i, '').trim();
+    if (withoutLeadingInternational && withoutLeadingInternational !== match[1]) {
+      prefixes.add(withoutLeadingInternational);
+    }
+    return Array.from(prefixes);
+  }
+
+  function getVenueTopic(value) {
+    const text = normalizeSpaces(String(value || ''));
+    const eventMatch = text.match(/\b(?:conference|symposium|workshop|meeting|colloquium|congress|forum)\s+(?:on|of|for|in)\s+(.+)$/i);
+    if (eventMatch && eventMatch[1]) return eventMatch[1].trim();
+    const relationMatch = text.match(/\b(?:on|of|for|in)\s+(.+)$/i);
+    return relationMatch && relationMatch[1] ? relationMatch[1].trim() : null;
+  }
+
+  function expandHistoricalVenueAliases(value) {
+    const out = new Set();
+    const text = String(value || '');
+    const currentTitle = stripHistoricalParentheticals(text);
+    if (currentTitle && currentTitle !== normalizeSpaces(text)) {
+      out.add(currentTitle);
+    }
+    const prefixes = getVenueSeriesPrefixes(currentTitle);
+    if (!prefixes.length) return Array.from(out);
+
+    for (const match of text.matchAll(/\(([^)]*\b(?:was|previously)\b[^)]*)\)/gi)) {
+      const historical = String(match[1] || '')
+        .replace(/^.*?\b(?:was|previously)\b\.?\s*/i, '')
+        .replace(/\b(?:changed|renamed|now)\b.*$/i, '')
+        .split(/[;,]/)[0]
+        .trim();
+      const topic = getVenueTopic(historical);
+      if (!topic) continue;
+      for (const prefix of prefixes) {
+        out.add(`${prefix} on ${topic}`);
+      }
+    }
+    return Array.from(out);
+  }
+
   function expandVenueCandidates(rawVenue, opts) {
     const options = opts && typeof opts === 'object' ? opts : {};
     const includeAtParent = options.includeAtParent !== false;
@@ -243,6 +292,15 @@
     const noParenNumber = value.replace(/\s*\(\s*\d{1,3}\s*\)\s*$/g, '').trim();
     if (noParenNumber && noParenNumber !== value) {
       out.add(noParenNumber);
+    }
+
+    const noTrailingPages = value.replace(/\s*,\s*(?:pp\.?\s*)?\d+\s*[-\u2013]\s*\d+\s*$/i, '').trim();
+    if (noTrailingPages && noTrailingPages !== value) {
+      out.add(noTrailingPages);
+    }
+
+    for (const historicalAlias of expandHistoricalVenueAliases(value)) {
+      out.add(historicalAlias);
     }
 
     return Array.from(out);
@@ -846,9 +904,11 @@
     const rawCandidates = Array.from(new Set([venueKey, fullVenueTitle].filter((value) => !!value && String(value).trim().length > 0)));
     const expandedCandidates = Array.from(new Set(
       rawCandidates.flatMap((candidate) => {
-        const variants = [candidate];
-        const canonical = canonicalizeCsrankingsVenueName(candidate);
-        if (canonical) variants.push(canonical);
+        const variants = [candidate, ...expandVenueCandidates(candidate)];
+        for (const variant of variants.slice()) {
+          const canonical = canonicalizeCsrankingsVenueName(variant);
+          if (canonical) variants.push(canonical);
+        }
         return variants;
       }).filter(Boolean)
     ));

@@ -105,6 +105,15 @@ function testWorkshopClassification() {
   assert.strictEqual(info.isWorkshop, true);
   assert.strictEqual(info.reason, 'Workshop');
   assert.strictEqual(info.resolvedVenue.toLowerCase(), 'enssys');
+
+  const unknownVenueWorkshop = core.classifyVenueTrack({
+    title: 'Collaborative Web Tagging',
+    venue: 'Collaborative Web Tagging Workshop at WWW2006, Edinburgh',
+    venue_full: 'Collaborative Web Tagging Workshop at WWW2006, Edinburgh',
+    pageCount: null,
+  });
+  assert.strictEqual(unknownVenueWorkshop.isWorkshop, true);
+  assert.strictEqual(unknownVenueWorkshop.reason, 'Workshop');
 }
 
 function testDemoPosterClassification() {
@@ -1013,6 +1022,27 @@ function testBundledCoreConferenceSearchStatus() {
   const sac = resolveBundledCoreVenue('CORE_2026.json', 'ACM Symposium on Applied Computing');
   assert.strictEqual(sac.status, core.DECISION_STATUS.MATCHED);
   assert.strictEqual(sac.rank, 'B');
+
+  const euroPar = resolveBundledCoreVenue('CORE_2026.json', 'European Conference on Parallel Processing');
+  assert.strictEqual(euroPar.status, core.DECISION_STATUS.MATCHED);
+  assert.strictEqual(euroPar.rank, 'B');
+  assert.strictEqual(
+    euroPar.matchedVenue,
+    'International European Conference on Parallel and Distributed Computing (was International Conference on Parallel Processing)'
+  );
+
+  const euroParWithPages = resolveBundledCoreVenue('CORE_2026.json', 'European Conference on Parallel Processing, 484-496');
+  assert.strictEqual(euroParWithPages.status, core.DECISION_STATUS.MATCHED);
+  assert.strictEqual(euroParWithPages.rank, 'B');
+  assert.strictEqual(
+    euroParWithPages.matchedVenue,
+    'International European Conference on Parallel and Distributed Computing (was International Conference on Parallel Processing)'
+  );
+
+  const icpp = resolveBundledCoreVenue('CORE_2026.json', 'International Conference on Parallel Processing');
+  assert.strictEqual(icpp.status, core.DECISION_STATUS.MATCHED);
+  assert.strictEqual(icpp.rank, 'B');
+  assert.strictEqual(icpp.matchedVenue, 'International Conference on Parallel Processing');
 }
 
 function testJournalLookupCacheScopesIssnBackedMatches() {
