@@ -466,7 +466,7 @@ function buildCoreDirectLookups(core) {
 }
 
 function findSjrMatchForCandidates(candidates, sjrValues, sjrIndexByNormalized, sjrTokenIndex, helpers) {
-  let sawAmbiguous = false;
+  let sawReview = false;
   const variants = [];
   const seenVariants = new Set();
   for (const candidate of candidates) {
@@ -505,9 +505,9 @@ function findSjrMatchForCandidates(candidates, sjrValues, sjrIndexByNormalized, 
   if (!best) return null;
   const gap = second ? best.score - second.score : Number.POSITIVE_INFINITY;
   if (second && best.score < 0.97 && gap < 0.02) {
-    sawAmbiguous = true;
+    sawReview = true;
   }
-  return sawAmbiguous ? null : best;
+  return sawReview ? null : best;
 }
 
 function disambiguateCoreDirectCandidates(query, indexes, lookup) {

@@ -7,7 +7,7 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
-  const SCORE_MODEL_VERSION = "gsvr-fractional-venue-v1";
+  const SCORE_MODEL_VERSION = "gsvr-full-venue-v1";
 
   const VENUE_VALUES = Object.freeze({
     CORE: Object.freeze({
@@ -42,10 +42,10 @@
   const DEFAULT_SCORE_CONFIG = Object.freeze({
     schemaVersion: "gsvr-score-config-v2",
     scoreModelVersion: SCORE_MODEL_VERSION,
-    formula: "sum(venueValue / authorCount)",
-    authorship: "fractional",
-    authorshipModel: "fractional_counting",
-    fractionalCountingOnly: true,
+    formula: "sum(venueValue)",
+    authorship: "none",
+    authorshipModel: "full_venue_counting",
+    fractionalCountingOnly: false,
     eligiblePublicationTypes: ELIGIBLE_PUBLICATION_TYPES,
     venueValues: VENUE_VALUES,
     sensitivityVariants: DEFAULT_SENSITIVITY_VARIANTS,
@@ -97,10 +97,10 @@
       ...base,
       ...next,
       scoreModelVersion: SCORE_MODEL_VERSION,
-      formula: "sum(venueValue / authorCount)",
-      authorship: "fractional",
-      authorshipModel: "fractional_counting",
-      fractionalCountingOnly: true,
+      formula: "sum(venueValue)",
+      authorship: "none",
+      authorshipModel: "full_venue_counting",
+      fractionalCountingOnly: false,
       venueValues,
       eligiblePublicationTypes: normalizeEligibleTypes(next.eligiblePublicationTypes || base.eligiblePublicationTypes),
       sensitivityVariants: Array.isArray(next.sensitivityVariants)
@@ -125,10 +125,10 @@
     const active = createScoreConfig(config);
     return {
       formula: active.formula,
-      authorship: "fractional",
+      authorship: "none",
       eligiblePublicationTypes: active.eligiblePublicationTypes.slice(),
       venueValues: clonePlain(active.venueValues),
-      fractionalCountingOnly: true,
+      fractionalCountingOnly: false,
     };
   }
 

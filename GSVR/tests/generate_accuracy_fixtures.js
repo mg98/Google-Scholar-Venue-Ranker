@@ -235,14 +235,14 @@ function buildGenericPublicationFixtures() {
       ],
     };
     const expected = {
-      status: lib.DECISION_STATUS.AMBIGUOUS,
+      status: lib.DECISION_STATUS.REVIEW,
       matchedKey: null,
     };
-    assertSubset(`publication_match ambiguous ${index}`, lib.resolvePublicationMatchFixture(input), expected);
+    assertSubset(`publication_match review ${index}`, lib.resolvePublicationMatchFixture(input), expected);
     fixtures.push(fixture(
-      `gold-publication-ambiguous-${String(index).padStart(2, '0')}`,
+      `gold-publication-review-${String(index).padStart(2, '0')}`,
       'publication_match',
-      ['ambiguous'],
+      ['review'],
       input,
       expected,
       'Near-tied DBLP titles with the same year should abstain instead of picking one.',
@@ -604,18 +604,18 @@ function buildGoldConferenceFixtures() {
       notes: 'The long-form USENIX Security name should disambiguate successfully.',
     },
     {
-      id: 'gold-conference-usenix-security-ambiguous',
+      id: 'gold-conference-usenix-security-review',
       input: { venueQuery: 'USENIX Security', coreYear: 2026 },
       expected: {
-        status: lib.DECISION_STATUS.AMBIGUOUS,
+        status: lib.DECISION_STATUS.REVIEW,
         rank: 'N/A',
       },
-      tags: ['ambiguous'],
+      tags: ['review'],
       source: 'manual_audit',
-      notes: 'The shorter USENIX Security label is intentionally ambiguous in the current resolver.',
+      notes: 'The shorter USENIX Security label is intentionally review in the current resolver.',
     },
     {
-      id: 'gold-conference-iws-ambiguous',
+      id: 'gold-conference-iws-review',
       input: {
         venueQuery: 'IWS',
         customCoreData: [
@@ -624,12 +624,12 @@ function buildGoldConferenceFixtures() {
         ],
       },
       expected: {
-        status: lib.DECISION_STATUS.AMBIGUOUS,
+        status: lib.DECISION_STATUS.REVIEW,
         rank: 'N/A',
       },
-      tags: ['ambiguous', 'false_positive_trap'],
+      tags: ['review', 'false_positive_trap'],
       source: 'manual_audit',
-      notes: 'Custom ambiguous acronym collisions should abstain.',
+      notes: 'Custom review acronym collisions should abstain.',
     },
     {
       id: 'gold-conference-missing-ipsn',
@@ -1146,23 +1146,23 @@ function buildGoldPipelineFixtures() {
       decisionStatus: lib.DECISION_STATUS.MISSING,
     };
     assertSubset(`pipeline dblp missing ${index}`, lib.resolvePipelineFixture(missingInput), missingExpected);
-    fixtures.push(fixture(`gold-pipeline-dblp-missing-${String(index).padStart(2, '0')}`, 'pipeline_e2e', ['false_positive_trap'], missingInput, missingExpected, 'A publication with no DBLP candidates should surface as DBLP missing.', 'manual_audit'));
+    fixtures.push(fixture(`gold-pipeline-publication-match-missing-${String(index).padStart(2, '0')}`, 'pipeline_e2e', ['false_positive_trap'], missingInput, missingExpected, 'A publication with no DBLP candidates should surface as publication match missing.', 'manual_audit'));
 
-    const ambiguousInput = {
-      scholarTitle: `Energy harvesting embedded systems ambiguous ${index}`,
+    const reviewInput = {
+      scholarTitle: `Energy harvesting embedded systems review ${index}`,
       scholarYear: 2026,
       dblpPublications: [
-        { dblpKey: `conf/amb/a-${index}`, title: `Energy harvesting for embedded systems ambiguous ${index}`, year: '2026', venue: 'IPSN' },
-        { dblpKey: `conf/amb/b-${index}`, title: `Energy harvesting of embedded systems ambiguous ${index}`, year: '2026', venue: 'IPSN' },
+        { dblpKey: `conf/amb/a-${index}`, title: `Energy harvesting for embedded systems review ${index}`, year: '2026', venue: 'IPSN' },
+        { dblpKey: `conf/amb/b-${index}`, title: `Energy harvesting of embedded systems review ${index}`, year: '2026', venue: 'IPSN' },
       ],
     };
-    const ambiguousExpected = {
+    const reviewExpected = {
       system: 'DBLP',
       rank: 'DBLP Entry Missing',
-      decisionStatus: lib.DECISION_STATUS.AMBIGUOUS,
+      decisionStatus: lib.DECISION_STATUS.REVIEW,
     };
-    assertSubset(`pipeline ambiguous ${index}`, lib.resolvePipelineFixture(ambiguousInput), ambiguousExpected);
-    fixtures.push(fixture(`gold-pipeline-dblp-ambiguous-${String(index).padStart(2, '0')}`, 'pipeline_e2e', ['ambiguous'], ambiguousInput, ambiguousExpected, 'Ambiguous DBLP publication matches should abstain instead of assigning a rank.', 'manual_audit'));
+    assertSubset(`pipeline review ${index}`, lib.resolvePipelineFixture(reviewInput), reviewExpected);
+    fixtures.push(fixture(`gold-pipeline-dblp-review-${String(index).padStart(2, '0')}`, 'pipeline_e2e', ['review'], reviewInput, reviewExpected, 'Review DBLP publication matches should abstain instead of assigning a rank.', 'manual_audit'));
   }
 
   for (let index = 1; index <= 5; index++) {
@@ -1242,7 +1242,7 @@ function buildGoldSearchFixtures() {
     ['PVLDB', { status: 'matched', primaryLabel: 'A*', matchedVenue: 'International Conference on Very Large Databases', currentStatusLabel: 'A*', sourceYear: 2026 }],
     ['POMACS', { status: 'matched', primaryLabel: 'A*', matchedVenue: 'Measurement and Modeling of Computer Systems', currentStatusLabel: 'A*', sourceYear: 2026 }],
     ['USENIX Security Symposium', { status: 'matched', primaryLabel: 'A*', matchedVenue: 'Usenix Security Symposium', currentStatusLabel: 'A*', sourceYear: 2026 }],
-    ['USENIX Security', { status: 'ambiguous', primaryLabel: 'Ambiguous', matchedVenue: null, currentStatusLabel: null, sourceYear: 2026 }],
+    ['USENIX Security', { status: 'review', primaryLabel: 'Review', matchedVenue: null, currentStatusLabel: null, sourceYear: 2026 }],
     ['SenSys', { status: 'unranked', primaryLabel: 'Unranked', matchedVenue: findCoreEntry(coreData, 'SenSys').title, currentStatusLabel: 'Unranked: merged', latestRankedSnapshot: { rank: 'A*', sourceYear: 2023, matchedVenue: 'ACM Conference on Embedded Networked Sensor Systems' }, sourceYear: 2026 }],
     ['UbiComp', { status: 'unranked', primaryLabel: 'Unranked', matchedVenue: findCoreEntry(coreData, 'UbiComp').title, currentStatusLabel: 'Journal published', latestRankedSnapshot: { rank: 'A*', sourceYear: 2018, matchedVenue: findCoreEntry(coreData, 'UbiComp').title }, sourceYear: 2026 }],
     ['NSDI', { status: 'matched', primaryLabel: 'A*', matchedVenue: 'Symposium on Networked Systems, Design and Implementation', currentStatusLabel: null, sourceYear: 2026 }],
@@ -1256,7 +1256,7 @@ function buildGoldSearchFixtures() {
     fixtures.push(fixture(
       `gold-search-conference-${String(index + 1).padStart(2, '0')}`,
       'search_queries',
-      expected.status === 'ambiguous' ? ['ambiguous'] : (expected.status === 'missing' ? ['false_positive_trap'] : ['top_venue']),
+      expected.status === 'review' ? ['review'] : (expected.status === 'missing' ? ['false_positive_trap'] : ['top_venue']),
       input,
       expected,
       'Conference manual-search results should reflect the local CORE dataset and fallback snapshots.',

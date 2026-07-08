@@ -29,7 +29,7 @@ function scoredDecision(overrides = {}) {
 }
 
 function testVenueValueMap() {
-  assert.strictEqual(scoreConfig.SCORE_MODEL_VERSION, 'gsvr-fractional-venue-v1');
+  assert.strictEqual(scoreConfig.SCORE_MODEL_VERSION, 'gsvr-full-venue-v1');
   assert.strictEqual(scoreModel.getVenueValue('CORE', 'A*'), 1);
   assert.strictEqual(scoreModel.getVenueValue('CORE', 'A'), 0.75);
   assert.strictEqual(scoreModel.getVenueValue('CORE', 'B'), 0.5);
@@ -43,21 +43,21 @@ function testPublicationContributions() {
   closeTo(scoreModel.computePublicationContribution(scoredDecision()).contribution, 1.00);
   closeTo(scoreModel.computePublicationContribution(scoredDecision({
     dblp: { key: 'conf/example/Four25', authorCount: 4 },
-  })).contribution, 0.25);
+  })).contribution, 1);
   closeTo(scoreModel.computePublicationContribution(scoredDecision({
     dblp: { key: 'conf/example/Two25', authorCount: 2 },
     ranking: { source: 'CORE', rank: 'A', snapshotYear: 2023 },
-  })).contribution, 0.375);
+  })).contribution, 0.75);
   closeTo(scoreModel.computePublicationContribution(scoredDecision({
     publicationType: 'full_journal',
     dblp: { key: 'journals/example/Three25', authorCount: 3 },
     ranking: { source: 'SJR', rank: 'Q1', snapshotYear: 2024 },
-  })).contribution, 0.25);
+  })).contribution, 0.75);
   closeTo(scoreModel.computePublicationContribution(scoredDecision({
     publicationType: 'full_journal',
     dblp: { key: 'journals/example/Ten25', authorCount: 10 },
     ranking: { source: 'SJR', rank: 'Q4', snapshotYear: 2024 },
-  })).contribution, 0.01);
+  })).contribution, 0.1);
 }
 
 function testExclusions() {
@@ -83,9 +83,9 @@ function testExclusions() {
   assert.strictEqual(missing.eligible, false);
   assert.strictEqual(missing.exclusionReason, 'dblp_missing');
 
-  const ambiguous = scoreModel.computePublicationContribution(scoredDecision({ match: { status: 'ambiguous' } }));
-  assert.strictEqual(ambiguous.eligible, false);
-  assert.strictEqual(ambiguous.exclusionReason, 'ambiguous_match');
+  const review = scoreModel.computePublicationContribution(scoredDecision({ match: { status: 'review' } }));
+  assert.strictEqual(review.eligible, false);
+  assert.strictEqual(review.exclusionReason, 'review_match');
 
   const rateLimited = scoreModel.computePublicationContribution(scoredDecision({ match: { status: 'rate_limited' } }));
   assert.strictEqual(rateLimited.eligible, false);
@@ -99,13 +99,15 @@ function testExclusions() {
   assert.strictEqual(unranked.eligible, false);
   assert.strictEqual(unranked.exclusionReason, 'rank_not_found');
 
-  const missingAuthorCount = scoreModel.computePublicationContribution(scoredDecision({ dblp: { key: 'conf/example/Missing25' } }));
-  assert.strictEqual(missingAuthorCount.eligible, false);
-  assert.strictEqual(missingAuthorCount.exclusionReason, 'missing_author_count');
+  const missingAuthorMetadata = scoreModel.computePublicationContribution(scoredDecision({ dblp: { key: 'conf/example/Missing25' } }));
+  assert.strictEqual(missingAuthorMetadata.eligible, true);
+  assert.strictEqual(missingAuthorMetadata.authorCount, null);
+  assert.strictEqual(missingAuthorMetadata.contribution, 1);
 
   const invalidAuthorCount = scoreModel.computePublicationContribution(scoredDecision({ dblp: { key: 'conf/example/Invalid25', authorCount: 0 } }));
-  assert.strictEqual(invalidAuthorCount.eligible, false);
-  assert.strictEqual(invalidAuthorCount.exclusionReason, 'missing_author_count');
+  assert.strictEqual(invalidAuthorCount.eligible, true);
+  assert.strictEqual(invalidAuthorCount.authorCount, null);
+  assert.strictEqual(invalidAuthorCount.contribution, 1);
 }
 
 function testPublicationTypeClassifier() {
@@ -248,12 +250,12 @@ function testProfileScoreTotals() {
   ];
   const result = scoreModel.computeProfileScore(publications, scoreConfig.DEFAULT_SCORE_CONFIG);
 
-  closeTo(result.scores.gsvrScore, 1 + 0.375 + 0.25);
-  closeTo(result.scores.coreContribution, 1 + 0.375);
-  closeTo(result.scores.sjrContribution, 0.25);
-  closeTo(result.scores.fractionalPublicationWeight, 1 + 0.5 + (1 / 3));
+  closeTo(result.scores.gsvrScore, 1 + 0.75 + 0.75);
+  closeTo(result.scores.coreContribution, 1 + 0.75);
+  closeTo(result.scores.sjrContribution, 0.75);
+  closeTo(result.scores.fractionalPublicationWeight, 0);
   assert.strictEqual(result.scores.eligibleRankedPublications, 3);
-  closeTo(result.scores.averageVenueValue, result.scores.gsvrScore / result.scores.fractionalPublicationWeight);
+  closeTo(result.scores.averageVenueValue, result.scores.gsvrScore / result.scores.eligibleRankedPublications);
   assert.strictEqual(result.diagnostics.excludedShortPapers, 1);
   assert.strictEqual(result.completeness.total, 4);
   assert.strictEqual(result.completeness.scored, 3);
@@ -265,7 +267,7 @@ function testCompletenessSummary() {
   const publications = [
     scoredDecision(),
     scoredDecision({ match: { status: 'missing' } }),
-    scoredDecision({ match: { status: 'ambiguous' } }),
+    scoredDecision({ match: { status: 'review' } }),
     scoredDecision({ ranking: { source: 'CORE', rank: 'N/A', snapshotYear: 2023 } }),
     scoredDecision({ publicationType: 'workshop' }),
     scoredDecision({ dblp: { key: 'conf/example/MissingAuthors25' } }),
@@ -274,14 +276,13 @@ function testCompletenessSummary() {
   const result = scoreModel.computeCompleteness(publications, scoreConfig.DEFAULT_SCORE_CONFIG);
 
   assert.strictEqual(result.total, 7);
-  assert.strictEqual(result.scored, 1);
+  assert.strictEqual(result.scored, 2);
   assert.strictEqual(result.dblpMissing, 1);
-  assert.strictEqual(result.ambiguous, 1);
+  assert.strictEqual(result.review, 1);
   assert.strictEqual(result.rankNotFound, 1);
   assert.strictEqual(result.excludedType, 1);
-  assert.strictEqual(result.missingAuthorCount, 1);
   assert.strictEqual(result.lookupUnavailable, 1);
-  closeTo(result.completeness, 1 / 7);
+  closeTo(result.completeness, 2 / 7);
   assert.strictEqual(result.segments.reduce((total, segment) => total + segment.count, 0), 7);
 }
 
@@ -353,21 +354,20 @@ function testReportSchemaValidation() {
     dblpProfile: { pid: '12/3456', name: 'Example', confidence: 1 },
     scoringPolicy: scoreConfig.getScoringPolicy(),
     scores: {
-      gsvrScore: 0.25,
-      coreContribution: 0.25,
+      gsvrScore: 0.75,
+      coreContribution: 0.75,
       sjrContribution: 0,
       eligibleRankedPublications: 1,
-      fractionalPublicationWeight: 1 / 3,
+      fractionalPublicationWeight: 0,
       averageVenueValue: 0.75,
     },
     completeness: {
       total: 1,
       scored: 1,
       dblpMissing: 0,
-      ambiguous: 0,
+      review: 0,
       rankNotFound: 0,
       excludedType: 0,
-      missingAuthorCount: 0,
       lookupUnavailable: 0,
     },
     diagnostics: { totalScholarItems: 1, eligibleRankedPublications: 1 },
@@ -377,10 +377,10 @@ function testReportSchemaValidation() {
 
   assert.strictEqual(reportSchema.validateProfileReport(report), true);
   assert.strictEqual(report.schemaVersion, 'gsvr-profile-report-v3');
-  assert.strictEqual(report.scores.gsvrScore, 0.25);
+  assert.strictEqual(report.scores.gsvrScore, 0.75);
   assert.strictEqual(report.completeness.completeness, 1);
-  assert.strictEqual(report.completeness.segments.length, 7);
-  assert.strictEqual(report.scoringPolicy.fractionalCountingOnly, true);
+  assert.strictEqual(report.completeness.segments.length, 6);
+  assert.strictEqual(report.scoringPolicy.fractionalCountingOnly, false);
 }
 
 function runScoreTests() {

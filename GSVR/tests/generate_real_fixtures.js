@@ -397,7 +397,7 @@ const PUBLICATION_CASES = [
     notes: 'Scholar ellipsis-truncated titles must prefix-match their DBLP record.',
   },
   {
-    id: 'real-publication-truncated-ambiguous',
+    id: 'real-publication-truncated-review',
     input: {
       scholarTitle: 'A Longitudinal Study of Network Behavior in Campus Networks…',
       scholarYear: 2022,
@@ -406,7 +406,7 @@ const PUBLICATION_CASES = [
         { dblpKey: 'conf/imc/part2', title: 'A Longitudinal Study of Network Behavior in Campus Networks: Modeling', year: '2022', venue: 'IMC' },
       ],
     },
-    expected: { status: 'ambiguous', matchedKey: null },
+    expected: { status: 'review', matchedKey: null },
     notes: 'Two records sharing the truncated prefix are indistinguishable; the matcher must abstain.',
   },
   {

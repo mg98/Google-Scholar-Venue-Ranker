@@ -28,7 +28,7 @@
   const DECISION_STATUS = Object.freeze({
     MATCHED: 'matched',
     UNRANKED: 'unranked',
-    AMBIGUOUS: 'ambiguous',
+    REVIEW: 'review',
     MISSING: 'missing',
   });
   const WORD_ORDINAL_ONES = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth'];
@@ -47,16 +47,16 @@
     profileMinOverlapCount: 2,
     profileMatchScoreThreshold: 3.6,
     profileStrongScoreThreshold: 5.4,
-    profileAmbiguityGap: 0.45,
+    profileReviewGap: 0.45,
     publicationSimilarityThreshold: 0.88,
     publicationStrongSimilarityThreshold: 0.94,
     publicationMaxYearDiff: 2,
     publicationStrongYearDiff: 4,
-    publicationAmbiguityGap: 0.018,
+    publicationReviewGap: 0.018,
     coreFuzzyThreshold: 0.83,
-    coreAmbiguityGap: 0.02,
+    coreReviewGap: 0.02,
     sjrFuzzyThreshold: 0.83,
-    sjrAmbiguityGap: 0.015,
+    sjrReviewGap: 0.015,
   });
 
   const TRACK_PREFIXES = [
@@ -558,7 +558,7 @@
     let score = similarity;
     if (truncatedPrefix) {
       // Identical prefixes of two DIFFERENT long papers must stay inside the
-      // ambiguity gate (which is skipped at score >= 0.96), so a prefix match
+      // review gate (which is skipped at score >= 0.96), so a prefix match
       // can never claim full-title certainty.
       score = Math.min(score, 0.95);
     }
@@ -668,14 +668,14 @@
     }
 
     const gap = second ? best.score - second.score : Number.POSITIVE_INFINITY;
-    if (!best.exactTitleMatch && second && best.score < 0.96 && gap < config.publicationAmbiguityGap) {
+    if (!best.exactTitleMatch && second && best.score < 0.96 && gap < config.publicationReviewGap) {
       return {
-        status: DECISION_STATUS.AMBIGUOUS,
+        status: DECISION_STATUS.REVIEW,
         match: null,
         confidence: best.score,
         scoreGap: gap,
         runnerUpScore: second.score,
-        reason: 'publication_ambiguous',
+        reason: 'publication_review',
         topCandidates: [summarizePublicationCandidate(best), summarizePublicationCandidate(second)].filter(Boolean),
       };
     }
@@ -826,8 +826,8 @@
 
     if (!best) return null;
     const gap = second ? best.score - second.score : Number.POSITIVE_INFINITY;
-    if (second && best.score < 0.96 && gap < RANKING_CONFIG.coreAmbiguityGap) {
-      return { status: DECISION_STATUS.AMBIGUOUS, score: best.score, gap, bestIndex: best.index, secondIndex: second.index };
+    if (second && best.score < 0.96 && gap < RANKING_CONFIG.coreReviewGap) {
+      return { status: DECISION_STATUS.REVIEW, score: best.score, gap, bestIndex: best.index, secondIndex: second.index };
     }
     return { status: DECISION_STATUS.MATCHED, score: best.score, entry: aliasIndex.entries[best.index] };
   }
@@ -923,7 +923,7 @@
         const entry = index.entries[acronymMatches[0]];
         if (!acronymEntryAgreesWithTitle(entry, fullVenueTitle, candidate)) {
           return {
-            status: DECISION_STATUS.AMBIGUOUS,
+            status: DECISION_STATUS.REVIEW,
             rank: 'N/A',
             reason: 'acronym_title_mismatch',
             confidence: null,
@@ -939,9 +939,9 @@
           return buildEntryResolution(entry, candidate, disambiguated.score, 'acronym_disambiguated', entry.acronym || entry.title || candidate);
         }
         return {
-          status: DECISION_STATUS.AMBIGUOUS,
+          status: DECISION_STATUS.REVIEW,
           rank: 'N/A',
-          reason: 'ambiguous_acronym',
+          reason: 'review_acronym',
           confidence: disambiguated?.score || null,
           topCandidates: summarizeCoreEntries(acronymMatches, index),
         };
@@ -962,9 +962,9 @@
           return buildEntryResolution(entry, candidate, disambiguated.score, 'alias_disambiguated', entry.title || candidate);
         }
         return {
-          status: DECISION_STATUS.AMBIGUOUS,
+          status: DECISION_STATUS.REVIEW,
           rank: 'N/A',
-          reason: 'ambiguous_title_alias',
+          reason: 'review_title_alias',
           confidence: disambiguated?.score || null,
           topCandidates: summarizeCoreEntries(aliasMatches, index),
         };
@@ -996,11 +996,11 @@
     }
 
     const gap = second ? best.score - second.score : Number.POSITIVE_INFINITY;
-    if (second && best.score < 0.97 && gap < RANKING_CONFIG.coreAmbiguityGap) {
+    if (second && best.score < 0.97 && gap < RANKING_CONFIG.coreReviewGap) {
       return {
-        status: DECISION_STATUS.AMBIGUOUS,
+        status: DECISION_STATUS.REVIEW,
         rank: 'N/A',
-        reason: 'ambiguous_fuzzy_core',
+        reason: 'review_fuzzy_core',
         confidence: best.score,
         gap,
         topCandidates: summarizeCoreEntries([best.index, second.index], index),

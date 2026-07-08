@@ -1,7 +1,7 @@
 {
   "report": {
-    "generatedAt": "2026-05-07T06:38:59.305Z",
-    "cwd": "C:\\Users\\Naveed Bhatti\\Documents\\Google-Scholar-Venue-Ranker - CODEX",
+    "generatedAt": "2026-07-08T09:58:34.872Z",
+    "cwd": "/Users/marcel/Downloads/corematch/Google-Scholar-Venue-Ranker",
     "suite": "gold",
     "family": null,
     "fixtureCount": 600,
@@ -20,9 +20,9 @@
             "falsePositiveCount": 0,
             "falseNegativeCount": 0,
             "abstainRate": 0.5,
-            "ambiguityRate": 0,
-            "meanLatencyMs": 0.3662975,
-            "p95LatencyMs": 0.9931,
+            "reviewRate": 0,
+            "meanLatencyMs": 0.24408022500000004,
+            "p95LatencyMs": 0.27575,
             "statusConfusion": {
               "matched": {
                 "matched": 20
@@ -36,7 +36,7 @@
             "sampleFailures": [],
             "topFalsePositives": [],
             "topFalseNegatives": [],
-            "topAmbiguousFailures": []
+            "topReviewFailures": []
           },
           "publication_match": {
             "suite": "gold",
@@ -50,15 +50,15 @@
             "falsePositiveCount": 0,
             "falseNegativeCount": 0,
             "abstainRate": 0.5,
-            "ambiguityRate": 0.25,
-            "meanLatencyMs": 0.0525125,
-            "p95LatencyMs": 0.1179,
+            "reviewRate": 0.25,
+            "meanLatencyMs": 0.03424895,
+            "p95LatencyMs": 0.058292,
             "statusConfusion": {
               "matched": {
                 "matched": 40
               },
-              "ambiguous": {
-                "ambiguous": 20
+              "review": {
+                "review": 20
               },
               "missing": {
                 "missing": 20
@@ -69,7 +69,7 @@
             "sampleFailures": [],
             "topFalsePositives": [],
             "topFalseNegatives": [],
-            "topAmbiguousFailures": []
+            "topReviewFailures": []
           },
           "track_classification": {
             "suite": "gold",
@@ -83,9 +83,9 @@
             "falsePositiveCount": 0,
             "falseNegativeCount": 0,
             "abstainRate": 0,
-            "ambiguityRate": 0,
-            "meanLatencyMs": 0.027403750000000025,
-            "p95LatencyMs": 0.0242,
+            "reviewRate": 0,
+            "meanLatencyMs": 0.020117212499999988,
+            "p95LatencyMs": 0.0105,
             "statusConfusion": {
               "workshop": {
                 "workshop": 20
@@ -108,32 +108,33 @@
             "sampleFailures": [],
             "topFalsePositives": [],
             "topFalseNegatives": [],
-            "topAmbiguousFailures": []
+            "topReviewFailures": []
           },
           "conference_resolution": {
             "suite": "gold",
             "family": "conference_resolution",
             "total": 120,
-            "passed": 120,
-            "failed": 0,
-            "exactAccuracy": 1,
+            "passed": 111,
+            "failed": 9,
+            "exactAccuracy": 0.925,
             "precision": 1,
-            "recall": 1,
+            "recall": 0.9908256880733946,
             "falsePositiveCount": 0,
-            "falseNegativeCount": 0,
-            "abstainRate": 0.025,
-            "ambiguityRate": 0.016666666666666666,
-            "meanLatencyMs": 0.2636416666666668,
-            "p95LatencyMs": 0.116,
+            "falseNegativeCount": 1,
+            "abstainRate": 0.1,
+            "reviewRate": 0.016666666666666666,
+            "meanLatencyMs": 1.146652500000001,
+            "p95LatencyMs": 1.443875,
             "statusConfusion": {
               "matched": {
-                "matched": 109
+                "matched": 108,
+                "missing": 1
               },
               "unranked": {
-                "unranked": 8
+                "missing": 8
               },
-              "ambiguous": {
-                "ambiguous": 2
+              "review": {
+                "review": 2
               },
               "missing": {
                 "missing": 1
@@ -147,7 +148,8 @@
                 "C": 16
               },
               "A*": {
-                "A*": 40
+                "A*": 39,
+                "N/A": 1
               },
               "A": {
                 "A": 27
@@ -157,29 +159,243 @@
               }
             },
             "journalQuartileConfusion": {},
-            "sampleFailures": [],
+            "sampleFailures": [
+              {
+                "id": "gold-conference-acronym-08",
+                "family": "conference_resolution",
+                "suite": "gold",
+                "expected": {
+                  "status": "unranked",
+                  "rank": "N/A",
+                  "matchedVenue": "ACM Conference on Embedded Networked Sensor Systems",
+                  "rawRankLabel": "unranked: merged",
+                  "sourceYear": 2026
+                },
+                "actual": {
+                  "status": "missing",
+                  "rank": "N/A",
+                  "matchedVenue": null,
+                  "rawRankLabel": null,
+                  "matchType": null,
+                  "sourceYear": 2026,
+                  "confidence": null,
+                  "fullVenueTitle": "ACM Conference on Embedded Networked Sensor Systems"
+                },
+                "latencyMs": 7.657917
+              },
+              {
+                "id": "gold-conference-title-08",
+                "family": "conference_resolution",
+                "suite": "gold",
+                "expected": {
+                  "status": "unranked",
+                  "rank": "N/A",
+                  "matchedVenue": "ACM Conference on Embedded Networked Sensor Systems",
+                  "rawRankLabel": "unranked: merged",
+                  "sourceYear": 2026
+                },
+                "actual": {
+                  "status": "missing",
+                  "rank": "N/A",
+                  "matchedVenue": null,
+                  "rawRankLabel": null,
+                  "matchType": null,
+                  "sourceYear": 2026,
+                  "confidence": null,
+                  "fullVenueTitle": "ACM Conference on Embedded Networked Sensor Systems"
+                },
+                "latencyMs": 0.270958
+              },
+              {
+                "id": "gold-conference-acronym-17",
+                "family": "conference_resolution",
+                "suite": "gold",
+                "expected": {
+                  "status": "unranked",
+                  "rank": "N/A",
+                  "matchedVenue": "ACM International Conference on Interactive Surfaces and Spaces (was International Workshop on Horizontal Interactive Human-Computer Systems: Tabletop)",
+                  "rawRankLabel": "Journal Published",
+                  "sourceYear": 2026
+                },
+                "actual": {
+                  "status": "missing",
+                  "rank": "N/A",
+                  "matchedVenue": null,
+                  "rawRankLabel": null,
+                  "matchType": null,
+                  "sourceYear": 2026,
+                  "confidence": null,
+                  "fullVenueTitle": "ACM International Conference on Interactive Surfaces and Spaces (was International Workshop on Horizontal Interactive Human-Computer Systems: Tabletop)"
+                },
+                "latencyMs": 0.081375
+              },
+              {
+                "id": "gold-conference-title-17",
+                "family": "conference_resolution",
+                "suite": "gold",
+                "expected": {
+                  "status": "unranked",
+                  "rank": "N/A",
+                  "matchedVenue": "ACM International Conference on Interactive Surfaces and Spaces (was International Workshop on Horizontal Interactive Human-Computer Systems: Tabletop)",
+                  "rawRankLabel": "Journal Published",
+                  "sourceYear": 2026
+                },
+                "actual": {
+                  "status": "missing",
+                  "rank": "N/A",
+                  "matchedVenue": null,
+                  "rawRankLabel": null,
+                  "matchType": null,
+                  "sourceYear": 2026,
+                  "confidence": null,
+                  "fullVenueTitle": "ACM International Conference on Interactive Surfaces and Spaces (was International Workshop on Horizontal Interactive Human-Computer Systems: Tabletop)"
+                },
+                "latencyMs": 4.218042
+              },
+              {
+                "id": "gold-conference-acronym-26",
+                "family": "conference_resolution",
+                "suite": "gold",
+                "expected": {
+                  "status": "unranked",
+                  "rank": "N/A",
+                  "matchedVenue": "ACM International Joint Conference on Pervasive and Ubiquitous Computing (PERVASIVE and UbiComp combined from 2013)",
+                  "rawRankLabel": "journal published",
+                  "sourceYear": 2026
+                },
+                "actual": {
+                  "status": "missing",
+                  "rank": "N/A",
+                  "matchedVenue": null,
+                  "rawRankLabel": null,
+                  "matchType": null,
+                  "sourceYear": 2026,
+                  "confidence": null,
+                  "fullVenueTitle": "ACM International Joint Conference on Pervasive and Ubiquitous Computing (PERVASIVE and UbiComp combined from 2013)"
+                },
+                "latencyMs": 1.928125
+              },
+              {
+                "id": "gold-conference-title-26",
+                "family": "conference_resolution",
+                "suite": "gold",
+                "expected": {
+                  "status": "unranked",
+                  "rank": "N/A",
+                  "matchedVenue": "ACM International Joint Conference on Pervasive and Ubiquitous Computing (PERVASIVE and UbiComp combined from 2013)",
+                  "rawRankLabel": "journal published",
+                  "sourceYear": 2026
+                },
+                "actual": {
+                  "status": "missing",
+                  "rank": "N/A",
+                  "matchedVenue": null,
+                  "rawRankLabel": null,
+                  "matchType": null,
+                  "sourceYear": 2026,
+                  "confidence": null,
+                  "fullVenueTitle": "ACM International Joint Conference on Pervasive and Ubiquitous Computing (PERVASIVE and UbiComp combined from 2013)"
+                },
+                "latencyMs": 4.046792
+              },
+              {
+                "id": "gold-conference-sensys-merged",
+                "family": "conference_resolution",
+                "suite": "gold",
+                "expected": {
+                  "status": "unranked",
+                  "rank": "N/A",
+                  "matchedVenue": "ACM Conference on Embedded Networked Sensor Systems",
+                  "rawRankLabel": "unranked: merged",
+                  "matchType": "acronym_exact",
+                  "sourceYear": 2026
+                },
+                "actual": {
+                  "status": "missing",
+                  "rank": "N/A",
+                  "matchedVenue": null,
+                  "rawRankLabel": null,
+                  "matchType": null,
+                  "sourceYear": 2026,
+                  "confidence": null,
+                  "fullVenueTitle": "SenSys"
+                },
+                "latencyMs": 1.443875
+              },
+              {
+                "id": "gold-conference-ubicomp-journal-published",
+                "family": "conference_resolution",
+                "suite": "gold",
+                "expected": {
+                  "status": "unranked",
+                  "rank": "N/A",
+                  "matchedVenue": "ACM International Joint Conference on Pervasive and Ubiquitous Computing (PERVASIVE and UbiComp combined from 2013)",
+                  "rawRankLabel": "journal published",
+                  "matchType": "acronym_exact",
+                  "sourceYear": 2026
+                },
+                "actual": {
+                  "status": "missing",
+                  "rank": "N/A",
+                  "matchedVenue": null,
+                  "rawRankLabel": null,
+                  "matchType": null,
+                  "sourceYear": 2026,
+                  "confidence": null,
+                  "fullVenueTitle": "UbiComp"
+                },
+                "latencyMs": 1.490125
+              },
+              {
+                "id": "gold-conference-nsdi-fallback",
+                "family": "conference_resolution",
+                "suite": "gold",
+                "expected": {
+                  "status": "matched",
+                  "rank": "A*",
+                  "matchedVenue": "Symposium on Networked Systems, Design and Implementation",
+                  "rawRankLabel": null,
+                  "matchType": "top_venue_fallback",
+                  "sourceYear": 2026
+                },
+                "actual": {
+                  "status": "missing",
+                  "rank": "N/A",
+                  "matchedVenue": null,
+                  "rawRankLabel": null,
+                  "matchType": null,
+                  "sourceYear": 2026,
+                  "confidence": null,
+                  "fullVenueTitle": "NSDI"
+                },
+                "latencyMs": 0.063709
+              }
+            ],
             "topFalsePositives": [],
-            "topFalseNegatives": [],
-            "topAmbiguousFailures": []
+            "topFalseNegatives": [
+              "gold-conference-nsdi-fallback"
+            ],
+            "topReviewFailures": []
           },
           "journal_resolution": {
             "suite": "gold",
             "family": "journal_resolution",
             "total": 120,
-            "passed": 120,
-            "failed": 0,
-            "exactAccuracy": 1,
+            "passed": 5,
+            "failed": 115,
+            "exactAccuracy": 0.041666666666666664,
             "precision": 1,
-            "recall": 1,
+            "recall": 0.7435897435897436,
             "falsePositiveCount": 0,
-            "falseNegativeCount": 0,
-            "abstainRate": 0.025,
-            "ambiguityRate": 0,
-            "meanLatencyMs": 12.01205416666667,
-            "p95LatencyMs": 0.0873,
+            "falseNegativeCount": 30,
+            "abstainRate": 0.275,
+            "reviewRate": 0,
+            "meanLatencyMs": 10.949940966666668,
+            "p95LatencyMs": 55.080791,
             "statusConfusion": {
               "matched": {
-                "matched": 117
+                "missing": 30,
+                "matched": 87
               },
               "missing": {
                 "missing": 3
@@ -188,86 +404,584 @@
             "conferenceRankConfusion": {},
             "journalQuartileConfusion": {
               "Q4": {
-                "Q4": 44
+                "N/A": 10,
+                "Q4": 36,
+                "Q2": 2,
+                "Q3": 1
               },
               "Q2": {
-                "Q2": 25
+                "Q2": 14,
+                "N/A": 3,
+                "Q4": 1,
+                "Q1": 1
               },
               "Q3": {
-                "Q3": 17
+                "Q3": 13,
+                "N/A": 8
               },
               "Q1": {
-                "Q1": 31
+                "N/A": 9,
+                "Q1": 19
               },
               "N/A": {
                 "N/A": 3
               }
             },
-            "sampleFailures": [],
+            "sampleFailures": [
+              {
+                "id": "gold-journal-exact-01",
+                "family": "journal_resolution",
+                "suite": "gold",
+                "expected": {
+                  "status": "matched",
+                  "quartile": "Q4",
+                  "matchedTitle": "[Nippon koshu eisei zasshi] Japanese journal of public health",
+                  "sourceYear": 2019,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": "22012",
+                  "matchType": "title_exact"
+                },
+                "actual": {
+                  "status": "missing",
+                  "quartile": "N/A",
+                  "matchedTitle": null,
+                  "sourceYear": null,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": null,
+                  "matchType": null,
+                  "reason": null
+                },
+                "latencyMs": 136.440333
+              },
+              {
+                "id": "gold-journal-exact-02",
+                "family": "journal_resolution",
+                "suite": "gold",
+                "expected": {
+                  "status": "matched",
+                  "quartile": "Q4",
+                  "matchedTitle": "[Rinsho ketsueki] The Japanese journal of clinical hematology",
+                  "sourceYear": 2019,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": "26063",
+                  "matchType": "title_exact"
+                },
+                "actual": {
+                  "status": "matched",
+                  "quartile": "Q4",
+                  "matchedTitle": "[Rinsho ketsueki] The Japanese journal of clinical hematology",
+                  "sourceYear": 2019,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": null,
+                  "matchType": "title_exact",
+                  "reason": null
+                },
+                "latencyMs": 0.861125
+              },
+              {
+                "id": "gold-journal-exact-03",
+                "family": "journal_resolution",
+                "suite": "gold",
+                "expected": {
+                  "status": "matched",
+                  "quartile": "Q4",
+                  "matchedTitle": "@GRH",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": "21101170611",
+                  "matchType": "title_exact"
+                },
+                "actual": {
+                  "status": "matched",
+                  "quartile": "Q4",
+                  "matchedTitle": "@GRH",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": null,
+                  "matchType": "title_exact",
+                  "reason": null
+                },
+                "latencyMs": 0.048792
+              },
+              {
+                "id": "gold-journal-exact-04",
+                "family": "journal_resolution",
+                "suite": "gold",
+                "expected": {
+                  "status": "matched",
+                  "quartile": "Q2",
+                  "matchedTitle": "1700-tal: Nordic Journal for Eighteenth-Century Studies",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": "21100832755",
+                  "matchType": "title_exact"
+                },
+                "actual": {
+                  "status": "matched",
+                  "quartile": "Q2",
+                  "matchedTitle": "1700-tal: Nordic Journal for Eighteenth-Century Studies",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": null,
+                  "matchType": "title_exact",
+                  "reason": null
+                },
+                "latencyMs": 0.050833
+              },
+              {
+                "id": "gold-journal-exact-05",
+                "family": "journal_resolution",
+                "suite": "gold",
+                "expected": {
+                  "status": "matched",
+                  "quartile": "Q4",
+                  "matchedTitle": "20 & 21: Revue d'Histoire",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": "21101194408",
+                  "matchType": "title_exact"
+                },
+                "actual": {
+                  "status": "matched",
+                  "quartile": "Q4",
+                  "matchedTitle": "20 & 21: Revue d'Histoire",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": null,
+                  "matchType": "title_exact",
+                  "reason": null
+                },
+                "latencyMs": 0.043167
+              },
+              {
+                "id": "gold-journal-exact-06",
+                "family": "journal_resolution",
+                "suite": "gold",
+                "expected": {
+                  "status": "matched",
+                  "quartile": "Q3",
+                  "matchedTitle": "21st Century Music",
+                  "sourceYear": 2014,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": "18500162600",
+                  "matchType": "title_exact"
+                },
+                "actual": {
+                  "status": "matched",
+                  "quartile": "Q3",
+                  "matchedTitle": "21st Century Music",
+                  "sourceYear": 2014,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": null,
+                  "matchType": "title_exact",
+                  "reason": null
+                },
+                "latencyMs": 0.040125
+              },
+              {
+                "id": "gold-journal-exact-07",
+                "family": "journal_resolution",
+                "suite": "gold",
+                "expected": {
+                  "status": "matched",
+                  "quartile": "Q1",
+                  "matchedTitle": "2D Materials",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": "21100404576",
+                  "matchType": "title_exact"
+                },
+                "actual": {
+                  "status": "missing",
+                  "quartile": "N/A",
+                  "matchedTitle": null,
+                  "sourceYear": null,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": null,
+                  "matchType": null,
+                  "reason": null
+                },
+                "latencyMs": 0.803916
+              },
+              {
+                "id": "gold-journal-exact-08",
+                "family": "journal_resolution",
+                "suite": "gold",
+                "expected": {
+                  "status": "matched",
+                  "quartile": "Q1",
+                  "matchedTitle": "3 Biotech",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": "21100447128",
+                  "matchType": "title_exact_raw"
+                },
+                "actual": {
+                  "status": "matched",
+                  "quartile": "Q1",
+                  "matchedTitle": "3 Biotech",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": null,
+                  "matchType": "title_exact",
+                  "reason": null
+                },
+                "latencyMs": 0.050584
+              },
+              {
+                "id": "gold-journal-exact-09",
+                "family": "journal_resolution",
+                "suite": "gold",
+                "expected": {
+                  "status": "matched",
+                  "quartile": "Q2",
+                  "matchedTitle": "3D Printing and Additive Manufacturing",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": "21100779062",
+                  "matchType": "title_exact"
+                },
+                "actual": {
+                  "status": "matched",
+                  "quartile": "Q2",
+                  "matchedTitle": "3D Printing and Additive Manufacturing",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": null,
+                  "matchType": "title_fuzzy",
+                  "reason": null
+                },
+                "latencyMs": 0.175084
+              },
+              {
+                "id": "gold-journal-exact-10",
+                "family": "journal_resolution",
+                "suite": "gold",
+                "expected": {
+                  "status": "matched",
+                  "quartile": "Q3",
+                  "matchedTitle": "3D Printing in Medicine",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": "21100932761",
+                  "matchType": "title_exact"
+                },
+                "actual": {
+                  "status": "missing",
+                  "quartile": "N/A",
+                  "matchedTitle": null,
+                  "sourceYear": null,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": null,
+                  "matchType": null,
+                  "reason": null
+                },
+                "latencyMs": 0.057292
+              }
+            ],
             "topFalsePositives": [],
-            "topFalseNegatives": [],
-            "topAmbiguousFailures": []
+            "topFalseNegatives": [
+              "gold-journal-exact-01",
+              "gold-journal-exact-07",
+              "gold-journal-exact-10",
+              "gold-journal-exact-11",
+              "gold-journal-exact-12"
+            ],
+            "topReviewFailures": []
           },
           "pipeline_e2e": {
             "suite": "gold",
             "family": "pipeline_e2e",
             "total": 100,
-            "passed": 100,
-            "failed": 0,
-            "exactAccuracy": 1,
+            "passed": 91,
+            "failed": 9,
+            "exactAccuracy": 0.91,
             "precision": 1,
-            "recall": 1,
+            "recall": 0.92,
             "falsePositiveCount": 0,
-            "falseNegativeCount": 0,
-            "abstainRate": 0.1,
-            "ambiguityRate": 0.05,
-            "meanLatencyMs": 0.32919299999999985,
-            "p95LatencyMs": 2.801,
+            "falseNegativeCount": 4,
+            "abstainRate": 0.19,
+            "reviewRate": 0.05,
+            "meanLatencyMs": 0.29401378000000006,
+            "p95LatencyMs": 1.415,
             "statusConfusion": {
               "matched": {
-                "matched": 50
+                "matched": 46,
+                "missing": 4
               },
               "unranked": {
-                "unranked": 40
+                "unranked": 35,
+                "missing": 5
               },
               "missing": {
                 "missing": 5
               },
-              "ambiguous": {
-                "ambiguous": 5
+              "review": {
+                "review": 5
               }
             },
             "conferenceRankConfusion": {},
             "journalQuartileConfusion": {},
-            "sampleFailures": [],
+            "sampleFailures": [
+              {
+                "id": "gold-pipeline-sjr-02",
+                "family": "pipeline_e2e",
+                "suite": "gold",
+                "expected": {
+                  "system": "SJR",
+                  "rank": "Q1",
+                  "decisionStatus": "matched",
+                  "matchedVenue": "2D Materials",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false
+                },
+                "actual": {
+                  "system": "SJR",
+                  "rank": "N/A",
+                  "reason": null,
+                  "decisionStatus": "missing",
+                  "matchedVenue": null,
+                  "matchedKey": null,
+                  "matchedSourceId": null,
+                  "sourceYear": null,
+                  "sourceYearFallback": false,
+                  "confidence": 1
+                },
+                "latencyMs": 0.71125
+              },
+              {
+                "id": "gold-pipeline-sjr-04",
+                "family": "pipeline_e2e",
+                "suite": "gold",
+                "expected": {
+                  "system": "SJR",
+                  "rank": "Q3",
+                  "decisionStatus": "matched",
+                  "matchedVenue": "3D Printing in Medicine",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false
+                },
+                "actual": {
+                  "system": "SJR",
+                  "rank": "N/A",
+                  "reason": null,
+                  "decisionStatus": "missing",
+                  "matchedVenue": null,
+                  "matchedKey": null,
+                  "matchedSourceId": null,
+                  "sourceYear": null,
+                  "sourceYearFallback": false,
+                  "confidence": 1
+                },
+                "latencyMs": 0.06
+              },
+              {
+                "id": "gold-pipeline-sjr-05",
+                "family": "pipeline_e2e",
+                "suite": "gold",
+                "expected": {
+                  "system": "SJR",
+                  "rank": "Q3",
+                  "decisionStatus": "matched",
+                  "matchedVenue": "3D Research",
+                  "sourceYear": 2022,
+                  "sourceYearFallback": false
+                },
+                "actual": {
+                  "system": "SJR",
+                  "rank": "N/A",
+                  "reason": null,
+                  "decisionStatus": "missing",
+                  "matchedVenue": null,
+                  "matchedKey": null,
+                  "matchedSourceId": null,
+                  "sourceYear": null,
+                  "sourceYearFallback": false,
+                  "confidence": 1
+                },
+                "latencyMs": 3.584375
+              },
+              {
+                "id": "gold-pipeline-sjr-06",
+                "family": "pipeline_e2e",
+                "suite": "gold",
+                "expected": {
+                  "system": "SJR",
+                  "rank": "Q1",
+                  "decisionStatus": "matched",
+                  "matchedVenue": "3L: Language, Linguistics, Literature",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false
+                },
+                "actual": {
+                  "system": "SJR",
+                  "rank": "N/A",
+                  "reason": null,
+                  "decisionStatus": "missing",
+                  "matchedVenue": null,
+                  "matchedKey": null,
+                  "matchedSourceId": null,
+                  "sourceYear": null,
+                  "sourceYearFallback": false,
+                  "confidence": 1
+                },
+                "latencyMs": 0.11725
+              },
+              {
+                "id": "gold-pipeline-sensys-unranked-01",
+                "family": "pipeline_e2e",
+                "suite": "gold",
+                "expected": {
+                  "system": "CORE",
+                  "rank": "N/A",
+                  "reason": "Unranked: merged",
+                  "decisionStatus": "unranked"
+                },
+                "actual": {
+                  "system": "CORE",
+                  "rank": "N/A",
+                  "reason": null,
+                  "decisionStatus": "missing",
+                  "matchedVenue": null,
+                  "matchedKey": null,
+                  "matchedSourceId": null,
+                  "sourceYear": 2026,
+                  "sourceYearFallback": false,
+                  "confidence": 1
+                },
+                "latencyMs": 1.308
+              },
+              {
+                "id": "gold-pipeline-sensys-unranked-02",
+                "family": "pipeline_e2e",
+                "suite": "gold",
+                "expected": {
+                  "system": "CORE",
+                  "rank": "N/A",
+                  "reason": "Unranked: merged",
+                  "decisionStatus": "unranked"
+                },
+                "actual": {
+                  "system": "CORE",
+                  "rank": "N/A",
+                  "reason": null,
+                  "decisionStatus": "missing",
+                  "matchedVenue": null,
+                  "matchedKey": null,
+                  "matchedSourceId": null,
+                  "sourceYear": 2026,
+                  "sourceYearFallback": false,
+                  "confidence": 1
+                },
+                "latencyMs": 1.31275
+              },
+              {
+                "id": "gold-pipeline-sensys-unranked-03",
+                "family": "pipeline_e2e",
+                "suite": "gold",
+                "expected": {
+                  "system": "CORE",
+                  "rank": "N/A",
+                  "reason": "Unranked: merged",
+                  "decisionStatus": "unranked"
+                },
+                "actual": {
+                  "system": "CORE",
+                  "rank": "N/A",
+                  "reason": null,
+                  "decisionStatus": "missing",
+                  "matchedVenue": null,
+                  "matchedKey": null,
+                  "matchedSourceId": null,
+                  "sourceYear": 2026,
+                  "sourceYearFallback": false,
+                  "confidence": 1
+                },
+                "latencyMs": 1.385584
+              },
+              {
+                "id": "gold-pipeline-sensys-unranked-04",
+                "family": "pipeline_e2e",
+                "suite": "gold",
+                "expected": {
+                  "system": "CORE",
+                  "rank": "N/A",
+                  "reason": "Unranked: merged",
+                  "decisionStatus": "unranked"
+                },
+                "actual": {
+                  "system": "CORE",
+                  "rank": "N/A",
+                  "reason": null,
+                  "decisionStatus": "missing",
+                  "matchedVenue": null,
+                  "matchedKey": null,
+                  "matchedSourceId": null,
+                  "sourceYear": 2026,
+                  "sourceYearFallback": false,
+                  "confidence": 1
+                },
+                "latencyMs": 1.394
+              },
+              {
+                "id": "gold-pipeline-sensys-unranked-05",
+                "family": "pipeline_e2e",
+                "suite": "gold",
+                "expected": {
+                  "system": "CORE",
+                  "rank": "N/A",
+                  "reason": "Unranked: merged",
+                  "decisionStatus": "unranked"
+                },
+                "actual": {
+                  "system": "CORE",
+                  "rank": "N/A",
+                  "reason": null,
+                  "decisionStatus": "missing",
+                  "matchedVenue": null,
+                  "matchedKey": null,
+                  "matchedSourceId": null,
+                  "sourceYear": 2026,
+                  "sourceYearFallback": false,
+                  "confidence": 1
+                },
+                "latencyMs": 1.36275
+              }
+            ],
             "topFalsePositives": [],
-            "topFalseNegatives": [],
-            "topAmbiguousFailures": []
+            "topFalseNegatives": [
+              "gold-pipeline-sjr-02",
+              "gold-pipeline-sjr-04",
+              "gold-pipeline-sjr-05",
+              "gold-pipeline-sjr-06"
+            ],
+            "topReviewFailures": []
           },
           "search_queries": {
             "suite": "gold",
             "family": "search_queries",
             "total": 60,
-            "passed": 60,
-            "failed": 0,
-            "exactAccuracy": 1,
+            "passed": 57,
+            "failed": 3,
+            "exactAccuracy": 0.95,
             "precision": 1,
-            "recall": 1,
+            "recall": 0.9411764705882353,
             "falsePositiveCount": 0,
-            "falseNegativeCount": 0,
-            "abstainRate": 0.6833333333333333,
-            "ambiguityRate": 0.016666666666666666,
-            "meanLatencyMs": 61.837294999999976,
-            "p95LatencyMs": 5.7166,
+            "falseNegativeCount": 1,
+            "abstainRate": 0.7333333333333333,
+            "reviewRate": 0.016666666666666666,
+            "meanLatencyMs": 4.3389680666666655,
+            "p95LatencyMs": 5.839667,
             "statusConfusion": {
               "matched": {
-                "matched": 17
+                "matched": 16,
+                "missing": 1
               },
-              "ambiguous": {
-                "ambiguous": 1
+              "review": {
+                "review": 1
               },
               "unranked": {
-                "unranked": 2
+                "missing": 2
               },
               "missing": {
                 "missing": 40
@@ -275,51 +989,874 @@
             },
             "conferenceRankConfusion": {},
             "journalQuartileConfusion": {},
-            "sampleFailures": [],
+            "sampleFailures": [
+              {
+                "id": "gold-search-conference-10",
+                "family": "search_queries",
+                "suite": "gold",
+                "expected": {
+                  "status": "unranked",
+                  "primaryLabel": "Unranked",
+                  "matchedVenue": "ACM Conference on Embedded Networked Sensor Systems",
+                  "currentStatusLabel": "Unranked: merged",
+                  "latestRankedSnapshot": {
+                    "rank": "A*",
+                    "sourceYear": 2023,
+                    "matchedVenue": "ACM Conference on Embedded Networked Sensor Systems"
+                  },
+                  "sourceYear": 2026
+                },
+                "actual": {
+                  "status": "missing",
+                  "primaryLabel": "Not found",
+                  "matchedVenue": null,
+                  "currentStatusLabel": null,
+                  "latestRankedSnapshot": {
+                    "rank": "A*",
+                    "sourceYear": 2023,
+                    "matchedVenue": "ACM Conference on Embedded Networked Sensor Systems"
+                  },
+                  "sourceYear": 2026
+                },
+                "latencyMs": 1.386792
+              },
+              {
+                "id": "gold-search-conference-11",
+                "family": "search_queries",
+                "suite": "gold",
+                "expected": {
+                  "status": "unranked",
+                  "primaryLabel": "Unranked",
+                  "matchedVenue": "ACM International Joint Conference on Pervasive and Ubiquitous Computing (PERVASIVE and UbiComp combined from 2013)",
+                  "currentStatusLabel": "Journal published",
+                  "latestRankedSnapshot": {
+                    "rank": "A*",
+                    "sourceYear": 2018,
+                    "matchedVenue": "ACM International Joint Conference on Pervasive and Ubiquitous Computing (PERVASIVE and UbiComp combined from 2013)"
+                  },
+                  "sourceYear": 2026
+                },
+                "actual": {
+                  "status": "missing",
+                  "primaryLabel": "Not found",
+                  "matchedVenue": null,
+                  "currentStatusLabel": null,
+                  "latestRankedSnapshot": {
+                    "rank": "A*",
+                    "sourceYear": 2018,
+                    "matchedVenue": "ACM International Joint Conference on Pervasive and Ubiquitous Computing (PERVASIVE and UbiComp combined from 2013)"
+                  },
+                  "sourceYear": 2026
+                },
+                "latencyMs": 5.839667
+              },
+              {
+                "id": "gold-search-conference-12",
+                "family": "search_queries",
+                "suite": "gold",
+                "expected": {
+                  "status": "matched",
+                  "primaryLabel": "A*",
+                  "matchedVenue": "Symposium on Networked Systems, Design and Implementation",
+                  "currentStatusLabel": null,
+                  "sourceYear": 2026
+                },
+                "actual": {
+                  "status": "missing",
+                  "primaryLabel": "Not found",
+                  "matchedVenue": null,
+                  "currentStatusLabel": null,
+                  "latestRankedSnapshot": {
+                    "rank": "B",
+                    "sourceYear": 2018,
+                    "matchedVenue": "Symposium on Networked Systems, Design and Implementation"
+                  },
+                  "sourceYear": 2026
+                },
+                "latencyMs": 0.248084
+              }
+            ],
             "topFalsePositives": [],
-            "topFalseNegatives": [],
-            "topAmbiguousFailures": []
+            "topFalseNegatives": [
+              "gold-search-conference-12"
+            ],
+            "topReviewFailures": []
           }
         },
         "overall": {
           "suite": "gold",
           "family": "overall",
           "total": 600,
-          "passed": 600,
-          "failed": 0,
-          "exactAccuracy": 1,
+          "passed": 464,
+          "failed": 136,
+          "exactAccuracy": 0.7733333333333333,
           "precision": 1,
-          "recall": 1,
+          "recall": 0.8943894389438944,
           "falsePositiveCount": 0,
-          "falseNegativeCount": 0,
-          "abstainRate": 0.17833333333333334,
-          "ambiguityRate": 0.03833333333333333,
-          "meanLatencyMs": 8.7288095,
-          "p95LatencyMs": 2.7396,
+          "falseNegativeCount": 32,
+          "abstainRate": 0.24833333333333332,
+          "reviewRate": 0.03833333333333333,
+          "meanLatencyMs": 2.925738633333332,
+          "p95LatencyMs": 4.046792,
           "statusConfusion": {
             "matched": {
-              "matched": 303
+              "matched": 271,
+              "missing": 32
             },
             "missing": {
               "missing": 84
             },
-            "ambiguous": {
-              "ambiguous": 23
+            "review": {
+              "review": 23
             },
             "unranked": {
-              "unranked": 10
+              "missing": 10
             }
           },
           "conferenceRankConfusion": {},
           "journalQuartileConfusion": {},
-          "sampleFailures": [],
+          "sampleFailures": [
+            {
+              "id": "gold-conference-acronym-08",
+              "family": "conference_resolution",
+              "suite": "gold",
+              "expected": {
+                "status": "unranked",
+                "rank": "N/A",
+                "matchedVenue": "ACM Conference on Embedded Networked Sensor Systems",
+                "rawRankLabel": "unranked: merged",
+                "sourceYear": 2026
+              },
+              "actual": {
+                "status": "missing",
+                "rank": "N/A",
+                "matchedVenue": null,
+                "rawRankLabel": null,
+                "matchType": null,
+                "sourceYear": 2026,
+                "confidence": null,
+                "fullVenueTitle": "ACM Conference on Embedded Networked Sensor Systems"
+              },
+              "latencyMs": 7.657917
+            },
+            {
+              "id": "gold-conference-title-08",
+              "family": "conference_resolution",
+              "suite": "gold",
+              "expected": {
+                "status": "unranked",
+                "rank": "N/A",
+                "matchedVenue": "ACM Conference on Embedded Networked Sensor Systems",
+                "rawRankLabel": "unranked: merged",
+                "sourceYear": 2026
+              },
+              "actual": {
+                "status": "missing",
+                "rank": "N/A",
+                "matchedVenue": null,
+                "rawRankLabel": null,
+                "matchType": null,
+                "sourceYear": 2026,
+                "confidence": null,
+                "fullVenueTitle": "ACM Conference on Embedded Networked Sensor Systems"
+              },
+              "latencyMs": 0.270958
+            },
+            {
+              "id": "gold-conference-acronym-17",
+              "family": "conference_resolution",
+              "suite": "gold",
+              "expected": {
+                "status": "unranked",
+                "rank": "N/A",
+                "matchedVenue": "ACM International Conference on Interactive Surfaces and Spaces (was International Workshop on Horizontal Interactive Human-Computer Systems: Tabletop)",
+                "rawRankLabel": "Journal Published",
+                "sourceYear": 2026
+              },
+              "actual": {
+                "status": "missing",
+                "rank": "N/A",
+                "matchedVenue": null,
+                "rawRankLabel": null,
+                "matchType": null,
+                "sourceYear": 2026,
+                "confidence": null,
+                "fullVenueTitle": "ACM International Conference on Interactive Surfaces and Spaces (was International Workshop on Horizontal Interactive Human-Computer Systems: Tabletop)"
+              },
+              "latencyMs": 0.081375
+            },
+            {
+              "id": "gold-conference-title-17",
+              "family": "conference_resolution",
+              "suite": "gold",
+              "expected": {
+                "status": "unranked",
+                "rank": "N/A",
+                "matchedVenue": "ACM International Conference on Interactive Surfaces and Spaces (was International Workshop on Horizontal Interactive Human-Computer Systems: Tabletop)",
+                "rawRankLabel": "Journal Published",
+                "sourceYear": 2026
+              },
+              "actual": {
+                "status": "missing",
+                "rank": "N/A",
+                "matchedVenue": null,
+                "rawRankLabel": null,
+                "matchType": null,
+                "sourceYear": 2026,
+                "confidence": null,
+                "fullVenueTitle": "ACM International Conference on Interactive Surfaces and Spaces (was International Workshop on Horizontal Interactive Human-Computer Systems: Tabletop)"
+              },
+              "latencyMs": 4.218042
+            },
+            {
+              "id": "gold-conference-acronym-26",
+              "family": "conference_resolution",
+              "suite": "gold",
+              "expected": {
+                "status": "unranked",
+                "rank": "N/A",
+                "matchedVenue": "ACM International Joint Conference on Pervasive and Ubiquitous Computing (PERVASIVE and UbiComp combined from 2013)",
+                "rawRankLabel": "journal published",
+                "sourceYear": 2026
+              },
+              "actual": {
+                "status": "missing",
+                "rank": "N/A",
+                "matchedVenue": null,
+                "rawRankLabel": null,
+                "matchType": null,
+                "sourceYear": 2026,
+                "confidence": null,
+                "fullVenueTitle": "ACM International Joint Conference on Pervasive and Ubiquitous Computing (PERVASIVE and UbiComp combined from 2013)"
+              },
+              "latencyMs": 1.928125
+            },
+            {
+              "id": "gold-conference-title-26",
+              "family": "conference_resolution",
+              "suite": "gold",
+              "expected": {
+                "status": "unranked",
+                "rank": "N/A",
+                "matchedVenue": "ACM International Joint Conference on Pervasive and Ubiquitous Computing (PERVASIVE and UbiComp combined from 2013)",
+                "rawRankLabel": "journal published",
+                "sourceYear": 2026
+              },
+              "actual": {
+                "status": "missing",
+                "rank": "N/A",
+                "matchedVenue": null,
+                "rawRankLabel": null,
+                "matchType": null,
+                "sourceYear": 2026,
+                "confidence": null,
+                "fullVenueTitle": "ACM International Joint Conference on Pervasive and Ubiquitous Computing (PERVASIVE and UbiComp combined from 2013)"
+              },
+              "latencyMs": 4.046792
+            },
+            {
+              "id": "gold-conference-sensys-merged",
+              "family": "conference_resolution",
+              "suite": "gold",
+              "expected": {
+                "status": "unranked",
+                "rank": "N/A",
+                "matchedVenue": "ACM Conference on Embedded Networked Sensor Systems",
+                "rawRankLabel": "unranked: merged",
+                "matchType": "acronym_exact",
+                "sourceYear": 2026
+              },
+              "actual": {
+                "status": "missing",
+                "rank": "N/A",
+                "matchedVenue": null,
+                "rawRankLabel": null,
+                "matchType": null,
+                "sourceYear": 2026,
+                "confidence": null,
+                "fullVenueTitle": "SenSys"
+              },
+              "latencyMs": 1.443875
+            },
+            {
+              "id": "gold-conference-ubicomp-journal-published",
+              "family": "conference_resolution",
+              "suite": "gold",
+              "expected": {
+                "status": "unranked",
+                "rank": "N/A",
+                "matchedVenue": "ACM International Joint Conference on Pervasive and Ubiquitous Computing (PERVASIVE and UbiComp combined from 2013)",
+                "rawRankLabel": "journal published",
+                "matchType": "acronym_exact",
+                "sourceYear": 2026
+              },
+              "actual": {
+                "status": "missing",
+                "rank": "N/A",
+                "matchedVenue": null,
+                "rawRankLabel": null,
+                "matchType": null,
+                "sourceYear": 2026,
+                "confidence": null,
+                "fullVenueTitle": "UbiComp"
+              },
+              "latencyMs": 1.490125
+            },
+            {
+              "id": "gold-conference-nsdi-fallback",
+              "family": "conference_resolution",
+              "suite": "gold",
+              "expected": {
+                "status": "matched",
+                "rank": "A*",
+                "matchedVenue": "Symposium on Networked Systems, Design and Implementation",
+                "rawRankLabel": null,
+                "matchType": "top_venue_fallback",
+                "sourceYear": 2026
+              },
+              "actual": {
+                "status": "missing",
+                "rank": "N/A",
+                "matchedVenue": null,
+                "rawRankLabel": null,
+                "matchType": null,
+                "sourceYear": 2026,
+                "confidence": null,
+                "fullVenueTitle": "NSDI"
+              },
+              "latencyMs": 0.063709
+            },
+            {
+              "id": "gold-journal-exact-01",
+              "family": "journal_resolution",
+              "suite": "gold",
+              "expected": {
+                "status": "matched",
+                "quartile": "Q4",
+                "matchedTitle": "[Nippon koshu eisei zasshi] Japanese journal of public health",
+                "sourceYear": 2019,
+                "sourceYearFallback": false,
+                "matchedSourceId": "22012",
+                "matchType": "title_exact"
+              },
+              "actual": {
+                "status": "missing",
+                "quartile": "N/A",
+                "matchedTitle": null,
+                "sourceYear": null,
+                "sourceYearFallback": false,
+                "matchedSourceId": null,
+                "matchType": null,
+                "reason": null
+              },
+              "latencyMs": 136.440333
+            }
+          ],
           "topFalsePositives": [],
-          "topFalseNegatives": [],
-          "topAmbiguousFailures": []
+          "topFalseNegatives": [
+            "gold-conference-nsdi-fallback",
+            "gold-journal-exact-01",
+            "gold-journal-exact-07",
+            "gold-journal-exact-10",
+            "gold-journal-exact-11"
+          ],
+          "topReviewFailures": []
         }
       }
     },
-    "topRegressions": []
+    "topRegressions": [
+      {
+        "id": "gold-conference-acronym-08",
+        "family": "conference_resolution",
+        "suite": "gold",
+        "expected": {
+          "status": "unranked",
+          "rank": "N/A",
+          "matchedVenue": "ACM Conference on Embedded Networked Sensor Systems",
+          "rawRankLabel": "unranked: merged",
+          "sourceYear": 2026
+        },
+        "actual": {
+          "status": "missing",
+          "rank": "N/A",
+          "matchedVenue": null,
+          "rawRankLabel": null,
+          "matchType": null,
+          "sourceYear": 2026,
+          "confidence": null,
+          "fullVenueTitle": "ACM Conference on Embedded Networked Sensor Systems"
+        },
+        "latencyMs": 7.657917
+      },
+      {
+        "id": "gold-conference-title-08",
+        "family": "conference_resolution",
+        "suite": "gold",
+        "expected": {
+          "status": "unranked",
+          "rank": "N/A",
+          "matchedVenue": "ACM Conference on Embedded Networked Sensor Systems",
+          "rawRankLabel": "unranked: merged",
+          "sourceYear": 2026
+        },
+        "actual": {
+          "status": "missing",
+          "rank": "N/A",
+          "matchedVenue": null,
+          "rawRankLabel": null,
+          "matchType": null,
+          "sourceYear": 2026,
+          "confidence": null,
+          "fullVenueTitle": "ACM Conference on Embedded Networked Sensor Systems"
+        },
+        "latencyMs": 0.270958
+      },
+      {
+        "id": "gold-conference-acronym-17",
+        "family": "conference_resolution",
+        "suite": "gold",
+        "expected": {
+          "status": "unranked",
+          "rank": "N/A",
+          "matchedVenue": "ACM International Conference on Interactive Surfaces and Spaces (was International Workshop on Horizontal Interactive Human-Computer Systems: Tabletop)",
+          "rawRankLabel": "Journal Published",
+          "sourceYear": 2026
+        },
+        "actual": {
+          "status": "missing",
+          "rank": "N/A",
+          "matchedVenue": null,
+          "rawRankLabel": null,
+          "matchType": null,
+          "sourceYear": 2026,
+          "confidence": null,
+          "fullVenueTitle": "ACM International Conference on Interactive Surfaces and Spaces (was International Workshop on Horizontal Interactive Human-Computer Systems: Tabletop)"
+        },
+        "latencyMs": 0.081375
+      },
+      {
+        "id": "gold-conference-title-17",
+        "family": "conference_resolution",
+        "suite": "gold",
+        "expected": {
+          "status": "unranked",
+          "rank": "N/A",
+          "matchedVenue": "ACM International Conference on Interactive Surfaces and Spaces (was International Workshop on Horizontal Interactive Human-Computer Systems: Tabletop)",
+          "rawRankLabel": "Journal Published",
+          "sourceYear": 2026
+        },
+        "actual": {
+          "status": "missing",
+          "rank": "N/A",
+          "matchedVenue": null,
+          "rawRankLabel": null,
+          "matchType": null,
+          "sourceYear": 2026,
+          "confidence": null,
+          "fullVenueTitle": "ACM International Conference on Interactive Surfaces and Spaces (was International Workshop on Horizontal Interactive Human-Computer Systems: Tabletop)"
+        },
+        "latencyMs": 4.218042
+      },
+      {
+        "id": "gold-conference-acronym-26",
+        "family": "conference_resolution",
+        "suite": "gold",
+        "expected": {
+          "status": "unranked",
+          "rank": "N/A",
+          "matchedVenue": "ACM International Joint Conference on Pervasive and Ubiquitous Computing (PERVASIVE and UbiComp combined from 2013)",
+          "rawRankLabel": "journal published",
+          "sourceYear": 2026
+        },
+        "actual": {
+          "status": "missing",
+          "rank": "N/A",
+          "matchedVenue": null,
+          "rawRankLabel": null,
+          "matchType": null,
+          "sourceYear": 2026,
+          "confidence": null,
+          "fullVenueTitle": "ACM International Joint Conference on Pervasive and Ubiquitous Computing (PERVASIVE and UbiComp combined from 2013)"
+        },
+        "latencyMs": 1.928125
+      },
+      {
+        "id": "gold-conference-title-26",
+        "family": "conference_resolution",
+        "suite": "gold",
+        "expected": {
+          "status": "unranked",
+          "rank": "N/A",
+          "matchedVenue": "ACM International Joint Conference on Pervasive and Ubiquitous Computing (PERVASIVE and UbiComp combined from 2013)",
+          "rawRankLabel": "journal published",
+          "sourceYear": 2026
+        },
+        "actual": {
+          "status": "missing",
+          "rank": "N/A",
+          "matchedVenue": null,
+          "rawRankLabel": null,
+          "matchType": null,
+          "sourceYear": 2026,
+          "confidence": null,
+          "fullVenueTitle": "ACM International Joint Conference on Pervasive and Ubiquitous Computing (PERVASIVE and UbiComp combined from 2013)"
+        },
+        "latencyMs": 4.046792
+      },
+      {
+        "id": "gold-conference-sensys-merged",
+        "family": "conference_resolution",
+        "suite": "gold",
+        "expected": {
+          "status": "unranked",
+          "rank": "N/A",
+          "matchedVenue": "ACM Conference on Embedded Networked Sensor Systems",
+          "rawRankLabel": "unranked: merged",
+          "matchType": "acronym_exact",
+          "sourceYear": 2026
+        },
+        "actual": {
+          "status": "missing",
+          "rank": "N/A",
+          "matchedVenue": null,
+          "rawRankLabel": null,
+          "matchType": null,
+          "sourceYear": 2026,
+          "confidence": null,
+          "fullVenueTitle": "SenSys"
+        },
+        "latencyMs": 1.443875
+      },
+      {
+        "id": "gold-conference-ubicomp-journal-published",
+        "family": "conference_resolution",
+        "suite": "gold",
+        "expected": {
+          "status": "unranked",
+          "rank": "N/A",
+          "matchedVenue": "ACM International Joint Conference on Pervasive and Ubiquitous Computing (PERVASIVE and UbiComp combined from 2013)",
+          "rawRankLabel": "journal published",
+          "matchType": "acronym_exact",
+          "sourceYear": 2026
+        },
+        "actual": {
+          "status": "missing",
+          "rank": "N/A",
+          "matchedVenue": null,
+          "rawRankLabel": null,
+          "matchType": null,
+          "sourceYear": 2026,
+          "confidence": null,
+          "fullVenueTitle": "UbiComp"
+        },
+        "latencyMs": 1.490125
+      },
+      {
+        "id": "gold-conference-nsdi-fallback",
+        "family": "conference_resolution",
+        "suite": "gold",
+        "expected": {
+          "status": "matched",
+          "rank": "A*",
+          "matchedVenue": "Symposium on Networked Systems, Design and Implementation",
+          "rawRankLabel": null,
+          "matchType": "top_venue_fallback",
+          "sourceYear": 2026
+        },
+        "actual": {
+          "status": "missing",
+          "rank": "N/A",
+          "matchedVenue": null,
+          "rawRankLabel": null,
+          "matchType": null,
+          "sourceYear": 2026,
+          "confidence": null,
+          "fullVenueTitle": "NSDI"
+        },
+        "latencyMs": 0.063709
+      },
+      {
+        "id": "gold-journal-exact-01",
+        "family": "journal_resolution",
+        "suite": "gold",
+        "expected": {
+          "status": "matched",
+          "quartile": "Q4",
+          "matchedTitle": "[Nippon koshu eisei zasshi] Japanese journal of public health",
+          "sourceYear": 2019,
+          "sourceYearFallback": false,
+          "matchedSourceId": "22012",
+          "matchType": "title_exact"
+        },
+        "actual": {
+          "status": "missing",
+          "quartile": "N/A",
+          "matchedTitle": null,
+          "sourceYear": null,
+          "sourceYearFallback": false,
+          "matchedSourceId": null,
+          "matchType": null,
+          "reason": null
+        },
+        "latencyMs": 136.440333
+      },
+      {
+        "id": "gold-journal-exact-02",
+        "family": "journal_resolution",
+        "suite": "gold",
+        "expected": {
+          "status": "matched",
+          "quartile": "Q4",
+          "matchedTitle": "[Rinsho ketsueki] The Japanese journal of clinical hematology",
+          "sourceYear": 2019,
+          "sourceYearFallback": false,
+          "matchedSourceId": "26063",
+          "matchType": "title_exact"
+        },
+        "actual": {
+          "status": "matched",
+          "quartile": "Q4",
+          "matchedTitle": "[Rinsho ketsueki] The Japanese journal of clinical hematology",
+          "sourceYear": 2019,
+          "sourceYearFallback": false,
+          "matchedSourceId": null,
+          "matchType": "title_exact",
+          "reason": null
+        },
+        "latencyMs": 0.861125
+      },
+      {
+        "id": "gold-journal-exact-03",
+        "family": "journal_resolution",
+        "suite": "gold",
+        "expected": {
+          "status": "matched",
+          "quartile": "Q4",
+          "matchedTitle": "@GRH",
+          "sourceYear": 2024,
+          "sourceYearFallback": false,
+          "matchedSourceId": "21101170611",
+          "matchType": "title_exact"
+        },
+        "actual": {
+          "status": "matched",
+          "quartile": "Q4",
+          "matchedTitle": "@GRH",
+          "sourceYear": 2024,
+          "sourceYearFallback": false,
+          "matchedSourceId": null,
+          "matchType": "title_exact",
+          "reason": null
+        },
+        "latencyMs": 0.048792
+      },
+      {
+        "id": "gold-journal-exact-04",
+        "family": "journal_resolution",
+        "suite": "gold",
+        "expected": {
+          "status": "matched",
+          "quartile": "Q2",
+          "matchedTitle": "1700-tal: Nordic Journal for Eighteenth-Century Studies",
+          "sourceYear": 2024,
+          "sourceYearFallback": false,
+          "matchedSourceId": "21100832755",
+          "matchType": "title_exact"
+        },
+        "actual": {
+          "status": "matched",
+          "quartile": "Q2",
+          "matchedTitle": "1700-tal: Nordic Journal for Eighteenth-Century Studies",
+          "sourceYear": 2024,
+          "sourceYearFallback": false,
+          "matchedSourceId": null,
+          "matchType": "title_exact",
+          "reason": null
+        },
+        "latencyMs": 0.050833
+      },
+      {
+        "id": "gold-journal-exact-05",
+        "family": "journal_resolution",
+        "suite": "gold",
+        "expected": {
+          "status": "matched",
+          "quartile": "Q4",
+          "matchedTitle": "20 & 21: Revue d'Histoire",
+          "sourceYear": 2024,
+          "sourceYearFallback": false,
+          "matchedSourceId": "21101194408",
+          "matchType": "title_exact"
+        },
+        "actual": {
+          "status": "matched",
+          "quartile": "Q4",
+          "matchedTitle": "20 & 21: Revue d'Histoire",
+          "sourceYear": 2024,
+          "sourceYearFallback": false,
+          "matchedSourceId": null,
+          "matchType": "title_exact",
+          "reason": null
+        },
+        "latencyMs": 0.043167
+      },
+      {
+        "id": "gold-journal-exact-06",
+        "family": "journal_resolution",
+        "suite": "gold",
+        "expected": {
+          "status": "matched",
+          "quartile": "Q3",
+          "matchedTitle": "21st Century Music",
+          "sourceYear": 2014,
+          "sourceYearFallback": false,
+          "matchedSourceId": "18500162600",
+          "matchType": "title_exact"
+        },
+        "actual": {
+          "status": "matched",
+          "quartile": "Q3",
+          "matchedTitle": "21st Century Music",
+          "sourceYear": 2014,
+          "sourceYearFallback": false,
+          "matchedSourceId": null,
+          "matchType": "title_exact",
+          "reason": null
+        },
+        "latencyMs": 0.040125
+      },
+      {
+        "id": "gold-journal-exact-07",
+        "family": "journal_resolution",
+        "suite": "gold",
+        "expected": {
+          "status": "matched",
+          "quartile": "Q1",
+          "matchedTitle": "2D Materials",
+          "sourceYear": 2024,
+          "sourceYearFallback": false,
+          "matchedSourceId": "21100404576",
+          "matchType": "title_exact"
+        },
+        "actual": {
+          "status": "missing",
+          "quartile": "N/A",
+          "matchedTitle": null,
+          "sourceYear": null,
+          "sourceYearFallback": false,
+          "matchedSourceId": null,
+          "matchType": null,
+          "reason": null
+        },
+        "latencyMs": 0.803916
+      },
+      {
+        "id": "gold-journal-exact-08",
+        "family": "journal_resolution",
+        "suite": "gold",
+        "expected": {
+          "status": "matched",
+          "quartile": "Q1",
+          "matchedTitle": "3 Biotech",
+          "sourceYear": 2024,
+          "sourceYearFallback": false,
+          "matchedSourceId": "21100447128",
+          "matchType": "title_exact_raw"
+        },
+        "actual": {
+          "status": "matched",
+          "quartile": "Q1",
+          "matchedTitle": "3 Biotech",
+          "sourceYear": 2024,
+          "sourceYearFallback": false,
+          "matchedSourceId": null,
+          "matchType": "title_exact",
+          "reason": null
+        },
+        "latencyMs": 0.050584
+      },
+      {
+        "id": "gold-journal-exact-09",
+        "family": "journal_resolution",
+        "suite": "gold",
+        "expected": {
+          "status": "matched",
+          "quartile": "Q2",
+          "matchedTitle": "3D Printing and Additive Manufacturing",
+          "sourceYear": 2024,
+          "sourceYearFallback": false,
+          "matchedSourceId": "21100779062",
+          "matchType": "title_exact"
+        },
+        "actual": {
+          "status": "matched",
+          "quartile": "Q2",
+          "matchedTitle": "3D Printing and Additive Manufacturing",
+          "sourceYear": 2024,
+          "sourceYearFallback": false,
+          "matchedSourceId": null,
+          "matchType": "title_fuzzy",
+          "reason": null
+        },
+        "latencyMs": 0.175084
+      },
+      {
+        "id": "gold-journal-exact-10",
+        "family": "journal_resolution",
+        "suite": "gold",
+        "expected": {
+          "status": "matched",
+          "quartile": "Q3",
+          "matchedTitle": "3D Printing in Medicine",
+          "sourceYear": 2024,
+          "sourceYearFallback": false,
+          "matchedSourceId": "21100932761",
+          "matchType": "title_exact"
+        },
+        "actual": {
+          "status": "missing",
+          "quartile": "N/A",
+          "matchedTitle": null,
+          "sourceYear": null,
+          "sourceYearFallback": false,
+          "matchedSourceId": null,
+          "matchType": null,
+          "reason": null
+        },
+        "latencyMs": 0.057292
+      },
+      {
+        "id": "gold-pipeline-sjr-02",
+        "family": "pipeline_e2e",
+        "suite": "gold",
+        "expected": {
+          "system": "SJR",
+          "rank": "Q1",
+          "decisionStatus": "matched",
+          "matchedVenue": "2D Materials",
+          "sourceYear": 2024,
+          "sourceYearFallback": false
+        },
+        "actual": {
+          "system": "SJR",
+          "rank": "N/A",
+          "reason": null,
+          "decisionStatus": "missing",
+          "matchedVenue": null,
+          "matchedKey": null,
+          "matchedSourceId": null,
+          "sourceYear": null,
+          "sourceYearFallback": false,
+          "confidence": 1
+        },
+        "latencyMs": 0.71125
+      }
+    ]
   },
-  "issues": []
+  "issues": [
+    "Gold fixtures failed in conference_resolution: 9",
+    "Gold fixtures failed in journal_resolution: 115",
+    "Gold fixtures failed in pipeline_e2e: 9",
+    "Gold fixtures failed in search_queries: 3"
+  ]
 }

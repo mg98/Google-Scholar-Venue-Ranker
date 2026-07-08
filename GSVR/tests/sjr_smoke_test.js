@@ -53,6 +53,7 @@ function loadDataset(year = 2024) {
   // Read SCImago rows for the given year from the unified rankings.csv.
   const text = fs.readFileSync(path.join(__dirname, '..', 'data', 'rankings.csv'), 'utf8');
   const byNormalized = new Map();
+  const byIssn = new Map();
   const entries = [];
   let field = '', row = [], inQuotes = false, header = true;
   const endRow = () => {
@@ -60,12 +61,23 @@ function loadDataset(year = 2024) {
     if (!header && row.length >= 5) {
       const [source, yStr, title, , rank] = row;
       if (source === 'SCImago' && parseInt(yStr, 10) === year && title && /^Q[1-4]$/.test(rank)) {
-        const normalizedTitle = normalizeJournalName(title);
-        if (normalizedTitle && !byNormalized.has(normalizedTitle)) {
-          const entry = { normalizedTitle, resolvedTitle: title, quartile: rank, tokenSet: createTokenSet(normalizedTitle) };
-          byNormalized.set(normalizedTitle, entry);
-          entries.push(entry);
-        }
+        const normalizedTitle = jm.normalizeJournalName(title);
+        if (!normalizedTitle) return;
+        const entry = {
+          normalizedTitle,
+          resolvedTitle: title,
+          quartile: rank,
+          quartilesByYear: { [String(year)]: rank },
+          tokenSet: jm.createTokenSet(normalizedTitle),
+          issns: [],
+          sourceId: null,
+          coverage: null,
+        };
+        const existing = byNormalized.get(normalizedTitle);
+        if (Array.isArray(existing)) existing.push(entry);
+        else if (existing) byNormalized.set(normalizedTitle, [existing, entry]);
+        else byNormalized.set(normalizedTitle, entry);
+        entries.push(entry);
       }
     }
     header = false; row = [];
@@ -78,27 +90,7 @@ function loadDataset(year = 2024) {
     else field += ch;
   }
   if (field.length || row.length) endRow();
-  return { byNormalized, entries };
-}
-
-function findBestSjrMatch(normalizedQuery, dataset) {
-  const direct = dataset.byNormalized.get(normalizedQuery);
-  if (direct) return { entry: direct, score: 1.0 };
-
-  const queryTokens = normalizedQuery.split(' ').map(t => t.trim()).filter(t => t.length >= 3);
-  const queryTokenSet = new Set(queryTokens);
-
-  let best = null;
-  for (const entry of dataset.entries) {
-    let sharesToken = queryTokens.length === 0;
-    if (!sharesToken) {
-      for (const t of queryTokenSet) {
-        if (entry.tokenSet.has(t)) { sharesToken = true; break; }
-      }
-    }
-  }
-
-  return { entries, byNormalized, byIssn, tokenIndex: jm.createSjrTokenIndex(entries) };
+  return { byNormalized, byIssn, entries, tokenIndex: jm.createSjrTokenIndex(entries) };
 }
 
 const dataset = loadDataset(2024);

@@ -80,10 +80,6 @@
     return normalizeStatus(decision?.match?.status || decision?.decisionStatus || decision?.dblp?.status || decision?.status);
   }
 
-  function getDblpKey(decision) {
-    return String(decision?.dblp?.key || decision?.dblpKey || "").trim();
-  }
-
   function getDblpVerificationFailure(decision) {
     const status = getMatchStatus(decision);
     const evidence = getEvidence(decision);
@@ -102,27 +98,10 @@
     if (system === "DBLP" && /dblp entry missing/i.test(rank)) {
       return "dblp_missing";
     }
-    if (status === "ambiguous" || evidence.includes("publication_ambiguous")) {
-      return "ambiguous_match";
+    if (status === "review" || evidence.includes("publication_review")) {
+      return "review_match";
     }
     return null;
-  }
-
-  function isDblpVerified(decision) {
-    if (getDblpVerificationFailure(decision)) {
-      return false;
-    }
-    const status = getMatchStatus(decision);
-    if (["verified", "matched", "match", "ok"].includes(status)) {
-      return true;
-    }
-    if (status === "unranked" && getDblpKey(decision)) {
-      return true;
-    }
-    if (["verified", "matched"].includes(normalizeStatus(decision?.dblp?.status))) {
-      return true;
-    }
-    return !!getDblpKey(decision);
   }
 
   function getScoreEligibility(decision, configInput = DEFAULT_SCORE_CONFIG) {
@@ -130,9 +109,6 @@
     const verificationFailure = getDblpVerificationFailure(decision);
     if (verificationFailure) {
       return { eligible: false, reason: verificationFailure };
-    }
-    if (!isDblpVerified(decision)) {
-      return { eligible: false, reason: "dblp_missing" };
     }
 
     const classification = publicationType.classifyPublicationType(decision, config);
@@ -147,17 +123,12 @@
       return { eligible: false, reason: "rank_not_found" };
     }
 
-    const authorCount = getAuthorCount(decision);
-    if (authorCount == null) {
-      return { eligible: false, reason: "missing_author_count" };
-    }
-
     return {
       eligible: true,
       reason: null,
       classification,
       venueValue,
-      authorCount,
+      authorCount: getAuthorCount(decision),
       rankSource,
       rank,
     };
@@ -185,13 +156,12 @@
       };
     }
 
-    const fractionalCredit = authorship.getFractionalCredit(eligibility.authorCount);
-    const contribution = eligibility.venueValue / eligibility.authorCount;
+    const contribution = eligibility.venueValue;
     return {
       eligible: true,
       venueValue: eligibility.venueValue,
       authorCount: eligibility.authorCount,
-      fractionalCredit,
+      fractionalCredit: null,
       contribution,
       rankSource: eligibility.rankSource,
       rank: eligibility.rank,
@@ -232,7 +202,7 @@
     const source = normalizeSource(sourceName);
     const items = scoredPublications.filter((item) => item.score.eligible && item.score.rankSource === source);
     const contribution = items.reduce((total, item) => total + item.score.contribution, 0);
-    const fractionalPublicationWeight = items.reduce((total, item) => total + item.score.fractionalCredit, 0);
+    const fractionalPublicationWeight = items.reduce((total, item) => total + (Number(item.score.fractionalCredit) || 0), 0);
     return {
       source,
       contribution,
@@ -249,16 +219,14 @@
     switch (reason) {
       case "dblp_missing":
         return "dblpMissing";
-      case "ambiguous_match":
-      case "match_ambiguous":
-        return "ambiguous";
+      case "review_match":
+      case "match_review":
+        return "review";
       case "rank_not_found":
       case "verified_unranked":
       case "verified_but_source_missing":
       case "venue_unranked":
         return "rankNotFound";
-      case "missing_author_count":
-        return "missingAuthorCount";
       case "source_rate_limited":
       case "source_unavailable":
       case "lookup_unavailable":
@@ -291,10 +259,9 @@
       total: source.length,
       scored: 0,
       dblpMissing: 0,
-      ambiguous: 0,
+      review: 0,
       rankNotFound: 0,
       excludedType: 0,
-      missingAuthorCount: 0,
       lookupUnavailable: 0,
     };
 
@@ -307,11 +274,10 @@
     const completeness = total > 0 ? counts.scored / total : 0;
     const segmentDefinitions = [
       ["scored", "Scored"],
-      ["dblpMissing", "DBLP missing"],
-      ["ambiguous", "Ambiguous match"],
+      ["dblpMissing", "Publication match missing"],
+      ["review", "Needs review"],
       ["rankNotFound", "Venue unranked"],
       ["excludedType", "Excluded type"],
-      ["missingAuthorCount", "Missing author count"],
       ["lookupUnavailable", "Lookup unavailable"],
     ];
     return {
@@ -374,7 +340,7 @@
 
     const eligibleItems = scoredPublications.filter((item) => item.score.eligible);
     const gsvrScore = eligibleItems.reduce((total, item) => total + item.score.contribution, 0);
-    const fractionalPublicationWeight = eligibleItems.reduce((total, item) => total + item.score.fractionalCredit, 0);
+    const fractionalPublicationWeight = eligibleItems.reduce((total, item) => total + (Number(item.score.fractionalCredit) || 0), 0);
     const coreSummary = summarizeSource(eligibleItems, "CORE");
     const sjrSummary = summarizeSource(eligibleItems, "SJR");
     const diagnostics = coverage.summarizeCoverage(source, scoredPublications);
@@ -385,7 +351,7 @@
       sjrContribution: sjrSummary.contribution,
       eligibleRankedPublications: eligibleItems.length,
       fractionalPublicationWeight,
-      averageVenueValue: fractionalPublicationWeight > 0 ? gsvrScore / fractionalPublicationWeight : 0,
+      averageVenueValue: eligibleItems.length > 0 ? gsvrScore / eligibleItems.length : 0,
     };
 
     return {

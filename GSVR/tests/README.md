@@ -42,8 +42,8 @@ npm run benchmark:accuracy -- --suite all --write-baseline
 ```
 
 The accuracy benchmark emits:
-- per-family accuracy, precision, recall, abstain rate, ambiguity rate, and latency
-- status confusion matrices for `matched / unranked / ambiguous / missing`
+- per-family accuracy, precision, recall, abstain rate, review rate, and latency
+- status confusion matrices for `matched / unranked / review / missing`
 - conference rank and journal quartile confusion tables
 - machine-readable JSON via `--json`
 - human-readable Markdown and HTML artifacts under `GSVR/tests/fixtures/accuracy/reports/`

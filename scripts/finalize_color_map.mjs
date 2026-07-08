@@ -47,7 +47,7 @@ const MANUAL = {
   "#ec7f42|background": "KEEP", // summary bar C
   "#95b92a|background": "KEEP", // summary bar Q3
   "#ec6f4e|background": "KEEP", // summary bar Q4
-  "#5e83de|background": "KEEP", // summary bar dblp-missing
+  "#5e83de|background": "KEEP", // summary bar publication-match-missing
   "#7b8fcf|background": "KEEP", // summary bar unranked
   "#4f6ea8|background": "KEEP", // about footer icon chip
   "#4a67a1|background": "KEEP", // progress gradient stop

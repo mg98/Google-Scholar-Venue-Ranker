@@ -1,208 +1,2169 @@
 {
   "report": {
-    "generatedAt": "2026-06-11T04:34:34.994Z",
-    "cwd": "C:\\Users\\Naveed Bhatti\\Documents\\Google-Scholar-Venue-Ranker - CODEX",
+    "generatedAt": "2026-07-08T09:59:42.675Z",
+    "cwd": "/Users/marcel/Downloads/corematch/Google-Scholar-Venue-Ranker",
     "suite": "real",
     "family": null,
-    "fixtureCount": 91,
+    "fixtureCount": 1580,
     "suites": {
       "real": {
         "families": {
-          "publication_match": {
-            "suite": "real",
-            "family": "publication_match",
-            "total": 4,
-            "passed": 4,
-            "failed": 0,
-            "exactAccuracy": 1,
-            "precision": 1,
-            "recall": 1,
-            "falsePositiveCount": 0,
-            "falseNegativeCount": 0,
-            "abstainRate": 0.25,
-            "ambiguityRate": 0.25,
-            "meanLatencyMs": 3.61835,
-            "p95LatencyMs": 13.5002,
-            "statusConfusion": {
-              "matched": {
-                "matched": 3
-              },
-              "ambiguous": {
-                "ambiguous": 1
-              }
-            },
-            "conferenceRankConfusion": {},
-            "journalQuartileConfusion": {},
-            "sampleFailures": [],
-            "topFalsePositives": [],
-            "topFalseNegatives": [],
-            "topAmbiguousFailures": []
-          },
-          "track_classification": {
-            "suite": "real",
-            "family": "track_classification",
-            "total": 6,
-            "passed": 6,
-            "failed": 0,
-            "exactAccuracy": 1,
-            "precision": 1,
-            "recall": 1,
-            "falsePositiveCount": 0,
-            "falseNegativeCount": 0,
-            "abstainRate": 0,
-            "ambiguityRate": 0,
-            "meanLatencyMs": 0.37611666666666665,
-            "p95LatencyMs": 1.514,
-            "statusConfusion": {
-              "main": {
-                "main": 2
-              },
-              "workshop": {
-                "workshop": 1
-              },
-              "demoPoster": {
-                "demoPoster": 1
-              },
-              "extendedAbstract": {
-                "extendedAbstract": 1
-              },
-              "shortPaper": {
-                "shortPaper": 1
-              }
-            },
-            "conferenceRankConfusion": {},
-            "journalQuartileConfusion": {},
-            "sampleFailures": [],
-            "topFalsePositives": [],
-            "topFalseNegatives": [],
-            "topAmbiguousFailures": []
-          },
           "conference_resolution": {
             "suite": "real",
             "family": "conference_resolution",
-            "total": 27,
-            "passed": 27,
-            "failed": 0,
-            "exactAccuracy": 1,
-            "precision": 1,
+            "total": 900,
+            "passed": 747,
+            "failed": 153,
+            "exactAccuracy": 0.83,
+            "precision": 0.9829396325459318,
             "recall": 1,
-            "falsePositiveCount": 0,
+            "falsePositiveCount": 13,
             "falseNegativeCount": 0,
-            "abstainRate": 0,
-            "ambiguityRate": 0,
-            "meanLatencyMs": 7.955874074074074,
-            "p95LatencyMs": 45.6153,
+            "abstainRate": 0.15333333333333332,
+            "reviewRate": 0.0044444444444444444,
+            "meanLatencyMs": 0.211533697777778,
+            "p95LatencyMs": 0.26625,
             "statusConfusion": {
-              "matched": {
-                "matched": 24
-              },
               "unranked": {
-                "unranked": 3
+                "missing": 134,
+                "matched": 8,
+                "review": 4
+              },
+              "matched": {
+                "matched": 749
+              },
+              "review": {
+                "matched": 5
               }
             },
             "conferenceRankConfusion": {
-              "A*": {
-                "A*": 18
-              },
-              "A": {
-                "A": 5
+              "N/A": {
+                "N/A": 138,
+                "C": 6,
+                "B": 5,
+                "A": 2
               },
               "B": {
-                "B": 1
+                "B": 251
               },
-              "N/A": {
-                "N/A": 3
+              "C": {
+                "C": 291
+              },
+              "A*": {
+                "A*": 84
+              },
+              "A": {
+                "A": 123
               }
             },
             "journalQuartileConfusion": {},
-            "sampleFailures": [],
-            "topFalsePositives": [],
+            "sampleFailures": [
+              {
+                "id": "shadow-conference-2026-infocomp",
+                "family": "conference_resolution",
+                "suite": "real",
+                "expected": {
+                  "status": "unranked",
+                  "rank": "N/A",
+                  "matchedVenue": "International Conference on Advanced Communications and Computation",
+                  "rawRankLabel": "Unranked",
+                  "matchType": "acronym_exact",
+                  "sourceYear": 2026,
+                  "confidence": 1,
+                  "fullVenueTitle": "International Conference on Advanced Communications and Computation"
+                },
+                "actual": {
+                  "status": "missing",
+                  "rank": "N/A",
+                  "matchedVenue": null,
+                  "rawRankLabel": null,
+                  "matchType": null,
+                  "sourceYear": 2026,
+                  "confidence": null,
+                  "fullVenueTitle": "International Conference on Advanced Communications and Computation"
+                },
+                "latencyMs": 98.196875
+              },
+              {
+                "id": "shadow-conference-2026-international-conference-on-advanced-communications-and-computation",
+                "family": "conference_resolution",
+                "suite": "real",
+                "expected": {
+                  "status": "unranked",
+                  "rank": "N/A",
+                  "matchedVenue": "International Conference on Advanced Communications and Computation",
+                  "rawRankLabel": "Unranked",
+                  "matchType": "alias_exact",
+                  "sourceYear": 2026,
+                  "confidence": 1,
+                  "fullVenueTitle": "International Conference on Advanced Communications and Computation"
+                },
+                "actual": {
+                  "status": "missing",
+                  "rank": "N/A",
+                  "matchedVenue": null,
+                  "rawRankLabel": null,
+                  "matchType": null,
+                  "sourceYear": 2026,
+                  "confidence": null,
+                  "fullVenueTitle": "International Conference on Advanced Communications and Computation"
+                },
+                "latencyMs": 7.683542
+              },
+              {
+                "id": "shadow-conference-2026-ant",
+                "family": "conference_resolution",
+                "suite": "real",
+                "expected": {
+                  "status": "unranked",
+                  "rank": "N/A",
+                  "matchedVenue": "International Conference on Ambient Systems, Networks and Technologies",
+                  "rawRankLabel": "Unranked",
+                  "matchType": "acronym_exact",
+                  "sourceYear": 2026,
+                  "confidence": 1,
+                  "fullVenueTitle": "International Conference on Ambient Systems, Networks and Technologies"
+                },
+                "actual": {
+                  "status": "missing",
+                  "rank": "N/A",
+                  "matchedVenue": null,
+                  "rawRankLabel": null,
+                  "matchType": null,
+                  "sourceYear": 2026,
+                  "confidence": null,
+                  "fullVenueTitle": "International Conference on Ambient Systems, Networks and Technologies"
+                },
+                "latencyMs": 0.100542
+              },
+              {
+                "id": "shadow-conference-2026-international-conference-on-ambient-systems-networks-and-technologies",
+                "family": "conference_resolution",
+                "suite": "real",
+                "expected": {
+                  "status": "unranked",
+                  "rank": "N/A",
+                  "matchedVenue": "International Conference on Ambient Systems, Networks and Technologies",
+                  "rawRankLabel": "Unranked",
+                  "matchType": "alias_exact",
+                  "sourceYear": 2026,
+                  "confidence": 1,
+                  "fullVenueTitle": "International Conference on Ambient Systems, Networks and Technologies"
+                },
+                "actual": {
+                  "status": "matched",
+                  "rank": "C",
+                  "matchedVenue": "International Conference on Web Information Systems and Technologies",
+                  "rawRankLabel": "C",
+                  "matchType": "fuzzy",
+                  "sourceYear": 2026,
+                  "confidence": 0.8422838481211883,
+                  "fullVenueTitle": "International Conference on Ambient Systems, Networks and Technologies"
+                },
+                "latencyMs": 1.249416
+              },
+              {
+                "id": "shadow-conference-2026-sensys",
+                "family": "conference_resolution",
+                "suite": "real",
+                "expected": {
+                  "status": "unranked",
+                  "rank": "N/A",
+                  "matchedVenue": "ACM Conference on Embedded Networked Sensor Systems",
+                  "rawRankLabel": "unranked: merged",
+                  "matchType": "acronym_exact",
+                  "sourceYear": 2026,
+                  "confidence": 1,
+                  "fullVenueTitle": "ACM Conference on Embedded Networked Sensor Systems"
+                },
+                "actual": {
+                  "status": "missing",
+                  "rank": "N/A",
+                  "matchedVenue": null,
+                  "rawRankLabel": null,
+                  "matchType": null,
+                  "sourceYear": 2026,
+                  "confidence": null,
+                  "fullVenueTitle": "ACM Conference on Embedded Networked Sensor Systems"
+                },
+                "latencyMs": 3.748041
+              },
+              {
+                "id": "shadow-conference-2026-acm-conference-on-embedded-networked-sensor-systems",
+                "family": "conference_resolution",
+                "suite": "real",
+                "expected": {
+                  "status": "unranked",
+                  "rank": "N/A",
+                  "matchedVenue": "ACM Conference on Embedded Networked Sensor Systems",
+                  "rawRankLabel": "unranked: merged",
+                  "matchType": "alias_exact",
+                  "sourceYear": 2026,
+                  "confidence": 1,
+                  "fullVenueTitle": "ACM Conference on Embedded Networked Sensor Systems"
+                },
+                "actual": {
+                  "status": "missing",
+                  "rank": "N/A",
+                  "matchedVenue": null,
+                  "rawRankLabel": null,
+                  "matchType": null,
+                  "sourceYear": 2026,
+                  "confidence": null,
+                  "fullVenueTitle": "ACM Conference on Embedded Networked Sensor Systems"
+                },
+                "latencyMs": 0.228708
+              },
+              {
+                "id": "shadow-conference-2026-sigite",
+                "family": "conference_resolution",
+                "suite": "real",
+                "expected": {
+                  "status": "unranked",
+                  "rank": "N/A",
+                  "matchedVenue": "ACM Information Technology Education",
+                  "rawRankLabel": null,
+                  "matchType": "acronym_exact",
+                  "sourceYear": 2026,
+                  "confidence": 1,
+                  "fullVenueTitle": "ACM Information Technology Education"
+                },
+                "actual": {
+                  "status": "missing",
+                  "rank": "N/A",
+                  "matchedVenue": null,
+                  "rawRankLabel": null,
+                  "matchType": null,
+                  "sourceYear": 2026,
+                  "confidence": null,
+                  "fullVenueTitle": "ACM Information Technology Education"
+                },
+                "latencyMs": 1.839125
+              },
+              {
+                "id": "shadow-conference-2026-acm-information-technology-education",
+                "family": "conference_resolution",
+                "suite": "real",
+                "expected": {
+                  "status": "unranked",
+                  "rank": "N/A",
+                  "matchedVenue": "ACM Information Technology Education",
+                  "rawRankLabel": null,
+                  "matchType": "alias_exact",
+                  "sourceYear": 2026,
+                  "confidence": 1,
+                  "fullVenueTitle": "ACM Information Technology Education"
+                },
+                "actual": {
+                  "status": "missing",
+                  "rank": "N/A",
+                  "matchedVenue": null,
+                  "rawRankLabel": null,
+                  "matchType": null,
+                  "sourceYear": 2026,
+                  "confidence": null,
+                  "fullVenueTitle": "ACM Information Technology Education"
+                },
+                "latencyMs": 0.278625
+              },
+              {
+                "id": "shadow-conference-2026-ace",
+                "family": "conference_resolution",
+                "suite": "real",
+                "expected": {
+                  "status": "unranked",
+                  "rank": "N/A",
+                  "matchedVenue": "Australasian Computing Education Conference (ACE)",
+                  "rawRankLabel": null,
+                  "matchType": "acronym_disambiguated",
+                  "sourceYear": 2026,
+                  "confidence": 0.5737872340425533,
+                  "fullVenueTitle": "ACM International Conference on Advances in Computer Entertainment (merged with DIMEA, Digital Interactive Media in Entertainment and Arts, in 2009)"
+                },
+                "actual": {
+                  "status": "matched",
+                  "rank": "C",
+                  "matchedVenue": "ACM International Conference on Advances in Computer Entertainment (merged with DIMEA, Digital Interactive Media in Entertainment and Arts, in 2009)",
+                  "rawRankLabel": "C",
+                  "matchType": "acronym_exact",
+                  "sourceYear": 2026,
+                  "confidence": 1,
+                  "fullVenueTitle": "ACM International Conference on Advances in Computer Entertainment (merged with DIMEA, Digital Interactive Media in Entertainment and Arts, in 2009)"
+                },
+                "latencyMs": 0.013125
+              },
+              {
+                "id": "shadow-conference-2026-iss",
+                "family": "conference_resolution",
+                "suite": "real",
+                "expected": {
+                  "status": "unranked",
+                  "rank": "N/A",
+                  "matchedVenue": "ACM International Conference on Interactive Surfaces and Spaces (was International Workshop on Horizontal Interactive Human-Computer Systems: Tabletop)",
+                  "rawRankLabel": "Journal Published",
+                  "matchType": "acronym_exact",
+                  "sourceYear": 2026,
+                  "confidence": 1,
+                  "fullVenueTitle": "ACM International Conference on Interactive Surfaces and Spaces (was International Workshop on Horizontal Interactive Human-Computer Systems: Tabletop)"
+                },
+                "actual": {
+                  "status": "missing",
+                  "rank": "N/A",
+                  "matchedVenue": null,
+                  "rawRankLabel": null,
+                  "matchType": null,
+                  "sourceYear": 2026,
+                  "confidence": null,
+                  "fullVenueTitle": "ACM International Conference on Interactive Surfaces and Spaces (was International Workshop on Horizontal Interactive Human-Computer Systems: Tabletop)"
+                },
+                "latencyMs": 0.068708
+              }
+            ],
+            "topFalsePositives": [
+              "shadow-conference-2026-international-conference-on-ambient-systems-networks-and-technologies",
+              "shadow-conference-2026-ace",
+              "shadow-conference-2026-acm-symposium-on-applied-computing",
+              "shadow-conference-2026-cisis",
+              "shadow-conference-2026-conference-of-the-association-for-machine-translation-in-the-americas"
+            ],
             "topFalseNegatives": [],
-            "topAmbiguousFailures": []
+            "topReviewFailures": [
+              "shadow-conference-2026-iccp",
+              "shadow-conference-2026-cis",
+              "shadow-conference-2026-iswc",
+              "shadow-conference-2026-itc",
+              "shadow-conference-2026-idc"
+            ]
           },
           "journal_resolution": {
             "suite": "real",
             "family": "journal_resolution",
-            "total": 54,
-            "passed": 54,
-            "failed": 0,
-            "exactAccuracy": 1,
-            "precision": 1,
-            "recall": 1,
-            "falsePositiveCount": 0,
-            "falseNegativeCount": 0,
-            "abstainRate": 0,
-            "ambiguityRate": 0,
-            "meanLatencyMs": 15.427818518518517,
-            "p95LatencyMs": 1.7411,
+            "total": 320,
+            "passed": 0,
+            "failed": 320,
+            "exactAccuracy": 0,
+            "precision": 0.9968253968253968,
+            "recall": 0.9843260188087775,
+            "falsePositiveCount": 1,
+            "falseNegativeCount": 5,
+            "abstainRate": 0.015625,
+            "reviewRate": 0,
+            "meanLatencyMs": 0.5391834531249996,
+            "p95LatencyMs": 0.057166,
             "statusConfusion": {
               "matched": {
-                "matched": 53
+                "matched": 314,
+                "missing": 5
               },
-              "unranked": {
-                "unranked": 1
+              "review": {
+                "matched": 1
               }
             },
             "conferenceRankConfusion": {},
             "journalQuartileConfusion": {
+              "Q4": {
+                "Q4": 78
+              },
               "Q1": {
-                "Q1": 43
+                "N/A": 2,
+                "Q1": 107
               },
               "Q2": {
-                "Q2": 7
+                "Q2": 65,
+                "Q1": 1
               },
               "Q3": {
-                "Q3": 2
-              },
-              "Q4": {
-                "Q4": 1
+                "N/A": 3,
+                "Q3": 63
               },
               "N/A": {
-                "N/A": 1
+                "Q2": 1
               }
             },
-            "sampleFailures": [],
+            "sampleFailures": [
+              {
+                "id": "shadow-journal-001",
+                "family": "journal_resolution",
+                "suite": "real",
+                "expected": {
+                  "status": "matched",
+                  "quartile": "Q4",
+                  "matchedTitle": "@GRH",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": "21101170611",
+                  "matchType": "title_exact",
+                  "reason": null
+                },
+                "actual": {
+                  "status": "matched",
+                  "quartile": "Q4",
+                  "matchedTitle": "@GRH",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": null,
+                  "matchType": "title_exact",
+                  "reason": null
+                },
+                "latencyMs": 155.122333
+              },
+              {
+                "id": "shadow-journal-002",
+                "family": "journal_resolution",
+                "suite": "real",
+                "expected": {
+                  "status": "matched",
+                  "quartile": "Q4",
+                  "matchedTitle": "A + U-Architecture and Urbanism",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": "16400154734",
+                  "matchType": "title_exact",
+                  "reason": null
+                },
+                "actual": {
+                  "status": "matched",
+                  "quartile": "Q4",
+                  "matchedTitle": "A + U-Architecture and Urbanism",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": null,
+                  "matchType": "title_exact",
+                  "reason": null
+                },
+                "latencyMs": 0.862875
+              },
+              {
+                "id": "shadow-journal-003",
+                "family": "journal_resolution",
+                "suite": "real",
+                "expected": {
+                  "status": "matched",
+                  "quartile": "Q1",
+                  "matchedTitle": "2D Materials",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": "21100404576",
+                  "matchType": "title_exact",
+                  "reason": null
+                },
+                "actual": {
+                  "status": "missing",
+                  "quartile": "N/A",
+                  "matchedTitle": null,
+                  "sourceYear": null,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": null,
+                  "matchType": null,
+                  "reason": null
+                },
+                "latencyMs": 0.916083
+              },
+              {
+                "id": "shadow-journal-004",
+                "family": "journal_resolution",
+                "suite": "real",
+                "expected": {
+                  "status": "matched",
+                  "quartile": "Q2",
+                  "matchedTitle": "3D Printing and Additive Manufacturing",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": "21100779062",
+                  "matchType": "title_exact",
+                  "reason": null
+                },
+                "actual": {
+                  "status": "matched",
+                  "quartile": "Q2",
+                  "matchedTitle": "3D Printing and Additive Manufacturing",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": null,
+                  "matchType": "title_fuzzy",
+                  "reason": null
+                },
+                "latencyMs": 0.10775
+              },
+              {
+                "id": "shadow-journal-005",
+                "family": "journal_resolution",
+                "suite": "real",
+                "expected": {
+                  "status": "matched",
+                  "quartile": "Q3",
+                  "matchedTitle": "3D Printing in Medicine",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": "21100932761",
+                  "matchType": "title_exact",
+                  "reason": null
+                },
+                "actual": {
+                  "status": "missing",
+                  "quartile": "N/A",
+                  "matchedTitle": null,
+                  "sourceYear": null,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": null,
+                  "matchType": null,
+                  "reason": null
+                },
+                "latencyMs": 0.062375
+              },
+              {
+                "id": "shadow-journal-006",
+                "family": "journal_resolution",
+                "suite": "real",
+                "expected": {
+                  "status": "matched",
+                  "quartile": "Q3",
+                  "matchedTitle": "3D Research",
+                  "sourceYear": 2022,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": "21100229836",
+                  "matchType": "title_exact",
+                  "reason": null
+                },
+                "actual": {
+                  "status": "missing",
+                  "quartile": "N/A",
+                  "matchedTitle": null,
+                  "sourceYear": null,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": null,
+                  "matchType": null,
+                  "reason": null
+                },
+                "latencyMs": 3.49525
+              },
+              {
+                "id": "shadow-journal-007",
+                "family": "journal_resolution",
+                "suite": "real",
+                "expected": {
+                  "status": "matched",
+                  "quartile": "Q1",
+                  "matchedTitle": "3L: Language, Linguistics, Literature",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": "19700200922",
+                  "matchType": "title_exact",
+                  "reason": null
+                },
+                "actual": {
+                  "status": "missing",
+                  "quartile": "N/A",
+                  "matchedTitle": null,
+                  "sourceYear": null,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": null,
+                  "matchType": null,
+                  "reason": null
+                },
+                "latencyMs": 0.179292
+              },
+              {
+                "id": "shadow-journal-008",
+                "family": "journal_resolution",
+                "suite": "real",
+                "expected": {
+                  "status": "matched",
+                  "quartile": "Q1",
+                  "matchedTitle": "452ºF",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": "21101005201",
+                  "matchType": "title_exact",
+                  "reason": null
+                },
+                "actual": {
+                  "status": "matched",
+                  "quartile": "Q1",
+                  "matchedTitle": "452ºF",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": null,
+                  "matchType": "title_exact",
+                  "reason": null
+                },
+                "latencyMs": 0.057792
+              },
+              {
+                "id": "shadow-journal-009",
+                "family": "journal_resolution",
+                "suite": "real",
+                "expected": {
+                  "status": "matched",
+                  "quartile": "Q2",
+                  "matchedTitle": "4OR",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": "145295",
+                  "matchType": "title_exact",
+                  "reason": null
+                },
+                "actual": {
+                  "status": "matched",
+                  "quartile": "Q2",
+                  "matchedTitle": "4OR",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": null,
+                  "matchType": "title_exact",
+                  "reason": null
+                },
+                "latencyMs": 0.099167
+              },
+              {
+                "id": "shadow-journal-010",
+                "family": "journal_resolution",
+                "suite": "real",
+                "expected": {
+                  "status": "matched",
+                  "quartile": "Q2",
+                  "matchedTitle": "AAA - Arbeiten aus Anglistik und Amerikanistik",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": "5800207606",
+                  "matchType": "title_exact",
+                  "reason": null
+                },
+                "actual": {
+                  "status": "matched",
+                  "quartile": "Q2",
+                  "matchedTitle": "AAA - Arbeiten aus Anglistik und Amerikanistik",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "matchedSourceId": null,
+                  "matchType": "title_exact",
+                  "reason": null
+                },
+                "latencyMs": 0.056584
+              }
+            ],
+            "topFalsePositives": [
+              "shadow-journal-015"
+            ],
+            "topFalseNegatives": [
+              "shadow-journal-003",
+              "shadow-journal-005",
+              "shadow-journal-006",
+              "shadow-journal-007",
+              "shadow-journal-036"
+            ],
+            "topReviewFailures": [
+              "shadow-journal-015"
+            ]
+          },
+          "pipeline_e2e": {
+            "suite": "real",
+            "family": "pipeline_e2e",
+            "total": 240,
+            "passed": 210,
+            "failed": 30,
+            "exactAccuracy": 0.875,
+            "precision": 1,
+            "recall": 0.9444444444444444,
+            "falsePositiveCount": 0,
+            "falseNegativeCount": 4,
+            "abstainRate": 0.5458333333333333,
+            "reviewRate": 0.020833333333333332,
+            "meanLatencyMs": 0.8818553374999999,
+            "p95LatencyMs": 1.708,
+            "statusConfusion": {
+              "matched": {
+                "matched": 68,
+                "missing": 4
+              },
+              "unranked": {
+                "unranked": 41,
+                "missing": 5
+              },
+              "missing": {
+                "missing": 117
+              },
+              "review": {
+                "review": 5
+              }
+            },
+            "conferenceRankConfusion": {},
+            "journalQuartileConfusion": {},
+            "sampleFailures": [
+              {
+                "id": "shadow-gold-pipeline-sjr-01",
+                "family": "pipeline_e2e",
+                "suite": "real",
+                "expected": {
+                  "system": "SJR",
+                  "rank": "Q4",
+                  "reason": null,
+                  "decisionStatus": "matched",
+                  "matchedVenue": "A + U-Architecture and Urbanism",
+                  "matchedKey": "A + U-Architecture and Urbanism",
+                  "matchedSourceId": "16400154734",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "confidence": 1
+                },
+                "actual": {
+                  "system": "SJR",
+                  "rank": "Q4",
+                  "reason": null,
+                  "decisionStatus": "matched",
+                  "matchedVenue": "A + U-Architecture and Urbanism",
+                  "matchedKey": "A + U-Architecture and Urbanism",
+                  "matchedSourceId": null,
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "confidence": 1
+                },
+                "latencyMs": 0.147
+              },
+              {
+                "id": "shadow-gold-pipeline-sjr-02",
+                "family": "pipeline_e2e",
+                "suite": "real",
+                "expected": {
+                  "system": "SJR",
+                  "rank": "Q1",
+                  "reason": null,
+                  "decisionStatus": "matched",
+                  "matchedVenue": "2D Materials",
+                  "matchedKey": "2D Materials",
+                  "matchedSourceId": "21100404576",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "confidence": 1
+                },
+                "actual": {
+                  "system": "SJR",
+                  "rank": "N/A",
+                  "reason": null,
+                  "decisionStatus": "missing",
+                  "matchedVenue": null,
+                  "matchedKey": null,
+                  "matchedSourceId": null,
+                  "sourceYear": null,
+                  "sourceYearFallback": false,
+                  "confidence": 1
+                },
+                "latencyMs": 0.771917
+              },
+              {
+                "id": "shadow-gold-pipeline-sjr-03",
+                "family": "pipeline_e2e",
+                "suite": "real",
+                "expected": {
+                  "system": "SJR",
+                  "rank": "Q2",
+                  "reason": null,
+                  "decisionStatus": "matched",
+                  "matchedVenue": "3D Printing and Additive Manufacturing",
+                  "matchedKey": "3D Printing and Additive Manufacturing",
+                  "matchedSourceId": "21100779062",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "confidence": 1
+                },
+                "actual": {
+                  "system": "SJR",
+                  "rank": "Q2",
+                  "reason": null,
+                  "decisionStatus": "matched",
+                  "matchedVenue": "3D Printing and Additive Manufacturing",
+                  "matchedKey": "3D Printing and Additive Manufacturing",
+                  "matchedSourceId": null,
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "confidence": 1
+                },
+                "latencyMs": 0.0875
+              },
+              {
+                "id": "shadow-gold-pipeline-sjr-04",
+                "family": "pipeline_e2e",
+                "suite": "real",
+                "expected": {
+                  "system": "SJR",
+                  "rank": "Q3",
+                  "reason": null,
+                  "decisionStatus": "matched",
+                  "matchedVenue": "3D Printing in Medicine",
+                  "matchedKey": "3D Printing in Medicine",
+                  "matchedSourceId": "21100932761",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "confidence": 1
+                },
+                "actual": {
+                  "system": "SJR",
+                  "rank": "N/A",
+                  "reason": null,
+                  "decisionStatus": "missing",
+                  "matchedVenue": null,
+                  "matchedKey": null,
+                  "matchedSourceId": null,
+                  "sourceYear": null,
+                  "sourceYearFallback": false,
+                  "confidence": 1
+                },
+                "latencyMs": 0.05975
+              },
+              {
+                "id": "shadow-gold-pipeline-sjr-05",
+                "family": "pipeline_e2e",
+                "suite": "real",
+                "expected": {
+                  "system": "SJR",
+                  "rank": "Q3",
+                  "reason": null,
+                  "decisionStatus": "matched",
+                  "matchedVenue": "3D Research",
+                  "matchedKey": "3D Research",
+                  "matchedSourceId": "21100229836",
+                  "sourceYear": 2022,
+                  "sourceYearFallback": false,
+                  "confidence": 1
+                },
+                "actual": {
+                  "system": "SJR",
+                  "rank": "N/A",
+                  "reason": null,
+                  "decisionStatus": "missing",
+                  "matchedVenue": null,
+                  "matchedKey": null,
+                  "matchedSourceId": null,
+                  "sourceYear": null,
+                  "sourceYearFallback": false,
+                  "confidence": 1
+                },
+                "latencyMs": 4.140417
+              },
+              {
+                "id": "shadow-gold-pipeline-sjr-06",
+                "family": "pipeline_e2e",
+                "suite": "real",
+                "expected": {
+                  "system": "SJR",
+                  "rank": "Q1",
+                  "reason": null,
+                  "decisionStatus": "matched",
+                  "matchedVenue": "3L: Language, Linguistics, Literature",
+                  "matchedKey": "3L: Language, Linguistics, Literature",
+                  "matchedSourceId": "19700200922",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "confidence": 1
+                },
+                "actual": {
+                  "system": "SJR",
+                  "rank": "N/A",
+                  "reason": null,
+                  "decisionStatus": "missing",
+                  "matchedVenue": null,
+                  "matchedKey": null,
+                  "matchedSourceId": null,
+                  "sourceYear": null,
+                  "sourceYearFallback": false,
+                  "confidence": 1
+                },
+                "latencyMs": 0.1035
+              },
+              {
+                "id": "shadow-gold-pipeline-sjr-07",
+                "family": "pipeline_e2e",
+                "suite": "real",
+                "expected": {
+                  "system": "SJR",
+                  "rank": "Q1",
+                  "reason": null,
+                  "decisionStatus": "matched",
+                  "matchedVenue": "452ºF",
+                  "matchedKey": "452ºF",
+                  "matchedSourceId": "21101005201",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "confidence": 1
+                },
+                "actual": {
+                  "system": "SJR",
+                  "rank": "Q1",
+                  "reason": null,
+                  "decisionStatus": "matched",
+                  "matchedVenue": "452ºF",
+                  "matchedKey": "452ºF",
+                  "matchedSourceId": null,
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "confidence": 1
+                },
+                "latencyMs": 0.047584
+              },
+              {
+                "id": "shadow-gold-pipeline-sjr-08",
+                "family": "pipeline_e2e",
+                "suite": "real",
+                "expected": {
+                  "system": "SJR",
+                  "rank": "Q2",
+                  "reason": null,
+                  "decisionStatus": "matched",
+                  "matchedVenue": "4OR",
+                  "matchedKey": "4OR",
+                  "matchedSourceId": "145295",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "confidence": 1
+                },
+                "actual": {
+                  "system": "SJR",
+                  "rank": "Q2",
+                  "reason": null,
+                  "decisionStatus": "matched",
+                  "matchedVenue": "4OR",
+                  "matchedKey": "4OR",
+                  "matchedSourceId": null,
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "confidence": 1
+                },
+                "latencyMs": 0.043334
+              },
+              {
+                "id": "shadow-gold-pipeline-sjr-09",
+                "family": "pipeline_e2e",
+                "suite": "real",
+                "expected": {
+                  "system": "SJR",
+                  "rank": "Q2",
+                  "reason": null,
+                  "decisionStatus": "matched",
+                  "matchedVenue": "AAA - Arbeiten aus Anglistik und Amerikanistik",
+                  "matchedKey": "AAA - Arbeiten aus Anglistik und Amerikanistik",
+                  "matchedSourceId": "5800207606",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "confidence": 1
+                },
+                "actual": {
+                  "system": "SJR",
+                  "rank": "Q2",
+                  "reason": null,
+                  "decisionStatus": "matched",
+                  "matchedVenue": "AAA - Arbeiten aus Anglistik und Amerikanistik",
+                  "matchedKey": "AAA - Arbeiten aus Anglistik und Amerikanistik",
+                  "matchedSourceId": null,
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "confidence": 1
+                },
+                "latencyMs": 0.059125
+              },
+              {
+                "id": "shadow-gold-pipeline-sjr-10",
+                "family": "pipeline_e2e",
+                "suite": "real",
+                "expected": {
+                  "system": "SJR",
+                  "rank": "Q1",
+                  "reason": null,
+                  "decisionStatus": "matched",
+                  "matchedVenue": "AAC: Augmentative and Alternative Communication",
+                  "matchedKey": "AAC: Augmentative and Alternative Communication",
+                  "matchedSourceId": "28033",
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "confidence": 1
+                },
+                "actual": {
+                  "system": "SJR",
+                  "rank": "Q1",
+                  "reason": null,
+                  "decisionStatus": "matched",
+                  "matchedVenue": "AAC: Augmentative and Alternative Communication",
+                  "matchedKey": "AAC: Augmentative and Alternative Communication",
+                  "matchedSourceId": null,
+                  "sourceYear": 2024,
+                  "sourceYearFallback": false,
+                  "confidence": 1
+                },
+                "latencyMs": 0.054125
+              }
+            ],
             "topFalsePositives": [],
-            "topFalseNegatives": [],
-            "topAmbiguousFailures": []
+            "topFalseNegatives": [
+              "shadow-gold-pipeline-sjr-02",
+              "shadow-gold-pipeline-sjr-04",
+              "shadow-gold-pipeline-sjr-05",
+              "shadow-gold-pipeline-sjr-06"
+            ],
+            "topReviewFailures": []
+          },
+          "search_queries": {
+            "suite": "real",
+            "family": "search_queries",
+            "total": 120,
+            "passed": 99,
+            "failed": 21,
+            "exactAccuracy": 0.825,
+            "precision": 0.9711538461538461,
+            "recall": 0.9528301886792453,
+            "falsePositiveCount": 3,
+            "falseNegativeCount": 5,
+            "abstainRate": 0.13333333333333333,
+            "reviewRate": 0,
+            "meanLatencyMs": 2.723086058333336,
+            "p95LatencyMs": 7.826708,
+            "statusConfusion": {
+              "unranked": {
+                "missing": 11,
+                "matched": 2
+              },
+              "matched": {
+                "matched": 101,
+                "missing": 5
+              },
+              "review": {
+                "matched": 1
+              }
+            },
+            "conferenceRankConfusion": {},
+            "journalQuartileConfusion": {},
+            "sampleFailures": [
+              {
+                "id": "shadow-search-conference-001",
+                "family": "search_queries",
+                "suite": "real",
+                "expected": {
+                  "status": "unranked",
+                  "primaryLabel": "Unranked",
+                  "matchedVenue": "International Conference on Advanced Communications and Computation",
+                  "currentStatusLabel": "Unranked",
+                  "latestRankedSnapshot": null,
+                  "sourceYear": 2026
+                },
+                "actual": {
+                  "status": "missing",
+                  "primaryLabel": "Not found",
+                  "matchedVenue": null,
+                  "currentStatusLabel": null,
+                  "latestRankedSnapshot": null,
+                  "sourceYear": 2026
+                },
+                "latencyMs": 207.542708
+              },
+              {
+                "id": "shadow-search-conference-002",
+                "family": "search_queries",
+                "suite": "real",
+                "expected": {
+                  "status": "unranked",
+                  "primaryLabel": "Unranked",
+                  "matchedVenue": "International Conference on Advanced Communications and Computation",
+                  "currentStatusLabel": "Unranked",
+                  "latestRankedSnapshot": null,
+                  "sourceYear": 2026
+                },
+                "actual": {
+                  "status": "missing",
+                  "primaryLabel": "Not found",
+                  "matchedVenue": null,
+                  "currentStatusLabel": null,
+                  "latestRankedSnapshot": {
+                    "rank": "C",
+                    "sourceYear": 2008,
+                    "matchedVenue": "International Conference on Advanced Computing and Communications"
+                  },
+                  "sourceYear": 2026
+                },
+                "latencyMs": 4.346458
+              },
+              {
+                "id": "shadow-search-conference-003",
+                "family": "search_queries",
+                "suite": "real",
+                "expected": {
+                  "status": "unranked",
+                  "primaryLabel": "Unranked",
+                  "matchedVenue": "International Conference on Ambient Systems, Networks and Technologies",
+                  "currentStatusLabel": "Unranked",
+                  "latestRankedSnapshot": null,
+                  "sourceYear": 2026
+                },
+                "actual": {
+                  "status": "missing",
+                  "primaryLabel": "Not found",
+                  "matchedVenue": null,
+                  "currentStatusLabel": null,
+                  "latestRankedSnapshot": null,
+                  "sourceYear": 2026
+                },
+                "latencyMs": 0.424291
+              },
+              {
+                "id": "shadow-search-conference-004",
+                "family": "search_queries",
+                "suite": "real",
+                "expected": {
+                  "status": "unranked",
+                  "primaryLabel": "Unranked",
+                  "matchedVenue": "International Conference on Ambient Systems, Networks and Technologies",
+                  "currentStatusLabel": "Unranked",
+                  "latestRankedSnapshot": null,
+                  "sourceYear": 2026
+                },
+                "actual": {
+                  "status": "matched",
+                  "primaryLabel": "C",
+                  "matchedVenue": "International Conference on Web Information Systems and Technologies",
+                  "currentStatusLabel": "C",
+                  "latestRankedSnapshot": {
+                    "rank": "C",
+                    "sourceYear": 2023,
+                    "matchedVenue": "International Conference on Web Information Systems and Technologies"
+                  },
+                  "sourceYear": 2026
+                },
+                "latencyMs": 1.203542
+              },
+              {
+                "id": "shadow-search-conference-019",
+                "family": "search_queries",
+                "suite": "real",
+                "expected": {
+                  "status": "unranked",
+                  "primaryLabel": "Unranked",
+                  "matchedVenue": "ACM Conference on Embedded Networked Sensor Systems",
+                  "currentStatusLabel": "Unranked: merged",
+                  "latestRankedSnapshot": {
+                    "rank": "A*",
+                    "sourceYear": 2023,
+                    "matchedVenue": "ACM Conference on Embedded Networked Sensor Systems"
+                  },
+                  "sourceYear": 2026
+                },
+                "actual": {
+                  "status": "missing",
+                  "primaryLabel": "Not found",
+                  "matchedVenue": null,
+                  "currentStatusLabel": null,
+                  "latestRankedSnapshot": {
+                    "rank": "A*",
+                    "sourceYear": 2023,
+                    "matchedVenue": "ACM Conference on Embedded Networked Sensor Systems"
+                  },
+                  "sourceYear": 2026
+                },
+                "latencyMs": 3.520458
+              },
+              {
+                "id": "shadow-search-conference-020",
+                "family": "search_queries",
+                "suite": "real",
+                "expected": {
+                  "status": "unranked",
+                  "primaryLabel": "Unranked",
+                  "matchedVenue": "ACM Conference on Embedded Networked Sensor Systems",
+                  "currentStatusLabel": "Unranked: merged",
+                  "latestRankedSnapshot": {
+                    "rank": "A*",
+                    "sourceYear": 2023,
+                    "matchedVenue": "ACM Conference on Embedded Networked Sensor Systems"
+                  },
+                  "sourceYear": 2026
+                },
+                "actual": {
+                  "status": "missing",
+                  "primaryLabel": "Not found",
+                  "matchedVenue": null,
+                  "currentStatusLabel": null,
+                  "latestRankedSnapshot": {
+                    "rank": "A*",
+                    "sourceYear": 2023,
+                    "matchedVenue": "ACM Conference on Embedded Networked Sensor Systems"
+                  },
+                  "sourceYear": 2026
+                },
+                "latencyMs": 0.225584
+              },
+              {
+                "id": "shadow-search-conference-027",
+                "family": "search_queries",
+                "suite": "real",
+                "expected": {
+                  "status": "unranked",
+                  "primaryLabel": "Unranked",
+                  "matchedVenue": "ACM Information Technology Education",
+                  "currentStatusLabel": null,
+                  "latestRankedSnapshot": {
+                    "rank": "C",
+                    "sourceYear": 2018,
+                    "matchedVenue": "ACM Information Technology Education"
+                  },
+                  "sourceYear": 2026
+                },
+                "actual": {
+                  "status": "missing",
+                  "primaryLabel": "Not found",
+                  "matchedVenue": null,
+                  "currentStatusLabel": null,
+                  "latestRankedSnapshot": {
+                    "rank": "C",
+                    "sourceYear": 2018,
+                    "matchedVenue": "ACM Information Technology Education"
+                  },
+                  "sourceYear": 2026
+                },
+                "latencyMs": 5.19975
+              },
+              {
+                "id": "shadow-search-conference-028",
+                "family": "search_queries",
+                "suite": "real",
+                "expected": {
+                  "status": "unranked",
+                  "primaryLabel": "Unranked",
+                  "matchedVenue": "ACM Information Technology Education",
+                  "currentStatusLabel": null,
+                  "latestRankedSnapshot": {
+                    "rank": "C",
+                    "sourceYear": 2018,
+                    "matchedVenue": "ACM Information Technology Education"
+                  },
+                  "sourceYear": 2026
+                },
+                "actual": {
+                  "status": "missing",
+                  "primaryLabel": "Not found",
+                  "matchedVenue": null,
+                  "currentStatusLabel": null,
+                  "latestRankedSnapshot": {
+                    "rank": "C",
+                    "sourceYear": 2018,
+                    "matchedVenue": "ACM Information Technology Education"
+                  },
+                  "sourceYear": 2026
+                },
+                "latencyMs": 0.731625
+              },
+              {
+                "id": "shadow-search-conference-031",
+                "family": "search_queries",
+                "suite": "real",
+                "expected": {
+                  "status": "unranked",
+                  "primaryLabel": "Unranked",
+                  "matchedVenue": "Australasian Computing Education Conference (ACE)",
+                  "currentStatusLabel": null,
+                  "latestRankedSnapshot": {
+                    "rank": "B",
+                    "sourceYear": 2010,
+                    "matchedVenue": "Australasian Computing Education Conference (ACE)"
+                  },
+                  "sourceYear": 2026
+                },
+                "actual": {
+                  "status": "matched",
+                  "primaryLabel": "C",
+                  "matchedVenue": "ACM International Conference on Advances in Computer Entertainment (merged with DIMEA, Digital Interactive Media in Entertainment and Arts, in 2009)",
+                  "currentStatusLabel": "C",
+                  "latestRankedSnapshot": {
+                    "rank": "C",
+                    "sourceYear": 2023,
+                    "matchedVenue": "ACM International Conference on Advances in Computer Entertainment (merged with DIMEA, Digital Interactive Media in Entertainment and Arts, in 2009)"
+                  },
+                  "sourceYear": 2026
+                },
+                "latencyMs": 0.035334
+              },
+              {
+                "id": "shadow-search-conference-041",
+                "family": "search_queries",
+                "suite": "real",
+                "expected": {
+                  "status": "unranked",
+                  "primaryLabel": "Unranked",
+                  "matchedVenue": "ACM International Conference on Interactive Surfaces and Spaces (was International Workshop on Horizontal Interactive Human-Computer Systems: Tabletop)",
+                  "currentStatusLabel": "Journal Published",
+                  "latestRankedSnapshot": {
+                    "rank": "A",
+                    "sourceYear": 2020,
+                    "matchedVenue": "ACM International Conference on Interactive Surfaces and Spaces (was International Workshop on Horizontal Interactive Human-Computer Systems: Tabletop)"
+                  },
+                  "sourceYear": 2026
+                },
+                "actual": {
+                  "status": "missing",
+                  "primaryLabel": "Not found",
+                  "matchedVenue": null,
+                  "currentStatusLabel": null,
+                  "latestRankedSnapshot": {
+                    "rank": "A",
+                    "sourceYear": 2020,
+                    "matchedVenue": "ACM International Conference on Interactive Surfaces and Spaces (was International Workshop on Horizontal Interactive Human-Computer Systems: Tabletop)"
+                  },
+                  "sourceYear": 2026
+                },
+                "latencyMs": 0.11875
+              }
+            ],
+            "topFalsePositives": [
+              "shadow-search-conference-004",
+              "shadow-search-conference-031",
+              "shadow-search-journal-015"
+            ],
+            "topFalseNegatives": [
+              "shadow-search-journal-003",
+              "shadow-search-journal-005",
+              "shadow-search-journal-006",
+              "shadow-search-journal-007",
+              "shadow-search-journal-036"
+            ],
+            "topReviewFailures": [
+              "shadow-search-journal-015"
+            ]
           }
         },
         "overall": {
           "suite": "real",
           "family": "overall",
-          "total": 91,
-          "passed": 91,
-          "failed": 0,
-          "exactAccuracy": 1,
-          "precision": 1,
-          "recall": 1,
-          "falsePositiveCount": 0,
-          "falseNegativeCount": 0,
-          "abstainRate": 0.01098901098901099,
-          "ambiguityRate": 0.01098901098901099,
-          "meanLatencyMs": 11.69935054945055,
-          "p95LatencyMs": 36.7691,
+          "total": 1580,
+          "passed": 1056,
+          "failed": 524,
+          "exactAccuracy": 0.6683544303797468,
+          "precision": 0.9856054191363252,
+          "recall": 0.9914821124361158,
+          "falsePositiveCount": 17,
+          "falseNegativeCount": 10,
+          "abstainRate": 0.10063291139240506,
+          "reviewRate": 0.002531645569620253,
+          "meanLatencyMs": 0.5704649626582283,
+          "p95LatencyMs": 1.534584,
           "statusConfusion": {
-            "matched": {
-              "matched": 80
-            },
-            "ambiguous": {
-              "ambiguous": 1
-            },
             "unranked": {
-              "unranked": 4
+              "missing": 145,
+              "matched": 10,
+              "review": 4
+            },
+            "matched": {
+              "matched": 1164,
+              "missing": 10
+            },
+            "review": {
+              "matched": 7
             }
           },
           "conferenceRankConfusion": {},
           "journalQuartileConfusion": {},
-          "sampleFailures": [],
-          "topFalsePositives": [],
-          "topFalseNegatives": [],
-          "topAmbiguousFailures": []
+          "sampleFailures": [
+            {
+              "id": "shadow-conference-2026-infocomp",
+              "family": "conference_resolution",
+              "suite": "real",
+              "expected": {
+                "status": "unranked",
+                "rank": "N/A",
+                "matchedVenue": "International Conference on Advanced Communications and Computation",
+                "rawRankLabel": "Unranked",
+                "matchType": "acronym_exact",
+                "sourceYear": 2026,
+                "confidence": 1,
+                "fullVenueTitle": "International Conference on Advanced Communications and Computation"
+              },
+              "actual": {
+                "status": "missing",
+                "rank": "N/A",
+                "matchedVenue": null,
+                "rawRankLabel": null,
+                "matchType": null,
+                "sourceYear": 2026,
+                "confidence": null,
+                "fullVenueTitle": "International Conference on Advanced Communications and Computation"
+              },
+              "latencyMs": 98.196875
+            },
+            {
+              "id": "shadow-conference-2026-international-conference-on-advanced-communications-and-computation",
+              "family": "conference_resolution",
+              "suite": "real",
+              "expected": {
+                "status": "unranked",
+                "rank": "N/A",
+                "matchedVenue": "International Conference on Advanced Communications and Computation",
+                "rawRankLabel": "Unranked",
+                "matchType": "alias_exact",
+                "sourceYear": 2026,
+                "confidence": 1,
+                "fullVenueTitle": "International Conference on Advanced Communications and Computation"
+              },
+              "actual": {
+                "status": "missing",
+                "rank": "N/A",
+                "matchedVenue": null,
+                "rawRankLabel": null,
+                "matchType": null,
+                "sourceYear": 2026,
+                "confidence": null,
+                "fullVenueTitle": "International Conference on Advanced Communications and Computation"
+              },
+              "latencyMs": 7.683542
+            },
+            {
+              "id": "shadow-conference-2026-ant",
+              "family": "conference_resolution",
+              "suite": "real",
+              "expected": {
+                "status": "unranked",
+                "rank": "N/A",
+                "matchedVenue": "International Conference on Ambient Systems, Networks and Technologies",
+                "rawRankLabel": "Unranked",
+                "matchType": "acronym_exact",
+                "sourceYear": 2026,
+                "confidence": 1,
+                "fullVenueTitle": "International Conference on Ambient Systems, Networks and Technologies"
+              },
+              "actual": {
+                "status": "missing",
+                "rank": "N/A",
+                "matchedVenue": null,
+                "rawRankLabel": null,
+                "matchType": null,
+                "sourceYear": 2026,
+                "confidence": null,
+                "fullVenueTitle": "International Conference on Ambient Systems, Networks and Technologies"
+              },
+              "latencyMs": 0.100542
+            },
+            {
+              "id": "shadow-conference-2026-international-conference-on-ambient-systems-networks-and-technologies",
+              "family": "conference_resolution",
+              "suite": "real",
+              "expected": {
+                "status": "unranked",
+                "rank": "N/A",
+                "matchedVenue": "International Conference on Ambient Systems, Networks and Technologies",
+                "rawRankLabel": "Unranked",
+                "matchType": "alias_exact",
+                "sourceYear": 2026,
+                "confidence": 1,
+                "fullVenueTitle": "International Conference on Ambient Systems, Networks and Technologies"
+              },
+              "actual": {
+                "status": "matched",
+                "rank": "C",
+                "matchedVenue": "International Conference on Web Information Systems and Technologies",
+                "rawRankLabel": "C",
+                "matchType": "fuzzy",
+                "sourceYear": 2026,
+                "confidence": 0.8422838481211883,
+                "fullVenueTitle": "International Conference on Ambient Systems, Networks and Technologies"
+              },
+              "latencyMs": 1.249416
+            },
+            {
+              "id": "shadow-conference-2026-sensys",
+              "family": "conference_resolution",
+              "suite": "real",
+              "expected": {
+                "status": "unranked",
+                "rank": "N/A",
+                "matchedVenue": "ACM Conference on Embedded Networked Sensor Systems",
+                "rawRankLabel": "unranked: merged",
+                "matchType": "acronym_exact",
+                "sourceYear": 2026,
+                "confidence": 1,
+                "fullVenueTitle": "ACM Conference on Embedded Networked Sensor Systems"
+              },
+              "actual": {
+                "status": "missing",
+                "rank": "N/A",
+                "matchedVenue": null,
+                "rawRankLabel": null,
+                "matchType": null,
+                "sourceYear": 2026,
+                "confidence": null,
+                "fullVenueTitle": "ACM Conference on Embedded Networked Sensor Systems"
+              },
+              "latencyMs": 3.748041
+            },
+            {
+              "id": "shadow-conference-2026-acm-conference-on-embedded-networked-sensor-systems",
+              "family": "conference_resolution",
+              "suite": "real",
+              "expected": {
+                "status": "unranked",
+                "rank": "N/A",
+                "matchedVenue": "ACM Conference on Embedded Networked Sensor Systems",
+                "rawRankLabel": "unranked: merged",
+                "matchType": "alias_exact",
+                "sourceYear": 2026,
+                "confidence": 1,
+                "fullVenueTitle": "ACM Conference on Embedded Networked Sensor Systems"
+              },
+              "actual": {
+                "status": "missing",
+                "rank": "N/A",
+                "matchedVenue": null,
+                "rawRankLabel": null,
+                "matchType": null,
+                "sourceYear": 2026,
+                "confidence": null,
+                "fullVenueTitle": "ACM Conference on Embedded Networked Sensor Systems"
+              },
+              "latencyMs": 0.228708
+            },
+            {
+              "id": "shadow-conference-2026-sigite",
+              "family": "conference_resolution",
+              "suite": "real",
+              "expected": {
+                "status": "unranked",
+                "rank": "N/A",
+                "matchedVenue": "ACM Information Technology Education",
+                "rawRankLabel": null,
+                "matchType": "acronym_exact",
+                "sourceYear": 2026,
+                "confidence": 1,
+                "fullVenueTitle": "ACM Information Technology Education"
+              },
+              "actual": {
+                "status": "missing",
+                "rank": "N/A",
+                "matchedVenue": null,
+                "rawRankLabel": null,
+                "matchType": null,
+                "sourceYear": 2026,
+                "confidence": null,
+                "fullVenueTitle": "ACM Information Technology Education"
+              },
+              "latencyMs": 1.839125
+            },
+            {
+              "id": "shadow-conference-2026-acm-information-technology-education",
+              "family": "conference_resolution",
+              "suite": "real",
+              "expected": {
+                "status": "unranked",
+                "rank": "N/A",
+                "matchedVenue": "ACM Information Technology Education",
+                "rawRankLabel": null,
+                "matchType": "alias_exact",
+                "sourceYear": 2026,
+                "confidence": 1,
+                "fullVenueTitle": "ACM Information Technology Education"
+              },
+              "actual": {
+                "status": "missing",
+                "rank": "N/A",
+                "matchedVenue": null,
+                "rawRankLabel": null,
+                "matchType": null,
+                "sourceYear": 2026,
+                "confidence": null,
+                "fullVenueTitle": "ACM Information Technology Education"
+              },
+              "latencyMs": 0.278625
+            },
+            {
+              "id": "shadow-conference-2026-ace",
+              "family": "conference_resolution",
+              "suite": "real",
+              "expected": {
+                "status": "unranked",
+                "rank": "N/A",
+                "matchedVenue": "Australasian Computing Education Conference (ACE)",
+                "rawRankLabel": null,
+                "matchType": "acronym_disambiguated",
+                "sourceYear": 2026,
+                "confidence": 0.5737872340425533,
+                "fullVenueTitle": "ACM International Conference on Advances in Computer Entertainment (merged with DIMEA, Digital Interactive Media in Entertainment and Arts, in 2009)"
+              },
+              "actual": {
+                "status": "matched",
+                "rank": "C",
+                "matchedVenue": "ACM International Conference on Advances in Computer Entertainment (merged with DIMEA, Digital Interactive Media in Entertainment and Arts, in 2009)",
+                "rawRankLabel": "C",
+                "matchType": "acronym_exact",
+                "sourceYear": 2026,
+                "confidence": 1,
+                "fullVenueTitle": "ACM International Conference on Advances in Computer Entertainment (merged with DIMEA, Digital Interactive Media in Entertainment and Arts, in 2009)"
+              },
+              "latencyMs": 0.013125
+            },
+            {
+              "id": "shadow-conference-2026-iss",
+              "family": "conference_resolution",
+              "suite": "real",
+              "expected": {
+                "status": "unranked",
+                "rank": "N/A",
+                "matchedVenue": "ACM International Conference on Interactive Surfaces and Spaces (was International Workshop on Horizontal Interactive Human-Computer Systems: Tabletop)",
+                "rawRankLabel": "Journal Published",
+                "matchType": "acronym_exact",
+                "sourceYear": 2026,
+                "confidence": 1,
+                "fullVenueTitle": "ACM International Conference on Interactive Surfaces and Spaces (was International Workshop on Horizontal Interactive Human-Computer Systems: Tabletop)"
+              },
+              "actual": {
+                "status": "missing",
+                "rank": "N/A",
+                "matchedVenue": null,
+                "rawRankLabel": null,
+                "matchType": null,
+                "sourceYear": 2026,
+                "confidence": null,
+                "fullVenueTitle": "ACM International Conference on Interactive Surfaces and Spaces (was International Workshop on Horizontal Interactive Human-Computer Systems: Tabletop)"
+              },
+              "latencyMs": 0.068708
+            }
+          ],
+          "topFalsePositives": [
+            "shadow-conference-2026-international-conference-on-ambient-systems-networks-and-technologies",
+            "shadow-conference-2026-ace",
+            "shadow-conference-2026-acm-symposium-on-applied-computing",
+            "shadow-conference-2026-cisis",
+            "shadow-conference-2026-conference-of-the-association-for-machine-translation-in-the-americas"
+          ],
+          "topFalseNegatives": [
+            "shadow-journal-003",
+            "shadow-journal-005",
+            "shadow-journal-006",
+            "shadow-journal-007",
+            "shadow-journal-036"
+          ],
+          "topReviewFailures": [
+            "shadow-conference-2026-iccp",
+            "shadow-conference-2026-cis",
+            "shadow-conference-2026-iswc",
+            "shadow-conference-2026-itc",
+            "shadow-conference-2026-idc"
+          ]
         }
       }
     },
-    "topRegressions": []
+    "topRegressions": [
+      {
+        "id": "shadow-conference-2026-infocomp",
+        "family": "conference_resolution",
+        "suite": "real",
+        "expected": {
+          "status": "unranked",
+          "rank": "N/A",
+          "matchedVenue": "International Conference on Advanced Communications and Computation",
+          "rawRankLabel": "Unranked",
+          "matchType": "acronym_exact",
+          "sourceYear": 2026,
+          "confidence": 1,
+          "fullVenueTitle": "International Conference on Advanced Communications and Computation"
+        },
+        "actual": {
+          "status": "missing",
+          "rank": "N/A",
+          "matchedVenue": null,
+          "rawRankLabel": null,
+          "matchType": null,
+          "sourceYear": 2026,
+          "confidence": null,
+          "fullVenueTitle": "International Conference on Advanced Communications and Computation"
+        },
+        "latencyMs": 98.196875
+      },
+      {
+        "id": "shadow-conference-2026-international-conference-on-advanced-communications-and-computation",
+        "family": "conference_resolution",
+        "suite": "real",
+        "expected": {
+          "status": "unranked",
+          "rank": "N/A",
+          "matchedVenue": "International Conference on Advanced Communications and Computation",
+          "rawRankLabel": "Unranked",
+          "matchType": "alias_exact",
+          "sourceYear": 2026,
+          "confidence": 1,
+          "fullVenueTitle": "International Conference on Advanced Communications and Computation"
+        },
+        "actual": {
+          "status": "missing",
+          "rank": "N/A",
+          "matchedVenue": null,
+          "rawRankLabel": null,
+          "matchType": null,
+          "sourceYear": 2026,
+          "confidence": null,
+          "fullVenueTitle": "International Conference on Advanced Communications and Computation"
+        },
+        "latencyMs": 7.683542
+      },
+      {
+        "id": "shadow-conference-2026-ant",
+        "family": "conference_resolution",
+        "suite": "real",
+        "expected": {
+          "status": "unranked",
+          "rank": "N/A",
+          "matchedVenue": "International Conference on Ambient Systems, Networks and Technologies",
+          "rawRankLabel": "Unranked",
+          "matchType": "acronym_exact",
+          "sourceYear": 2026,
+          "confidence": 1,
+          "fullVenueTitle": "International Conference on Ambient Systems, Networks and Technologies"
+        },
+        "actual": {
+          "status": "missing",
+          "rank": "N/A",
+          "matchedVenue": null,
+          "rawRankLabel": null,
+          "matchType": null,
+          "sourceYear": 2026,
+          "confidence": null,
+          "fullVenueTitle": "International Conference on Ambient Systems, Networks and Technologies"
+        },
+        "latencyMs": 0.100542
+      },
+      {
+        "id": "shadow-conference-2026-international-conference-on-ambient-systems-networks-and-technologies",
+        "family": "conference_resolution",
+        "suite": "real",
+        "expected": {
+          "status": "unranked",
+          "rank": "N/A",
+          "matchedVenue": "International Conference on Ambient Systems, Networks and Technologies",
+          "rawRankLabel": "Unranked",
+          "matchType": "alias_exact",
+          "sourceYear": 2026,
+          "confidence": 1,
+          "fullVenueTitle": "International Conference on Ambient Systems, Networks and Technologies"
+        },
+        "actual": {
+          "status": "matched",
+          "rank": "C",
+          "matchedVenue": "International Conference on Web Information Systems and Technologies",
+          "rawRankLabel": "C",
+          "matchType": "fuzzy",
+          "sourceYear": 2026,
+          "confidence": 0.8422838481211883,
+          "fullVenueTitle": "International Conference on Ambient Systems, Networks and Technologies"
+        },
+        "latencyMs": 1.249416
+      },
+      {
+        "id": "shadow-conference-2026-sensys",
+        "family": "conference_resolution",
+        "suite": "real",
+        "expected": {
+          "status": "unranked",
+          "rank": "N/A",
+          "matchedVenue": "ACM Conference on Embedded Networked Sensor Systems",
+          "rawRankLabel": "unranked: merged",
+          "matchType": "acronym_exact",
+          "sourceYear": 2026,
+          "confidence": 1,
+          "fullVenueTitle": "ACM Conference on Embedded Networked Sensor Systems"
+        },
+        "actual": {
+          "status": "missing",
+          "rank": "N/A",
+          "matchedVenue": null,
+          "rawRankLabel": null,
+          "matchType": null,
+          "sourceYear": 2026,
+          "confidence": null,
+          "fullVenueTitle": "ACM Conference on Embedded Networked Sensor Systems"
+        },
+        "latencyMs": 3.748041
+      },
+      {
+        "id": "shadow-conference-2026-acm-conference-on-embedded-networked-sensor-systems",
+        "family": "conference_resolution",
+        "suite": "real",
+        "expected": {
+          "status": "unranked",
+          "rank": "N/A",
+          "matchedVenue": "ACM Conference on Embedded Networked Sensor Systems",
+          "rawRankLabel": "unranked: merged",
+          "matchType": "alias_exact",
+          "sourceYear": 2026,
+          "confidence": 1,
+          "fullVenueTitle": "ACM Conference on Embedded Networked Sensor Systems"
+        },
+        "actual": {
+          "status": "missing",
+          "rank": "N/A",
+          "matchedVenue": null,
+          "rawRankLabel": null,
+          "matchType": null,
+          "sourceYear": 2026,
+          "confidence": null,
+          "fullVenueTitle": "ACM Conference on Embedded Networked Sensor Systems"
+        },
+        "latencyMs": 0.228708
+      },
+      {
+        "id": "shadow-conference-2026-sigite",
+        "family": "conference_resolution",
+        "suite": "real",
+        "expected": {
+          "status": "unranked",
+          "rank": "N/A",
+          "matchedVenue": "ACM Information Technology Education",
+          "rawRankLabel": null,
+          "matchType": "acronym_exact",
+          "sourceYear": 2026,
+          "confidence": 1,
+          "fullVenueTitle": "ACM Information Technology Education"
+        },
+        "actual": {
+          "status": "missing",
+          "rank": "N/A",
+          "matchedVenue": null,
+          "rawRankLabel": null,
+          "matchType": null,
+          "sourceYear": 2026,
+          "confidence": null,
+          "fullVenueTitle": "ACM Information Technology Education"
+        },
+        "latencyMs": 1.839125
+      },
+      {
+        "id": "shadow-conference-2026-acm-information-technology-education",
+        "family": "conference_resolution",
+        "suite": "real",
+        "expected": {
+          "status": "unranked",
+          "rank": "N/A",
+          "matchedVenue": "ACM Information Technology Education",
+          "rawRankLabel": null,
+          "matchType": "alias_exact",
+          "sourceYear": 2026,
+          "confidence": 1,
+          "fullVenueTitle": "ACM Information Technology Education"
+        },
+        "actual": {
+          "status": "missing",
+          "rank": "N/A",
+          "matchedVenue": null,
+          "rawRankLabel": null,
+          "matchType": null,
+          "sourceYear": 2026,
+          "confidence": null,
+          "fullVenueTitle": "ACM Information Technology Education"
+        },
+        "latencyMs": 0.278625
+      },
+      {
+        "id": "shadow-conference-2026-ace",
+        "family": "conference_resolution",
+        "suite": "real",
+        "expected": {
+          "status": "unranked",
+          "rank": "N/A",
+          "matchedVenue": "Australasian Computing Education Conference (ACE)",
+          "rawRankLabel": null,
+          "matchType": "acronym_disambiguated",
+          "sourceYear": 2026,
+          "confidence": 0.5737872340425533,
+          "fullVenueTitle": "ACM International Conference on Advances in Computer Entertainment (merged with DIMEA, Digital Interactive Media in Entertainment and Arts, in 2009)"
+        },
+        "actual": {
+          "status": "matched",
+          "rank": "C",
+          "matchedVenue": "ACM International Conference on Advances in Computer Entertainment (merged with DIMEA, Digital Interactive Media in Entertainment and Arts, in 2009)",
+          "rawRankLabel": "C",
+          "matchType": "acronym_exact",
+          "sourceYear": 2026,
+          "confidence": 1,
+          "fullVenueTitle": "ACM International Conference on Advances in Computer Entertainment (merged with DIMEA, Digital Interactive Media in Entertainment and Arts, in 2009)"
+        },
+        "latencyMs": 0.013125
+      },
+      {
+        "id": "shadow-conference-2026-iss",
+        "family": "conference_resolution",
+        "suite": "real",
+        "expected": {
+          "status": "unranked",
+          "rank": "N/A",
+          "matchedVenue": "ACM International Conference on Interactive Surfaces and Spaces (was International Workshop on Horizontal Interactive Human-Computer Systems: Tabletop)",
+          "rawRankLabel": "Journal Published",
+          "matchType": "acronym_exact",
+          "sourceYear": 2026,
+          "confidence": 1,
+          "fullVenueTitle": "ACM International Conference on Interactive Surfaces and Spaces (was International Workshop on Horizontal Interactive Human-Computer Systems: Tabletop)"
+        },
+        "actual": {
+          "status": "missing",
+          "rank": "N/A",
+          "matchedVenue": null,
+          "rawRankLabel": null,
+          "matchType": null,
+          "sourceYear": 2026,
+          "confidence": null,
+          "fullVenueTitle": "ACM International Conference on Interactive Surfaces and Spaces (was International Workshop on Horizontal Interactive Human-Computer Systems: Tabletop)"
+        },
+        "latencyMs": 0.068708
+      },
+      {
+        "id": "shadow-journal-001",
+        "family": "journal_resolution",
+        "suite": "real",
+        "expected": {
+          "status": "matched",
+          "quartile": "Q4",
+          "matchedTitle": "@GRH",
+          "sourceYear": 2024,
+          "sourceYearFallback": false,
+          "matchedSourceId": "21101170611",
+          "matchType": "title_exact",
+          "reason": null
+        },
+        "actual": {
+          "status": "matched",
+          "quartile": "Q4",
+          "matchedTitle": "@GRH",
+          "sourceYear": 2024,
+          "sourceYearFallback": false,
+          "matchedSourceId": null,
+          "matchType": "title_exact",
+          "reason": null
+        },
+        "latencyMs": 155.122333
+      },
+      {
+        "id": "shadow-journal-002",
+        "family": "journal_resolution",
+        "suite": "real",
+        "expected": {
+          "status": "matched",
+          "quartile": "Q4",
+          "matchedTitle": "A + U-Architecture and Urbanism",
+          "sourceYear": 2024,
+          "sourceYearFallback": false,
+          "matchedSourceId": "16400154734",
+          "matchType": "title_exact",
+          "reason": null
+        },
+        "actual": {
+          "status": "matched",
+          "quartile": "Q4",
+          "matchedTitle": "A + U-Architecture and Urbanism",
+          "sourceYear": 2024,
+          "sourceYearFallback": false,
+          "matchedSourceId": null,
+          "matchType": "title_exact",
+          "reason": null
+        },
+        "latencyMs": 0.862875
+      },
+      {
+        "id": "shadow-journal-003",
+        "family": "journal_resolution",
+        "suite": "real",
+        "expected": {
+          "status": "matched",
+          "quartile": "Q1",
+          "matchedTitle": "2D Materials",
+          "sourceYear": 2024,
+          "sourceYearFallback": false,
+          "matchedSourceId": "21100404576",
+          "matchType": "title_exact",
+          "reason": null
+        },
+        "actual": {
+          "status": "missing",
+          "quartile": "N/A",
+          "matchedTitle": null,
+          "sourceYear": null,
+          "sourceYearFallback": false,
+          "matchedSourceId": null,
+          "matchType": null,
+          "reason": null
+        },
+        "latencyMs": 0.916083
+      },
+      {
+        "id": "shadow-journal-004",
+        "family": "journal_resolution",
+        "suite": "real",
+        "expected": {
+          "status": "matched",
+          "quartile": "Q2",
+          "matchedTitle": "3D Printing and Additive Manufacturing",
+          "sourceYear": 2024,
+          "sourceYearFallback": false,
+          "matchedSourceId": "21100779062",
+          "matchType": "title_exact",
+          "reason": null
+        },
+        "actual": {
+          "status": "matched",
+          "quartile": "Q2",
+          "matchedTitle": "3D Printing and Additive Manufacturing",
+          "sourceYear": 2024,
+          "sourceYearFallback": false,
+          "matchedSourceId": null,
+          "matchType": "title_fuzzy",
+          "reason": null
+        },
+        "latencyMs": 0.10775
+      },
+      {
+        "id": "shadow-journal-005",
+        "family": "journal_resolution",
+        "suite": "real",
+        "expected": {
+          "status": "matched",
+          "quartile": "Q3",
+          "matchedTitle": "3D Printing in Medicine",
+          "sourceYear": 2024,
+          "sourceYearFallback": false,
+          "matchedSourceId": "21100932761",
+          "matchType": "title_exact",
+          "reason": null
+        },
+        "actual": {
+          "status": "missing",
+          "quartile": "N/A",
+          "matchedTitle": null,
+          "sourceYear": null,
+          "sourceYearFallback": false,
+          "matchedSourceId": null,
+          "matchType": null,
+          "reason": null
+        },
+        "latencyMs": 0.062375
+      },
+      {
+        "id": "shadow-journal-006",
+        "family": "journal_resolution",
+        "suite": "real",
+        "expected": {
+          "status": "matched",
+          "quartile": "Q3",
+          "matchedTitle": "3D Research",
+          "sourceYear": 2022,
+          "sourceYearFallback": false,
+          "matchedSourceId": "21100229836",
+          "matchType": "title_exact",
+          "reason": null
+        },
+        "actual": {
+          "status": "missing",
+          "quartile": "N/A",
+          "matchedTitle": null,
+          "sourceYear": null,
+          "sourceYearFallback": false,
+          "matchedSourceId": null,
+          "matchType": null,
+          "reason": null
+        },
+        "latencyMs": 3.49525
+      },
+      {
+        "id": "shadow-journal-007",
+        "family": "journal_resolution",
+        "suite": "real",
+        "expected": {
+          "status": "matched",
+          "quartile": "Q1",
+          "matchedTitle": "3L: Language, Linguistics, Literature",
+          "sourceYear": 2024,
+          "sourceYearFallback": false,
+          "matchedSourceId": "19700200922",
+          "matchType": "title_exact",
+          "reason": null
+        },
+        "actual": {
+          "status": "missing",
+          "quartile": "N/A",
+          "matchedTitle": null,
+          "sourceYear": null,
+          "sourceYearFallback": false,
+          "matchedSourceId": null,
+          "matchType": null,
+          "reason": null
+        },
+        "latencyMs": 0.179292
+      },
+      {
+        "id": "shadow-journal-008",
+        "family": "journal_resolution",
+        "suite": "real",
+        "expected": {
+          "status": "matched",
+          "quartile": "Q1",
+          "matchedTitle": "452ºF",
+          "sourceYear": 2024,
+          "sourceYearFallback": false,
+          "matchedSourceId": "21101005201",
+          "matchType": "title_exact",
+          "reason": null
+        },
+        "actual": {
+          "status": "matched",
+          "quartile": "Q1",
+          "matchedTitle": "452ºF",
+          "sourceYear": 2024,
+          "sourceYearFallback": false,
+          "matchedSourceId": null,
+          "matchType": "title_exact",
+          "reason": null
+        },
+        "latencyMs": 0.057792
+      },
+      {
+        "id": "shadow-journal-009",
+        "family": "journal_resolution",
+        "suite": "real",
+        "expected": {
+          "status": "matched",
+          "quartile": "Q2",
+          "matchedTitle": "4OR",
+          "sourceYear": 2024,
+          "sourceYearFallback": false,
+          "matchedSourceId": "145295",
+          "matchType": "title_exact",
+          "reason": null
+        },
+        "actual": {
+          "status": "matched",
+          "quartile": "Q2",
+          "matchedTitle": "4OR",
+          "sourceYear": 2024,
+          "sourceYearFallback": false,
+          "matchedSourceId": null,
+          "matchType": "title_exact",
+          "reason": null
+        },
+        "latencyMs": 0.099167
+      },
+      {
+        "id": "shadow-journal-010",
+        "family": "journal_resolution",
+        "suite": "real",
+        "expected": {
+          "status": "matched",
+          "quartile": "Q2",
+          "matchedTitle": "AAA - Arbeiten aus Anglistik und Amerikanistik",
+          "sourceYear": 2024,
+          "sourceYearFallback": false,
+          "matchedSourceId": "5800207606",
+          "matchType": "title_exact",
+          "reason": null
+        },
+        "actual": {
+          "status": "matched",
+          "quartile": "Q2",
+          "matchedTitle": "AAA - Arbeiten aus Anglistik und Amerikanistik",
+          "sourceYear": 2024,
+          "sourceYearFallback": false,
+          "matchedSourceId": null,
+          "matchType": "title_exact",
+          "reason": null
+        },
+        "latencyMs": 0.056584
+      }
+    ]
   },
   "issues": []
 }

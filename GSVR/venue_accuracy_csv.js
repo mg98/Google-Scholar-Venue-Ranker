@@ -71,7 +71,7 @@ function normalizeOutcomeLabel(value) {
   if (RANK_LABELS.has(upper)) return upper;
   const lower = raw.toLowerCase().replace(/\s+/g, ' ');
   if (lower === 'venue not in dblp') return 'N/A';
-  if (lower === 'ambiguous venue match' || lower === 'ambiguous dblp venue match') return 'ambiguous';
+  if (lower === 'review venue match' || lower === 'review dblp venue match') return 'review';
   if (lower === 'not found' || lower === 'missing') return 'N/A';
   return lower;
 }
@@ -162,7 +162,7 @@ function printUsage() {
     '  "17th European Conference on Computer Systems (EuroSys), 1-16",2022,A',
     '  "Proceedings of the 5th Workshop on Machine Learning and Systems, 74-81",2025,Workshop',
     '',
-    'Use uppercase N/A for any N/A outcome, or labels like Workshop, Preprint, Unranked, Ambiguous, N/A for specific N/A reasons.',
+    'Use uppercase N/A for any N/A outcome, or labels like Workshop, Preprint, Unranked, Review, N/A for specific N/A reasons.',
     'This is a strict test: any mismatch exits nonzero.',
     `Default path if omitted: ${path.relative(process.cwd(), DEFAULT_CSV)}`,
   ].join('\n'));

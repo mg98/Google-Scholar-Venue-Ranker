@@ -244,31 +244,42 @@
       : 25;
     const startYear = currentYear - windowYears + 1;
     const chipsByYear = {};
+    const allChipsByYear = {};
     let totalRanked = 0;
+    let allRanked = 0;
 
     for (const info of Array.isArray(publications) ? publications : []) {
       const rank = String(info?.rank || "").trim().toUpperCase();
       if (!HISTOGRAM_RANKS.includes(rank)) continue;
+      allRanked += 1;
       const year = getPublicationYear(info);
+      if (year != null) {
+        if (!allChipsByYear[year]) allChipsByYear[year] = [];
+        allChipsByYear[year].push(rank);
+      }
       if (year == null || year < startYear || year > currentYear) continue;
       totalRanked += 1;
       if (!chipsByYear[year]) chipsByYear[year] = [];
       chipsByYear[year].push(rank);
     }
 
-    for (const year of Object.keys(chipsByYear)) {
-      chipsByYear[year].sort(
-        (left, right) => (SPARSE_CHIP_STACK_ORDER[left] || 0) - (SPARSE_CHIP_STACK_ORDER[right] || 0)
-      );
+    for (const bucket of [chipsByYear, allChipsByYear]) {
+      for (const year of Object.keys(bucket)) {
+        bucket[year].sort(
+          (left, right) => (SPARSE_CHIP_STACK_ORDER[left] || 0) - (SPARSE_CHIP_STACK_ORDER[right] || 0)
+        );
+      }
     }
 
     return {
       isSparse: totalRanked > 0 && totalRanked < sparseLimit,
       totalRanked,
+      allRanked,
       sparseLimit,
       startYear,
       endYear: currentYear,
       chipsByYear,
+      allChipsByYear,
     };
   }
 

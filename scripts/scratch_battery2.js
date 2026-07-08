@@ -53,12 +53,12 @@ const cases = [
   ['Inf. Process. Lett.', 'Information Processing Letters'],
 ];
 
-let matched = 0; let missing = 0; let ambiguous = 0; let wrongIdentity = 0;
+let matched = 0; let missing = 0; let review = 0; let wrongIdentity = 0;
 for (const [name, expectedTitle] of cases) {
   const r = lib.resolveJournalQuerySync(name, 2023, {});
-  const tag = r.status === 'matched' ? 'MATCH ' : (r.status === 'ambiguous' ? 'AMBIG ' : 'MISS  ');
+  const tag = r.status === 'matched' ? 'MATCH ' : (r.status === 'review' ? 'AMBIG ' : 'MISS  ');
   if (r.status === 'matched') matched++;
-  else if (r.status === 'ambiguous') ambiguous++;
+  else if (r.status === 'review') review++;
   else missing++;
   let note = '';
   if (r.status === 'matched' && expectedTitle && r.matchedTitle.toLowerCase() !== expectedTitle.toLowerCase()) {
@@ -67,5 +67,5 @@ for (const [name, expectedTitle] of cases) {
   }
   console.log(`${tag} ${name.padEnd(42)} -> ${String(r.quartile).padEnd(4)} ${String(r.matchedTitle || '').slice(0, 56)} [${r.matchType || '-'}]${note}`);
 }
-console.log(`\nmatched=${matched} ambiguous=${ambiguous} missing=${missing} wrongIdentity=${wrongIdentity} of ${cases.length}`);
+console.log(`\nmatched=${matched} review=${review} missing=${missing} wrongIdentity=${wrongIdentity} of ${cases.length}`);
 process.exitCode = wrongIdentity > 0 ? 1 : 0;

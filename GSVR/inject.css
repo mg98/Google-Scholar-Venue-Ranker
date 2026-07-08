@@ -2090,7 +2090,7 @@
 }
 
 .gsr-hide-unranked .gsr-rank-badge-inline[data-gsr-kind="unranked"],
-.gsr-hide-unranked .gsr-rank-badge-inline[data-gsr-kind="dblp-missing"] {
+.gsr-hide-unranked .gsr-rank-badge-inline[data-gsr-kind="publication-match-missing"] {
   display: none;
 }
 
@@ -4063,7 +4063,7 @@ tr.gsc_a_tr.gsr-row--preview.gsr-row--dimmed {
   background: #d06a32;
 }
 
-.gsr-completeness-bar__segment--ambiguous {
+.gsr-completeness-bar__segment--review {
   background: #a65bd4;
 }
 
@@ -4321,8 +4321,8 @@ tr.gsc_a_tr.gsr-row--preview.gsr-row--dimmed {
   background: var(--gsr-orange);
 }
 
-.gsr-completeness-panel__swatch--ambiguous,
-.gsr-completeness-panel__marker--ambiguous {
+.gsr-completeness-panel__swatch--review,
+.gsr-completeness-panel__marker--review {
   background: var(--gsr-purple);
 }
 

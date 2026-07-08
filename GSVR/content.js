@@ -95,7 +95,7 @@ const SCORE_SENSITIVITY_API = (typeof window !== 'undefined' && window.GSVRScore
 const REPORT_SCHEMA_API = (typeof window !== 'undefined' && window.GSVRReportSchema) ? window.GSVRReportSchema : null;
 const TIMELINE_STATS_API = (typeof window !== 'undefined' && window.GSVRTimelineStats) ? window.GSVRTimelineStats : null;
 const AUTHORSHIP_API = (typeof window !== 'undefined' && window.GSVRAuthorship) ? window.GSVRAuthorship : null;
-const SCORE_MODEL_VERSION = SCORE_CONFIG_API?.SCORE_MODEL_VERSION || 'gsvr-fractional-venue-v1';
+const SCORE_MODEL_VERSION = SCORE_CONFIG_API?.SCORE_MODEL_VERSION || 'gsvr-full-venue-v1';
 const DEFAULT_SCORE_CONFIG = SCORE_CONFIG_API?.DEFAULT_SCORE_CONFIG || null;
 const VALID_RANKS = ["A*", "A", "B", "C"];
 const VENUE_PROFILE_INDEX_WEIGHTS = Object.freeze({
@@ -151,31 +151,31 @@ const CHANGELOG_NOTES = Object.freeze([
     'Venue Explorer, insights view, and in-product data freshness reporting.'
 ]);
 const REPORT_FORM_URL = 'https://forms.office.com/r/PbSzWaQmpJ';
-// "Null" state for Scholar entries that cannot be verified against the matched DBLP profile.
+// "Null" state for Scholar entries that cannot be verified against a publication source.
 const DBLP_ENTRY_MISSING_LABEL = 'DBLP Entry Missing';
-const DBLP_ENTRY_MISSING_TOOLTIP = 'This paper is not indexed in the matched DBLP profile.';
+const DBLP_ENTRY_MISSING_TOOLTIP = 'This paper could not be matched to a publication source.';
 const RANKING_UTILS = (typeof window !== 'undefined' && window.GSVRUtils) ? window.GSVRUtils : null;
 const RANKING_CONFIG = RANKING_UTILS?.RANKING_CONFIG ?? {
     profileNameSimilarityThreshold: 0.72,
     profileMinOverlapCount: 2,
     profileMatchScoreThreshold: 3.6,
     profileStrongScoreThreshold: 5.4,
-    profileAmbiguityGap: 0.45,
+    profileReviewGap: 0.45,
     publicationSimilarityThreshold: 0.88,
     publicationStrongSimilarityThreshold: 0.94,
     publicationMaxYearDiff: 2,
     publicationStrongYearDiff: 4,
-    publicationAmbiguityGap: 0.018,
+    publicationReviewGap: 0.018,
     coreFuzzyThreshold: 0.92,
-    coreAmbiguityGap: 0.02,
+    coreReviewGap: 0.02,
     sjrFuzzyThreshold: 0.92,
-    sjrAmbiguityGap: 0.015
+    sjrReviewGap: 0.015
 };
 const DECISION_VERSION = RANKING_UTILS?.DECISION_VERSION ?? 2;
 const DECISION_STATUS = RANKING_UTILS?.DECISION_STATUS ?? {
     MATCHED: 'matched',
     UNRANKED: 'unranked',
-    AMBIGUOUS: 'ambiguous',
+    REVIEW: 'review',
     MISSING: 'missing'
 };
 const GSVR_TIMING_ENABLED = false;
@@ -216,7 +216,7 @@ const DBLP_CACHE_DURATION_MS = 1000 * 60 * 60 * 24 * 45; // 45 days
 
 // --- Strict DBLP-only UI labels ---
 const DBLP_MISSING_BADGE_LABEL = 'DBLP Entry Missing';
-const DBLP_MISSING_BADGE_TOOLTIP = 'This paper is not indexed in the matched DBLP profile.';
+const DBLP_MISSING_BADGE_TOOLTIP = 'This paper could not be matched to a publication source.';
 const SETTINGS_API = (typeof window !== 'undefined' && window.GSVRSettings) ? window.GSVRSettings : null;
 const FEATURE_STORAGE_KEYS = SETTINGS_API?.FEATURE_STORAGE_KEYS ?? {
     reportDraft: 'gsvr_report_draft_v1',
@@ -731,7 +731,7 @@ function getResearchQualityMetrics(info) {
         rank,
         weight,
         authorCount,
-        credit: weight > 0 && authorCount ? weight / authorCount : 0
+        credit: weight
     };
 }
 function nextScanSessionId() {
@@ -816,8 +816,8 @@ function estimateAuthorCountFromScholarLine(rawLine) {
     if (!text) {
         return null;
     }
-    // Scholar may truncate long author lists. A visible partial list would
-    // overstate fractional credit, so keep those records out of the score.
+    // Scholar may truncate long author lists, so do not infer an exact author
+    // count from visible partial metadata.
     if (/(\.\.\.|…|\bet\s+al\.?\b)/i.test(text)) {
         return null;
     }
@@ -960,7 +960,7 @@ function isRankedResultInfo(info) {
 }
 function getRowStatusKind(info) {
     if (info?.system === 'DBLP' && info?.rank === DBLP_ENTRY_MISSING_LABEL) {
-        return 'dblp-missing';
+        return 'publication-match-missing';
     }
     if (isRankedResultInfo(info)) {
         return 'ranked';
@@ -1008,16 +1008,16 @@ function humanizeEvidenceToken(token) {
         return `Source ID ${value.slice('source:'.length)}`;
     }
     const map = {
-        dblp_entry_missing: 'DBLP entry missing from matched profile',
-        publication_ambiguous: 'DBLP publication match is ambiguous',
-        ambiguous_fuzzy_core: 'CORE venue match is ambiguous',
-        ambiguous_acronym: 'Venue acronym is ambiguous',
-        ambiguous_title_alias: 'Venue title alias is ambiguous',
-        sjr_ambiguous: 'SJR journal match is ambiguous',
+        dblp_entry_missing: 'Publication lookup did not find a matching DBLP entry',
+        publication_review: 'Publication match needs review',
+        review_fuzzy_core: 'CORE venue match needs review',
+        review_acronym: 'Venue acronym match needs review',
+        review_title_alias: 'Venue title alias match needs review',
+        sjr_review: 'SJR journal match needs review',
         sjr_historical_coverage_unavailable: 'SJR historical coverage unavailable',
         dblp_venue_match: 'Matched DBLP venue catalog',
         dblp_venue_missing: 'Venue not found in DBLP venue catalog',
-        dblp_venue_ambiguous: 'DBLP venue catalog match is ambiguous',
+        dblp_venue_review: 'DBLP venue catalog match needs review',
         venue_unranked: 'DBLP venue has no CORE/SJR rank',
         workshop: 'Excluded as workshop',
         short_by_pages: 'Excluded by short-paper page rule',
@@ -1031,17 +1031,17 @@ function humanizeEvidenceToken(token) {
 }
 function getReviewReason(info) {
     if (info?.system === 'DBLP' && info?.rank === DBLP_ENTRY_MISSING_LABEL) {
-        return 'DBLP Entry Missing';
+        return 'Publication Match Missing';
     }
     if (info?.reason) {
         return String(info.reason);
     }
     const evidence = getDecisionEvidenceTokens(info);
     if (evidence.some((token) => token === 'dblp_entry_missing')) {
-        return 'DBLP Entry Missing';
+        return 'Publication Match Missing';
     }
-    if (evidence.some((token) => token.includes('ambiguous'))) {
-        return 'Ambiguous Match';
+    if (evidence.some((token) => token.includes('review'))) {
+        return 'Needs Review';
     }
     if (evidence.includes('sjr_historical_coverage_unavailable')) {
         return 'SJR Historical Coverage Unavailable';
@@ -1058,8 +1058,8 @@ function getReviewReason(info) {
     if (evidence.includes('editorship')) {
         return 'Editorship';
     }
-    if (info?.decisionStatus === DECISION_STATUS.AMBIGUOUS) {
-        return 'Ambiguous Match';
+    if (info?.decisionStatus === DECISION_STATUS.REVIEW) {
+        return 'Needs Review';
     }
     if (info?.decisionStatus === DECISION_STATUS.MISSING) {
         return 'Missing Evidence';
@@ -1245,7 +1245,7 @@ function buildFacultyScoreState(publicationRanks) {
                 weight: Number(scored.score?.venueValue ?? scored.ranking?.venueValue) || getFacultyScoreWeight(rank),
                 credit: contribution,
                 authorCount: Number(scored.score?.authorCount) || null,
-                fractionalCredit: Number(scored.score?.fractionalCredit) || null,
+                fractionalCredit: null,
                 rankingSnapshotYear: scored.score?.rankingSnapshotYear ?? scored.ranking?.rankingSnapshotYear ?? info?.sourceYear ?? null,
                 year: getPublicationYear(info),
                 decisionEvidence: getDecisionEvidenceTokens(info),
@@ -1293,13 +1293,13 @@ function buildFacultyScoreState(publicationRanks) {
     const fractionalPublicationWeight = Number(scoreSummary.fractionalPublicationWeight ?? countedPublications.reduce((total, item) => total + (Number(item.fractionalCredit) || 0), 0));
     const eligibleRankedPublications = Number(scoreSummary.eligibleRankedPublications ?? countedPublications.length);
     const gsvrScore = Number(scoreSummary.gsvrScore ?? totalScore);
-    const averageVenueValue = Number(scoreSummary.averageVenueValue ?? (fractionalPublicationWeight > 0 ? gsvrScore / fractionalPublicationWeight : 0));
+    const averageVenueValue = Number(scoreSummary.averageVenueValue ?? (eligibleRankedPublications > 0 ? gsvrScore / eligibleRankedPublications : 0));
     return {
         totalScore: gsvrScore,
         gsvrScore,
         adjustedCount: gsvrScore,
         normalizedIndex: gsvrScore,
-        denominator: fractionalPublicationWeight,
+        denominator: eligibleRankedPublications,
         fractionalPublicationWeight,
         eligibleRankedPublications,
         averageVenueValue,
@@ -1312,14 +1312,23 @@ function buildFacultyScoreState(publicationRanks) {
         diagnostics,
         completeness,
         scoreModelVersion: profileScore?.scoreModelVersion || SCORE_MODEL_VERSION,
-        calibrationStrategy: 'fractional_venue_score',
-        authorshipModel: 'fractional_counting',
+        calibrationStrategy: 'full_venue_score',
+        authorshipModel: 'full_venue_counting',
         rawProfileScore: profileScore,
         tierCredits,
         countedPapers: eligibleRankedPublications,
         averageCreditPerPaper: eligibleRankedPublications > 0 ? gsvrScore / eligibleRankedPublications : 0,
         countedPublications,
     };
+}
+function resolveFacultyScoreState(summaryState) {
+    const publicationRanks = Array.isArray(summaryState?.publicationRanks) ? summaryState.publicationRanks : [];
+    const scoreState = buildFacultyScoreState(publicationRanks);
+    if (summaryState && typeof summaryState === 'object') {
+        summaryState.venueProfileIndex = scoreState;
+        summaryState.facultyScore = scoreState;
+    }
+    return scoreState;
 }
 function normalizeScoringCompleteness(rawCompleteness = null, diagnostics = null, scores = null, publicationRanks = null) {
     const raw = rawCompleteness && typeof rawCompleteness === 'object' ? rawCompleteness : {};
@@ -1330,7 +1339,7 @@ function normalizeScoringCompleteness(rawCompleteness = null, diagnostics = null
         total: Number(raw.total ?? diag.totalScholarItems ?? totalFallback) || 0,
         scored: Number(raw.scored ?? score.eligibleRankedPublications ?? diag.eligibleRankedPublications ?? 0) || 0,
         dblpMissing: Number(raw.dblpMissing ?? diag.dblpMissing ?? diag.missingDblp ?? 0) || 0,
-        ambiguous: Number(raw.ambiguous ?? diag.ambiguousMatches ?? diag.ambiguous ?? 0) || 0,
+        review: Number(raw.review ?? diag.reviewMatches ?? diag.review ?? 0) || 0,
         rankNotFound: Number(raw.rankNotFound ?? diag.unrankedVenues ?? diag.sourceMissing ?? 0) || 0,
         excludedType: Number(raw.excludedType ?? (
             Number(diag.excludedShortPapers || 0)
@@ -1339,7 +1348,6 @@ function normalizeScoringCompleteness(rawCompleteness = null, diagnostics = null
             + Number(diag.excludedExtendedAbstracts || 0)
             + Number(diag.excludedPreprints || 0)
         )) || 0,
-        missingAuthorCount: Number(raw.missingAuthorCount ?? diag.missingAuthorCount ?? 0) || 0,
         lookupUnavailable: Number(raw.lookupUnavailable ?? (
             Number(diag.sourceRateLimited || 0)
             + Number(diag.sourceUnavailable || 0)
@@ -1347,11 +1355,10 @@ function normalizeScoringCompleteness(rawCompleteness = null, diagnostics = null
     };
     const segmentDefinitions = [
         ['scored', 'Scored'],
-        ['dblpMissing', 'DBLP missing'],
-        ['ambiguous', 'Ambiguous match'],
+        ['dblpMissing', 'Publication match missing'],
+        ['review', 'Needs review'],
         ['rankNotFound', 'Venue unranked'],
         ['excludedType', 'Excluded type'],
-        ['missingAuthorCount', 'Missing author count'],
         ['lookupUnavailable', 'Lookup unavailable'],
     ];
     return {
@@ -1372,8 +1379,7 @@ function formatCompletenessPercent(completeness) {
 }
 function getCompletenessBreakdownText(completeness) {
     const value = normalizeScoringCompleteness(completeness);
-    const unavailable = value.lookupUnavailable + value.missingAuthorCount;
-    return `${value.dblpMissing} DBLP missing · ${value.ambiguous} ambiguous · ${value.rankNotFound} unranked · ${value.excludedType} excluded · ${unavailable} unavailable/metadata`;
+    return `${value.dblpMissing} match missing · ${value.review} needs review · ${value.rankNotFound} unranked · ${value.excludedType} excluded · ${value.lookupUnavailable} unavailable`;
 }
 function createScoringCompletenessBar(completeness, className = '') {
     const value = normalizeScoringCompleteness(completeness);
@@ -1623,7 +1629,7 @@ function buildExportRows(summaryState) {
             authorRoles: (authorship.roles || []).join('+'),
             authorshipSource: authorship.source || '',
             venueValue: Number.isFinite(score.venueValue) ? Number(score.venueValue.toFixed(4)) : '',
-            fractionalCredit: Number.isFinite(score.fractionalCredit) ? Number(score.fractionalCredit.toFixed(10)) : '',
+            fractionalCredit: '',
             scoreContribution: Number.isFinite(score.contribution) ? Number(score.contribution.toFixed(10)) : 0,
             scoreEligible: score.eligible === true,
             exclusionReason: score.eligible === true ? '' : (score.exclusionReason || ''),
@@ -1647,7 +1653,7 @@ function csvEscape(value) {
 }
 function buildCsvExport(summaryState) {
     const rows = buildExportRows(summaryState);
-    const headers = ['title', 'year', 'dblpKey', 'publicationType', 'rankSource', 'rank', 'rankingSnapshotYear', 'authorCount', 'authorshipStatus', 'authorPosition', 'authorRoles', 'authorshipSource', 'venueValue', 'fractionalCredit', 'scoreContribution', 'scoreEligible', 'exclusionReason'];
+    const headers = ['title', 'year', 'dblpKey', 'publicationType', 'rankSource', 'rank', 'rankingSnapshotYear', 'authorCount', 'authorshipStatus', 'authorPosition', 'authorRoles', 'authorshipSource', 'venueValue', 'scoreContribution', 'scoreEligible', 'exclusionReason'];
     const lines = [headers.join(',')];
     for (const row of rows) {
         lines.push(headers.map((header) => csvEscape(row[header])).join(','));
@@ -1655,7 +1661,7 @@ function buildCsvExport(summaryState) {
     return lines.join('\n');
 }
 function buildCanonicalProfileReport(summaryState) {
-    const scoreState = summaryState?.venueProfileIndex || summaryState?.facultyScore || buildFacultyScoreState(summaryState?.publicationRanks || []);
+    const scoreState = resolveFacultyScoreState(summaryState);
     const rawProfileScore = scoreState.rawProfileScore || (SCORE_MODEL_API?.computeProfileScore
         ? SCORE_MODEL_API.computeProfileScore(summaryState?.publicationRanks || [], DEFAULT_SCORE_CONFIG || undefined)
         : null);
@@ -1769,17 +1775,17 @@ function buildCanonicalProfileReport(summaryState) {
             confidence: null,
         },
         settings: {
-            scoringMode: 'fractional_venue_score',
-            authorshipModel: 'fractional_counting',
+            scoringMode: 'full_venue_score',
+            authorshipModel: 'full_venue_counting',
             publicationTypePolicy: 'full_papers_only',
             rankingPacks: currentRankingPacks.slice(),
         },
         scoringPolicy: rawProfileScore?.scoringPolicy || SCORE_CONFIG_API?.getScoringPolicy?.(DEFAULT_SCORE_CONFIG || undefined) || {
-            formula: 'sum(venueValue / authorCount)',
-            authorship: 'fractional',
+            formula: 'sum(venueValue)',
+            authorship: 'none',
             eligiblePublicationTypes: ['full_conference', 'full_journal'],
             venueValues: DEFAULT_SCORE_CONFIG?.venueValues || {},
-            fractionalCountingOnly: true,
+            fractionalCountingOnly: false,
         },
         diagnostics,
         completeness,
@@ -1816,7 +1822,6 @@ function buildMarkdownExport(summaryState) {
         `- Score Model: ${report.scoreModelVersion || SCORE_MODEL_VERSION}`,
         `- GSVR Score: ${Number(report.scores?.gsvrScore || 0).toFixed(4)}`,
         `- Scoring Completeness: ${formatCompletenessPercent(report.completeness)} (${Number(report.completeness?.scored || 0)}/${Number(report.completeness?.total || 0)} scored)`,
-        `- Fractional Publication Weight: ${Number(report.scores?.fractionalPublicationWeight || 0).toFixed(4)}`,
         `- Eligible Ranked Publications: ${Number(report.scores?.eligibleRankedPublications || 0)}`,
         '',
         '| Title | Year | Source | Rank | Authorship | Position | Score Eligible | Exclusion Reason | Contribution |',
@@ -1829,7 +1834,7 @@ function buildMarkdownExport(summaryState) {
 }
 function buildDownloadReportData(summaryState) {
     const rows = buildExportRows(summaryState);
-    const facultyScore = summaryState?.venueProfileIndex || summaryState?.facultyScore || buildFacultyScoreState(summaryState?.publicationRanks || []);
+    const facultyScore = resolveFacultyScoreState(summaryState);
     const countSnapshot = buildSummaryCountSnapshot(summaryState);
     const canonicalReport = buildCanonicalProfileReport(summaryState);
     const fullTimelineState = buildTimelineViewState(summaryState?.allPublicationRanks || summaryState?.publicationRanks || [], 'full');
@@ -1894,7 +1899,6 @@ function buildHtmlReport(summaryState) {
         ['GSVR Score', report.score.gsvrScore.toFixed(4)],
         ['Scoring Completeness', `${formatCompletenessPercent(report.score.completeness)} (${Number(report.score.completeness?.scored || 0)}/${Number(report.score.completeness?.total || 0)} scored)`],
         ['Eligible Ranked Publications', String(report.score.eligibleRankedPublications)],
-        ['Fractional Publication Weight', report.score.fractionalPublicationWeight.toFixed(4)],
         ['Average Venue Value', report.score.averageVenueValue.toFixed(4)],
         ['CORE Contribution', report.score.coreContribution.toFixed(4)],
         ['SJR Contribution', report.score.sjrContribution.toFixed(4)]
@@ -1924,7 +1928,6 @@ function buildHtmlReport(summaryState) {
         <td>${escapeHtml(row.authorRoles || '')}</td>
         <td>${escapeHtml(row.authorPosition || '')}</td>
         <td>${escapeHtml(row.venueValue || '')}</td>
-        <td>${escapeHtml(row.fractionalCredit || '')}</td>
         <td>${escapeHtml(row.scoreContribution ?? '')}</td>
       </tr>`).join('');
     const evidenceRows = report.rows.map((row) => `
@@ -1939,7 +1942,6 @@ function buildHtmlReport(summaryState) {
         <td>${escapeHtml(row.authorRoles || '')}</td>
         <td>${escapeHtml(row.authorPosition || '')}</td>
         <td>${escapeHtml(row.venueValue || '')}</td>
-        <td>${escapeHtml(row.fractionalCredit || '')}</td>
         <td>${escapeHtml(row.scoreContribution ?? '')}</td>
         <td>${escapeHtml(row.decisionEvidence || '')}</td>
       </tr>`).join('');
@@ -2024,7 +2026,7 @@ function buildHtmlReport(summaryState) {
     </section>
     <div class="panel-stack">
       <section class="panel">
-        <h2>Fractional Venue Contribution Breakdown</h2>
+	        <h2>Venue Contribution Breakdown</h2>
         <table><tbody>${tierRows}</tbody></table>
       </section>
       <section class="panel">
@@ -2063,11 +2065,11 @@ function buildHtmlReport(summaryState) {
   <section>
     <h2>Evidence Appendix</h2>
     <table>
-      <thead><tr><th>Title</th><th>Status</th><th>Matched Venue</th><th>DBLP Key</th><th>Ranking Snapshot Year</th><th>Confidence</th><th>Authors</th><th>Authorship</th><th>Position</th><th>Venue Value</th><th>Fractional Credit</th><th>Contribution</th><th>Decision Evidence</th></tr></thead>
+	      <thead><tr><th>Title</th><th>Status</th><th>Matched Venue</th><th>DBLP Key</th><th>Ranking Snapshot Year</th><th>Confidence</th><th>Authors</th><th>Authorship</th><th>Position</th><th>Venue Value</th><th>Contribution</th><th>Decision Evidence</th></tr></thead>
       <tbody>${evidenceRows}</tbody>
     </table>
   </section>
-  <p class="small">The GSVR Score is a raw fractional venue score: GSVR = sum(venueValue / authorCount) over eligible ranked publications.</p>
+	  <p class="small">The GSVR Score is a raw venue score: GSVR = sum(venueValue) over eligible ranked publications.</p>
 </body>
 </html>`;
 }
@@ -2188,7 +2190,6 @@ function buildPdfReportDefinition(summaryState, reportVariant = 'full') {
         ['GSVR Score', report.score.gsvrScore.toFixed(4)],
         ['Scoring Completeness', `${formatCompletenessPercent(report.score.completeness)} (${Number(report.score.completeness?.scored || 0)}/${Number(report.score.completeness?.total || 0)} scored)`],
         ['Eligible Ranked Publications', String(report.score.eligibleRankedPublications)],
-        ['Fractional Publication Weight', report.score.fractionalPublicationWeight.toFixed(4)],
         ['Average Venue Value', report.score.averageVenueValue.toFixed(4)]
     ];
     const distributionTable = [
@@ -2690,7 +2691,7 @@ function buildPdfReportDefinition(summaryState, reportVariant = 'full') {
                                     columnGap: 6,
                                     margin: [0, 0, 0, 6]
                                 },
-                                { text: 'Contribution is venue value divided by DBLP author count.', style: 'summaryLegend', margin: [0, 0, 0, 3] },
+                                { text: 'Contribution is the full venue value for each eligible ranked publication.', style: 'summaryLegend', margin: [0, 0, 0, 3] },
                                 { text: `Venue values: A*=${VENUE_PROFILE_INDEX_WEIGHTS['A*'].toFixed(2)} • A=${VENUE_PROFILE_INDEX_WEIGHTS.A.toFixed(2)} • B=${VENUE_PROFILE_INDEX_WEIGHTS.B.toFixed(2)} • C=${VENUE_PROFILE_INDEX_WEIGHTS.C.toFixed(2)} • Q1=${VENUE_PROFILE_INDEX_WEIGHTS.Q1.toFixed(2)} • Q2=${VENUE_PROFILE_INDEX_WEIGHTS.Q2.toFixed(2)} • Q3=${VENUE_PROFILE_INDEX_WEIGHTS.Q3.toFixed(2)} • Q4=${VENUE_PROFILE_INDEX_WEIGHTS.Q4.toFixed(2)}`, style: 'summaryLegendTight' }
                             ]
                         }),
@@ -2844,7 +2845,7 @@ function buildPdfReportDefinition(summaryState, reportVariant = 'full') {
                                 { text: 'GSVR Score', style: 'heroScoreLabel' },
                                 { text: report.score.gsvrScore.toFixed(4), style: 'heroScoreValue' },
                                 { text: `${report.score.eligibleRankedPublications} eligible ranked publications`, style: 'heroScoreMeta' },
-                                { text: `${report.score.fractionalPublicationWeight.toFixed(4)} fractional publication weight`, style: 'heroScoreMeta', margin: [0, 4, 0, 0] }
+                                { text: `${report.score.averageVenueValue.toFixed(4)} average venue value`, style: 'heroScoreMeta', margin: [0, 4, 0, 0] }
                             ],
                             fillColor: palette.brandDeep,
                             border: [false, false, false, false]
@@ -2904,7 +2905,7 @@ function buildPdfReportDefinition(summaryState, reportVariant = 'full') {
         wrapCard('Scoring Model', 'The primary score is raw, unbounded, and fractional.', {
             stack: [
                 {
-        text: 'Each scored publication contributes venue value divided by DBLP author count. Excluded and unranked publications remain visible in the audit.',
+        text: 'Each scored publication contributes its full venue value. Excluded and unranked publications remain visible in the audit.',
                     style: 'bodyCopy',
                     margin: [0, 0, 0, 12]
                 },
@@ -2973,7 +2974,7 @@ function buildPdfReportDefinition(summaryState, reportVariant = 'full') {
         });
     }
     fullContent.push({
-        text: `The GSVR Score is a raw fractional venue score: GSVR = sum(venueValue / authorCount). Venue values are A*=${VENUE_PROFILE_INDEX_WEIGHTS['A*'].toFixed(2)}, A=${VENUE_PROFILE_INDEX_WEIGHTS.A.toFixed(2)}, B=${VENUE_PROFILE_INDEX_WEIGHTS.B.toFixed(2)}, C=${VENUE_PROFILE_INDEX_WEIGHTS.C.toFixed(2)}, Q1=${VENUE_PROFILE_INDEX_WEIGHTS.Q1.toFixed(2)}, Q2=${VENUE_PROFILE_INDEX_WEIGHTS.Q2.toFixed(2)}, Q3=${VENUE_PROFILE_INDEX_WEIGHTS.Q3.toFixed(2)}, and Q4=${VENUE_PROFILE_INDEX_WEIGHTS.Q4.toFixed(2)}.`,
+        text: `The GSVR Score is a raw venue score: GSVR = sum(venueValue). Venue values are A*=${VENUE_PROFILE_INDEX_WEIGHTS['A*'].toFixed(2)}, A=${VENUE_PROFILE_INDEX_WEIGHTS.A.toFixed(2)}, B=${VENUE_PROFILE_INDEX_WEIGHTS.B.toFixed(2)}, C=${VENUE_PROFILE_INDEX_WEIGHTS.C.toFixed(2)}, Q1=${VENUE_PROFILE_INDEX_WEIGHTS.Q1.toFixed(2)}, Q2=${VENUE_PROFILE_INDEX_WEIGHTS.Q2.toFixed(2)}, Q3=${VENUE_PROFILE_INDEX_WEIGHTS.Q3.toFixed(2)}, and Q4=${VENUE_PROFILE_INDEX_WEIGHTS.Q4.toFixed(2)}.`,
         style: 'footnote',
         margin: [0, 14, 0, 0]
     });
@@ -4012,7 +4013,7 @@ function getConferenceSearchStatusPriority(status) {
             return 4;
         case DECISION_STATUS.UNRANKED:
             return 3;
-        case DECISION_STATUS.AMBIGUOUS:
+        case DECISION_STATUS.REVIEW:
             return 2;
         default:
             return 1;
@@ -5217,10 +5218,10 @@ function findBestSjrMatch({ normalizedQuery, queryIssns, dataset, allowFuzzy = t
             }
         }
         const issnGap = secondIssnMatch ? bestIssnMatch.score - secondIssnMatch.score : Number.POSITIVE_INFINITY;
-        if (bestIssnMatch && (bestIssnMatch.score >= 0.97 || issnGap >= RANKING_CONFIG.sjrAmbiguityGap)) {
+        if (bestIssnMatch && (bestIssnMatch.score >= 0.97 || issnGap >= RANKING_CONFIG.sjrReviewGap)) {
             return { status: DECISION_STATUS.MATCHED, entry: bestIssnMatch.entry, score: bestIssnMatch.score, matchedBy: 'issn' };
         }
-        return { status: DECISION_STATUS.AMBIGUOUS, score: 1.0, matchedBy: 'issn' };
+        return { status: DECISION_STATUS.REVIEW, score: 1.0, matchedBy: 'issn' };
     }
     const directMatch = dataset.byNormalized.get(normalizedQuery);
     if (directMatch) {
@@ -5259,8 +5260,8 @@ function findBestSjrMatch({ normalizedQuery, queryIssns, dataset, allowFuzzy = t
         return { status: DECISION_STATUS.MISSING };
     }
     const gap = second ? best.score - second.score : Number.POSITIVE_INFINITY;
-    if (second && best.score < 0.97 && gap < RANKING_CONFIG.sjrAmbiguityGap) {
-        return { status: DECISION_STATUS.AMBIGUOUS, score: best.score, gap, matchedBy: 'title_fuzzy' };
+    if (second && best.score < 0.97 && gap < RANKING_CONFIG.sjrReviewGap) {
+        return { status: DECISION_STATUS.REVIEW, score: best.score, gap, matchedBy: 'title_fuzzy' };
     }
     return { status: DECISION_STATUS.MATCHED, entry: best.entry, score: best.score, matchedBy: 'title_fuzzy' };
 }
@@ -5306,12 +5307,12 @@ async function resolveSjrQuartile(journalName, publicationYear, journalMeta = {}
         if (dataset?.loadFailed) {
             return { status: 'error', transient: true };
         }
-        let sawAmbiguous = false;
+        let sawReview = false;
         const useMatch = (match) => {
             if (!match || match.status === DECISION_STATUS.MISSING)
                 return null;
-            if (match.status === DECISION_STATUS.AMBIGUOUS) {
-                sawAmbiguous = true;
+            if (match.status === DECISION_STATUS.REVIEW) {
+                sawReview = true;
                 return null;
             }
             const entry = match.entry;
@@ -5345,7 +5346,7 @@ async function resolveSjrQuartile(journalName, publicationYear, journalMeta = {}
             if (result)
                 return result;
         }
-        if (!sawAmbiguous) {
+        if (!sawReview) {
             await ensureSjrTokenIndex(dataset);
             for (const normalizedQuery of variants) {
                 const result = useMatch(findBestSjrMatch({ normalizedQuery, queryIssns, dataset, allowFuzzy: true }));
@@ -5353,8 +5354,8 @@ async function resolveSjrQuartile(journalName, publicationYear, journalMeta = {}
                     return result;
             }
         }
-        if (sawAmbiguous) {
-            return { status: 'ambiguous' };
+        if (sawReview) {
+            return { status: 'review' };
         }
 
         // Not found: cache negative result. ISSN-aware misses stay scoped to that ISSN set.
@@ -5844,7 +5845,7 @@ function matchesSummaryFilter(rowElement, filter) {
             return status === 'ranked';
         }
         if (filter.mode === 'needs-review') {
-            return status === 'dblp-missing' || status === 'unranked';
+            return status === 'publication-match-missing' || status === 'unranked';
         }
         return true;
     }
@@ -5944,8 +5945,8 @@ const BADGE_REASON_QUALIFIERS = Object.freeze({
     'short-paper': 'Short paper',
     'demo/poster': 'Demo/Poster',
     'extended abstract': 'Abstract',
-    'ambiguous venue match': 'Ambiguous',
-    'ambiguous journal match': 'Ambiguous',
+    'review venue match': 'Review',
+    'review journal match': 'Review',
     'sjr historical coverage unavailable': 'No SJR data',
     'preprint': 'Preprint',
 });
@@ -5979,7 +5980,7 @@ function createRankBadgeElement(rank, system, reason = null, meta = null) {
 
     if (system === 'DBLP' && rank === DBLP_ENTRY_MISSING_LABEL) {
         badge.classList.add('badge-missing-dblp', 'gsr-rank-badge--ranked', 'gsr-rank-badge--neutral');
-        badge.dataset.gsrKind = 'dblp-missing';
+        badge.dataset.gsrKind = 'publication-match-missing';
         attachBadgeDetailBehavior(badge, rank, system, reason, meta);
         return badge;
     }
@@ -6142,7 +6143,7 @@ function ensureSearchUtilityOverlay() {
         titleId: 'gsr-search-panel-title',
         titleText: 'Venue Explorer',
         descriptionId: 'gsr-search-panel-description',
-        descriptionText: 'Search across the bundled CORE and SJR datasets, review historical snapshots, and inspect ambiguity or alias hints without leaving Google Scholar.',
+        descriptionText: 'Search across the bundled CORE and SJR datasets, review historical snapshots, and inspect match-review or alias hints without leaving Google Scholar.',
         onClose: () => {
             hideBadgePopover(true);
             const input = document.getElementById('gsr-venue-search-input');
@@ -6301,8 +6302,8 @@ function ensureSearchUtilityOverlay() {
                 else if (primary.status === DECISION_STATUS.UNRANKED) {
                     primaryValue = 'Unranked';
                 }
-                else if (primary.status === DECISION_STATUS.AMBIGUOUS) {
-                    primaryValue = 'Ambiguous';
+                else if (primary.status === DECISION_STATUS.REVIEW) {
+                    primaryValue = 'Review';
                 }
                 addItem(`Conference (CORE ${primaryYear || ''})`, primaryValue, section);
                 if (primary.matchedVenue) {
@@ -6325,7 +6326,7 @@ function ensureSearchUtilityOverlay() {
                         .map((entry) => `CORE ${entry.sourceYear}: ${entry.status === DECISION_STATUS.MATCHED ? entry.rank : (entry.status === DECISION_STATUS.UNRANKED ? 'Unranked' : humanizeIdentifier(entry.status))}`)
                         .join(' | '), section);
                 }
-                if (primary.status === DECISION_STATUS.AMBIGUOUS) {
+                if (primary.status === DECISION_STATUS.REVIEW) {
                     addNote('Multiple CORE venues matched this query too closely. Please use a more specific venue title or inspect the candidate list below.', section);
                     const candidates = getTopCandidates(primary);
                     if (candidates.length) {
@@ -6347,7 +6348,7 @@ function ensureSearchUtilityOverlay() {
                 const section = addSection('Journal / SJR');
                 const sjr = await resolveSjrQuartile(venueQuery, yearVal);
                 const sjrQuartile = (sjr.status === 'success' && sjr.quartile) ? sjr.quartile : null;
-                addItem('Journal / Transaction (SJR)', (sjrQuartile && SJR_QUARTILES.includes(sjrQuartile)) ? sjrQuartile : (sjr.status === 'ambiguous' ? 'Ambiguous' : 'Not found'), section);
+                addItem('Journal / Transaction (SJR)', (sjrQuartile && SJR_QUARTILES.includes(sjrQuartile)) ? sjrQuartile : (sjr.status === 'review' ? 'Review' : 'Not found'), section);
                 if (sjr.status === 'success' && sjr.resolvedTitle) {
                     addItem('Matched Journal', sjr.resolvedTitle, section);
                     if (sjr.resolvedTitle.toLowerCase() !== venueQuery.toLowerCase()) {
@@ -6358,7 +6359,7 @@ function ensureSearchUtilityOverlay() {
                 if (journalHistory.length) {
                     addItem('History', journalHistory.map((entry) => `${entry.sourceYear}: ${entry.quartile}`).join(' | '), section);
                 }
-                if (sjr.status === 'ambiguous') {
+                if (sjr.status === 'review') {
                     addNote('Multiple SJR journals matched this query too closely. Try a fuller journal title.', section);
                 }
                 else if (!(sjrQuartile && SJR_QUARTILES.includes(sjrQuartile))) {
@@ -6494,7 +6495,7 @@ function ensureAboutOverlay() {
             },
             {
                 title: 'Precision before guessing.',
-                body: 'If a venue match is ambiguous or unsupported, the extension prefers to abstain and show review-needed or unranked states rather than assign a risky label.'
+                body: 'If a venue match needs review or is unsupported, the extension prefers to abstain and show review-needed or unranked states rather than assign a risky label.'
             }
         ])
     ]));
@@ -6520,7 +6521,7 @@ function ensureAboutOverlay() {
     ]));
     content.appendChild(createAboutSection('What the Extension Optimizes For', [
         createAboutList([
-            'Reduce false positives by rejecting weak or ambiguous venue matches.',
+            'Reduce false positives by rejecting weak venue matches and matches that need review.',
             'Reduce false negatives by canonicalizing acronyms, aliases, and proceedings variants before giving up.',
             'Show review-needed states when the data is incomplete instead of silently hiding uncertainty.'
         ])
@@ -6595,7 +6596,7 @@ function ensureDetailDrawer() {
         titleId: 'gsr-detail-drawer-title',
         titleText: 'Ranking Decision Details',
         descriptionId: 'gsr-detail-drawer-description',
-        descriptionText: 'Inspect the matched venue, confidence, ambiguity candidates, and decision evidence behind this result.',
+        descriptionText: 'Inspect the matched venue, confidence, review candidates, and decision evidence behind this result.',
     });
     scaffold.overlay.classList.add('gsr-dialog-overlay--drawer');
     scaffold.body.classList.add('gsr-detail-drawer__body');
@@ -6676,7 +6677,7 @@ function openDetailDrawer(info) {
         const candidateSection = document.createElement('section');
         candidateSection.className = 'gsr-detail-drawer__section';
         const candidateTitle = document.createElement('h4');
-        candidateTitle.textContent = 'Ambiguity Candidates';
+        candidateTitle.textContent = 'Review Candidates';
         candidateSection.appendChild(candidateTitle);
         const candidateList = document.createElement('div');
         candidateList.className = 'gsr-detail-drawer__candidate-list';
@@ -7241,7 +7242,7 @@ function ensureReviewInboxOverlay() {
         titleId: 'gsr-review-inbox-title',
         titleText: 'Review Inbox',
         descriptionId: 'gsr-review-inbox-description',
-        descriptionText: 'Inspect every DBLP-missing, ambiguous, short-paper, workshop, demo/poster, or unranked item from this profile.',
+        descriptionText: 'Inspect every publication match missing, review-needed, short-paper, workshop, demo/poster, or unranked item from this profile.',
     });
     gsrReviewInboxOverlayEl = scaffold.overlay;
     return scaffold.overlay;
@@ -7531,7 +7532,7 @@ function renderSummaryFreshnessContent(container, freshnessState) {
     list.className = 'gsr-detail-drawer__list';
     [
         'A missing rank can mean the venue is absent from the bundled dataset.',
-        'It can also mean the venue exists but the extension abstained because the evidence was ambiguous or filtered.',
+        'It can also mean the venue exists but the extension abstained because the evidence required review or was filtered.',
         'Cached results can lag behind a newly updated extension until the profile is rescanned.',
     ].forEach((text) => {
         const item = document.createElement('li');
@@ -7577,7 +7578,7 @@ function openScoreDetailsOverlay() {
     if (!(panel instanceof HTMLElement) || !(body instanceof HTMLElement)) {
         return;
     }
-    const facultyScore = currentSummaryState?.venueProfileIndex || currentSummaryState?.facultyScore || buildFacultyScoreState(currentSummaryState?.publicationRanks || []);
+    const facultyScore = resolveFacultyScoreState(currentSummaryState);
     const conferenceCredit = Number(facultyScore.coreContribution || 0);
     const journalCredit = Number(facultyScore.sjrContribution || 0);
     const diagnostics = facultyScore.diagnostics || facultyScore.coverage || {};
@@ -7646,13 +7647,13 @@ function openScoreDetailsOverlay() {
     heroPrimary.appendChild(scoreValue);
     const heroNote = document.createElement('p');
     heroNote.className = 'gsr-score-details__hero-note';
-    heroNote.textContent = 'Fractional venue-ranked contribution from eligible ranked publications.';
+    heroNote.textContent = 'Venue-ranked contribution from eligible ranked publications.';
     heroPrimary.appendChild(heroNote);
     hero.appendChild(heroPrimary);
     const heroStats = document.createElement('div');
     heroStats.className = 'gsr-score-details__hero-stats';
     heroStats.appendChild(createMetricCard('Eligible Ranked Publications', String(facultyScore.eligibleRankedPublications || 0), 'gsr-score-details__metric--compact'));
-    heroStats.appendChild(createMetricCard('Fractional Publication Weight', Number(facultyScore.fractionalPublicationWeight || 0).toFixed(4), 'gsr-score-details__metric--compact'));
+    heroStats.appendChild(createMetricCard('Average Venue Value', Number(facultyScore.averageVenueValue || 0).toFixed(4), 'gsr-score-details__metric--compact'));
     heroStats.appendChild(createMetricCard('CORE Contribution', conferenceCredit.toFixed(4), 'gsr-score-details__metric--compact'));
     heroStats.appendChild(createMetricCard('SJR Contribution', journalCredit.toFixed(4), 'gsr-score-details__metric--compact'));
     hero.appendChild(heroStats);
@@ -7666,7 +7667,7 @@ function openScoreDetailsOverlay() {
     methodHead.appendChild(methodTitle);
     const methodSubtitle = document.createElement('p');
     methodSubtitle.className = 'gsr-score-details__section-subtitle';
-    methodSubtitle.textContent = 'Raw fractional venue score over eligible ranked publications.';
+    methodSubtitle.textContent = 'Raw venue score over eligible ranked publications.';
     methodHead.appendChild(methodSubtitle);
     methodSection.appendChild(methodHead);
     const formulaBoard = document.createElement('div');
@@ -7679,7 +7680,7 @@ function openScoreDetailsOverlay() {
     equationPanel.appendChild(equationLabel);
     const equationFlow = document.createElement('div');
     equationFlow.className = 'gsr-score-details__math';
-    equationFlow.setAttribute('aria-label', 'GSVR equals the sum over eligible publications of venue value divided by author count.');
+    equationFlow.setAttribute('aria-label', 'GSVR equals the sum over eligible publications of venue value.');
     appendMathSymbol(equationFlow, 'GSVR', 'gsr-score-details__math-name');
     appendMathSymbol(equationFlow, '=', 'gsr-score-details__math-op');
     const summation = document.createElement('span');
@@ -7692,34 +7693,24 @@ function openScoreDetailsOverlay() {
     summation.appendChild(sigma);
     summation.appendChild(subscript);
     equationFlow.appendChild(summation);
-    const fraction = document.createElement('span');
-    fraction.className = 'gsr-score-details__math-fraction';
     const numerator = document.createElement('span');
     numerator.className = 'gsr-score-details__math-numerator';
     numerator.appendChild(document.createTextNode('v'));
     const numeratorSub = document.createElement('sub');
     numeratorSub.textContent = 'i';
     numerator.appendChild(numeratorSub);
-    const denominator = document.createElement('span');
-    denominator.className = 'gsr-score-details__math-denominator';
-    denominator.appendChild(document.createTextNode('a'));
-    const denominatorSub = document.createElement('sub');
-    denominatorSub.textContent = 'i';
-    denominator.appendChild(denominatorSub);
-    fraction.appendChild(numerator);
-    fraction.appendChild(denominator);
-    equationFlow.appendChild(fraction);
+    equationFlow.appendChild(numerator);
     equationPanel.appendChild(equationFlow);
     const equationCaption = document.createElement('p');
     equationCaption.className = 'gsr-score-details__math-caption';
-    equationCaption.textContent = 'Each paper contributes its CORE/SJR venue value divided by the DBLP author count. The score is raw and unbounded.';
+    equationCaption.textContent = 'Each paper contributes its full CORE/SJR venue value. The score is raw and unbounded.';
     equationPanel.appendChild(equationCaption);
     formulaBoard.appendChild(equationPanel);
     const modelNotes = document.createElement('div');
     modelNotes.className = 'gsr-score-details__model-notes';
     [
-        ['Eligibility set E', 'Full publication type, ranked by CORE/SJR, and valid author count.'],
-        ['Paper contribution', 'venueValue / authorCount. No match-confidence, temporal, coverage, or reliability multipliers are applied.'],
+        ['Eligibility set E', 'Full publication type, ranked by CORE/SJR.'],
+        ['Paper contribution', 'venueValue. No match-confidence, temporal, coverage, author-count, or reliability multipliers are applied.'],
     ].forEach(([labelText, valueText]) => {
         const item = document.createElement('div');
         const label = document.createElement('strong');
@@ -7736,9 +7727,8 @@ function openScoreDetailsOverlay() {
     methodGrid.className = 'gsr-score-details__factor-grid';
     [
         ['V_i', 'Venue value', 'CORE and SJR use separate rank-value scales.'],
-        ['a_i', 'DBLP author count', 'Fractional credit is 1 divided by the number of authors on the DBLP record.'],
-        ['E', 'Eligibility', 'Only eligible ranked full papers with valid author counts are scored.'],
-        ['S_i', 'Contribution', 'Each scored publication contributes venueValue / authorCount.'],
+        ['E', 'Eligibility', 'Only eligible ranked full papers are scored.'],
+        ['S_i', 'Contribution', 'Each scored publication contributes venueValue.'],
     ].forEach(([symbolText, labelText, valueText]) => {
         const item = document.createElement('div');
         item.className = 'gsr-score-details__factor-card';
@@ -7767,7 +7757,7 @@ function openScoreDetailsOverlay() {
     weightHead.appendChild(weightTitle);
     const weightSubtitle = document.createElement('p');
     weightSubtitle.className = 'gsr-score-details__section-subtitle';
-    weightSubtitle.textContent = 'Default values used by the raw fractional venue score.';
+    weightSubtitle.textContent = 'Default values used by the raw venue score.';
     weightHead.appendChild(weightSubtitle);
     weightSection.appendChild(weightHead);
     const weightRows = document.createElement('div');
@@ -7824,7 +7814,6 @@ function openScoreDetailsOverlay() {
     [
         ['GSVR Score', Number(facultyScore.gsvrScore || 0).toFixed(4), 'gsr-score-details__metric--primary'],
         ['Eligible Ranked Publications', String(facultyScore.eligibleRankedPublications || 0), ''],
-        ['Fractional Publication Weight', Number(facultyScore.fractionalPublicationWeight || 0).toFixed(4), ''],
         ['Average Venue Value', Number(facultyScore.averageVenueValue || 0).toFixed(4), ''],
         ['CORE Contribution', conferenceCredit.toFixed(4), ''],
         ['SJR Contribution', journalCredit.toFixed(4), ''],
@@ -7833,10 +7822,9 @@ function openScoreDetailsOverlay() {
         ['Excluded Demos/Posters', String(diagnostics.excludedDemosPosters || 0), ''],
         ['Excluded Extended Abstracts', String(diagnostics.excludedExtendedAbstracts || 0), ''],
         ['Excluded Preprints', String(diagnostics.excludedPreprints || 0), ''],
-        ['DBLP Missing', String(diagnostics.dblpMissing || 0), ''],
-        ['Ambiguous Matches', String(diagnostics.ambiguousMatches || 0), ''],
+        ['Publication Match Missing', String(diagnostics.dblpMissing || 0), ''],
+        ['Needs Review', String(diagnostics.reviewMatches || 0), ''],
         ['Unranked Venues', String(diagnostics.unrankedVenues || 0), ''],
-        ['Missing Author Count', String(diagnostics.missingAuthorCount || 0), ''],
     ].forEach(([labelText, valueText, className]) => {
         breakdownGrid.appendChild(createMetricCard(labelText, valueText, className));
     });
@@ -7879,10 +7867,9 @@ function openScoreDetailsOverlay() {
             meta.className = 'gsr-score-details__pub-meta';
             [
                 `venue value ${formatNullableFactor(entry.weight)}`,
-                `fractional credit ${formatNullableFactor(entry.fractionalCredit)}`,
                 entry.publicationType ? `type ${entry.publicationType}` : null,
                 `contribution ${formatNullableFactor(entry.credit)}`,
-                `${entry.authorCount} author${entry.authorCount === 1 ? '' : 's'}`,
+                entry.authorCount ? `${entry.authorCount} author${entry.authorCount === 1 ? '' : 's'}` : null,
                 entry.rankingSnapshotYear ? `snapshot ${entry.rankingSnapshotYear}` : null,
                 entry.system,
             ].filter(Boolean).forEach((text) => {
@@ -7934,21 +7921,21 @@ function openCompletenessBreakdownOverlay() {
     if (!(panel instanceof HTMLElement) || !(body instanceof HTMLElement)) {
         return;
     }
-    const facultyScore = currentSummaryState?.venueProfileIndex || currentSummaryState?.facultyScore || buildFacultyScoreState(currentSummaryState?.publicationRanks || []);
+    const facultyScore = resolveFacultyScoreState(currentSummaryState);
     const completeness = normalizeScoringCompleteness(facultyScore.completeness, facultyScore.diagnostics || facultyScore.coverage, facultyScore.combinedIndex || facultyScore.rawProfileScore?.scores, currentSummaryState?.publicationRanks || []);
     body.innerHTML = '';
     const total = Math.max(0, Number(completeness.total) || 0);
     const scored = Math.max(0, Number(completeness.scored) || 0);
     const notScored = Math.max(0, total - scored);
     const details = [
-        ['scored', 'Scored', completeness.scored, 'eligible, ranked, with author counts.'],
-        ['dblpMissing', 'DBLP missing', completeness.dblpMissing, 'Scholar items not found in the matched DBLP profile.'],
-        ['ambiguous', 'Ambiguous', completeness.ambiguous, 'Multiple plausible DBLP matches; not scored.'],
+        ['scored', 'Scored', completeness.scored, 'eligible, ranked venues.'],
+        ['dblpMissing', 'Publication match missing', completeness.dblpMissing, 'No reliable publication-level source match was available.'],
+        ['review', 'Needs review', completeness.review, 'Multiple plausible matches or weak evidence; not scored.'],
         ['rankNotFound', 'Venue unranked', completeness.rankNotFound, 'Verified items whose venue has no CORE/SJR rank.'],
         ['excludedType', 'Excluded type', completeness.excludedType, 'Policy exclusions such as workshops, demos, posters, preprints, or short papers.'],
-        ['missingAuthorCount', 'Missing author count', completeness.missingAuthorCount, 'Verified/ranked items without usable DBLP author-count metadata.'],
-        ['lookupUnavailable', 'Lookup unavailable', completeness.lookupUnavailable, 'Items skipped because DBLP lookup was unavailable or rate-limited.'],
+        ['lookupUnavailable', 'Lookup unavailable', completeness.lookupUnavailable, 'Items skipped because a required lookup was unavailable or rate-limited.'],
     ];
+    const visibleDetails = details.filter(([key, , count]) => key === 'scored' || Number(count) > 0);
     const hero = document.createElement('section');
     hero.className = 'gsr-completeness-panel__dashboard';
     const heroTop = document.createElement('div');
@@ -7989,7 +7976,7 @@ function openCompletenessBreakdownOverlay() {
     hero.appendChild(createScoringCompletenessBar(completeness, 'gsr-completeness-bar--large'));
     const legend = document.createElement('div');
     legend.className = 'gsr-completeness-panel__legend';
-    details.filter(([key, , count]) => key === 'scored' || Number(count) > 0).forEach(([key, labelText, count]) => {
+    visibleDetails.forEach(([key, labelText, count]) => {
         const chip = document.createElement('span');
         chip.className = 'gsr-completeness-panel__legend-chip';
         const swatch = document.createElement('i');
@@ -8021,7 +8008,7 @@ function openCompletenessBreakdownOverlay() {
     reasons.appendChild(reasonsHead);
     const rows = document.createElement('div');
     rows.className = 'gsr-completeness-panel__rows';
-    details.forEach(([key, labelText, count, copy]) => {
+    visibleDetails.forEach(([key, labelText, count, copy]) => {
         const numericCount = Math.max(0, Number(count) || 0);
         const row = document.createElement('div');
         row.className = `gsr-completeness-panel__row${numericCount === 0 ? ' gsr-completeness-panel__row--empty' : ''}`;
@@ -8057,7 +8044,12 @@ function openCompletenessBreakdownOverlay() {
     const formulaText = document.createElement('code');
     formulaText.textContent = 'Completeness = N_scored / N_total';
     const identity = document.createElement('p');
-    identity.textContent = 'N_total = scored + DBLP missing + ambiguous + rank not found + excluded type + missing author count + lookup unavailable.';
+    const activeReasons = visibleDetails
+        .filter(([key]) => key !== 'scored')
+        .map(([, labelText]) => labelText.toLowerCase());
+    identity.textContent = activeReasons.length
+        ? `N_total = scored + ${activeReasons.join(' + ')}.`
+        : 'N_total = scored.';
     formula.appendChild(formulaText);
     formula.appendChild(identity);
     body.appendChild(formula);
@@ -8068,7 +8060,7 @@ function displayFacultyScorePanel(summaryState) {
     if (!summaryState) {
         return;
     }
-    const facultyScore = summaryState.venueProfileIndex || summaryState.facultyScore || buildFacultyScoreState(summaryState.publicationRanks || []);
+    const facultyScore = resolveFacultyScoreState(summaryState);
     const panel = document.createElement('div');
     panel.id = FACULTY_SCORE_PANEL_ID;
     panel.className = 'gsc_rsb_s gsc_prf_pnl gsr-card gsr-faculty-score-card';
@@ -8101,7 +8093,7 @@ function displayFacultyScorePanel(summaryState) {
     completenessCard.setAttribute('role', 'button');
     completenessCard.tabIndex = 0;
     completenessCard.className = 'gsr-completeness-card';
-    completenessCard.title = 'Scoring Completeness shows how much of this Scholar profile could be used in the GSVR Score. Publications may be unscored because they are missing from DBLP, ambiguous, unranked, excluded publication types, or missing author-count metadata.';
+    completenessCard.title = 'Scoring Completeness shows how much of this Scholar profile could be used in the GSVR Score. Publications may be unscored because the venue is unranked, the match needs review, the publication type is excluded, or a required lookup was unavailable.';
     completenessCard.setAttribute('aria-label', `Scoring Completeness ${formatCompletenessPercent(completeness)}. Open breakdown.`);
     const completenessHead = document.createElement('div');
     completenessHead.className = 'gsr-completeness-card__head';
@@ -8322,6 +8314,37 @@ function getSparseRankChipState(summaryState) {
         sparseLimit: SPARSE_PROFILE_RANKED_LIMIT
     });
 }
+function getVisibleCitationGraphYears() {
+    const graph = findScholarCitationGraphElement();
+    if (!graph) {
+        return null;
+    }
+    const years = Array.from(graph.querySelectorAll('.gsc_g_t'))
+        .map((label) => parseInt(label.textContent || '', 10))
+        .filter((year) => Number.isFinite(year));
+    return years.length ? years : null;
+}
+function countCitationGraphVisibleRankChips(chipState) {
+    const years = getVisibleCitationGraphYears();
+    if (!years) {
+        return null;
+    }
+    const chipsByYear = chipState?.allChipsByYear || chipState?.chipsByYear || {};
+    return years.reduce((total, year) => {
+        const chips = chipsByYear?.[year];
+        return total + (Array.isArray(chips) ? chips.length : 0);
+    }, 0);
+}
+function shouldUseCitationGraphRankChips(chipState) {
+    if (!chipState) {
+        return false;
+    }
+    const visibleRanked = countCitationGraphVisibleRankChips(chipState);
+    if (visibleRanked != null) {
+        return visibleRanked > 0 && visibleRanked < (Number(chipState.sparseLimit) || SPARSE_PROFILE_RANKED_LIMIT);
+    }
+    return chipState.isSparse === true;
+}
 function findScholarCitationGraphElement() {
     return document.getElementById('gsc_g')
         || document.querySelector('#gsc_rsb_cit .gsc_g_hist_wrp')
@@ -8364,7 +8387,7 @@ function getCitationGraphYearLayout(label, bars, graphRect) {
     return { barTop, chipCenterX };
 }
 function scheduleCitationGraphRankChips(chipState) {
-    if (!chipState?.isSparse) {
+    if (!shouldUseCitationGraphRankChips(chipState)) {
         removeCitationGraphRankChips();
         return;
     }
@@ -8377,7 +8400,7 @@ function scheduleCitationGraphRankChips(chipState) {
     }
 }
 function retryCitationGraphAnnotation(chipState, attempt) {
-    if (attempt >= CITATION_GRAPH_RETRY_LIMIT || !chipState?.isSparse) {
+    if (attempt >= CITATION_GRAPH_RETRY_LIMIT || !shouldUseCitationGraphRankChips(chipState)) {
         return;
     }
     const run = () => annotateScholarCitationGraph(chipState, attempt + 1);
@@ -8393,7 +8416,7 @@ function retryCitationGraphAnnotation(chipState, attempt) {
 }
 function annotateScholarCitationGraph(chipState, attempt = 0) {
     removeCitationGraphRankChips();
-    if (!chipState?.isSparse) {
+    if (!shouldUseCitationGraphRankChips(chipState)) {
         return;
     }
     const graph = findScholarCitationGraphElement();
@@ -8424,7 +8447,8 @@ function annotateScholarCitationGraph(chipState, attempt = 0) {
     const chipStep = CITATION_CHIP_HEIGHT + CITATION_CHIP_GAP;
     for (const label of yearLabels) {
         const year = parseInt(label.textContent || '', 10);
-        const chips = chipState.chipsByYear?.[year];
+        const chipsByYear = chipState.allChipsByYear || chipState.chipsByYear || {};
+        const chips = chipsByYear?.[year];
         if (!Number.isFinite(year) || !chips?.length) {
             continue;
         }
@@ -8791,7 +8815,7 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
     // Sparse profiles (<25 ranked papers in the recent window) replace the
     // timeline charts with per-year rank chips on Scholar's citation graph.
     const citationChipState = getSparseRankChipState(currentSummaryState);
-    if (!citationChipState?.isSparse) {
+    if (!shouldUseCitationGraphRankChips(citationChipState)) {
         // Tier-3 "Explore": the tall timeline charts are secondary to the verdict
         // (score) and distribution tiers, so they collapse by default. Native
         // <details> keeps this keyboard-accessible for free; the open state
@@ -9702,7 +9726,7 @@ async function resolveCoreRanking(venueName, publicationYear, trackInfo) {
     }
     if (result.rank === 'N/A') {
         if (trackInfo?.isWorkshop) result.naReason = 'Workshop';
-        else if (resolvedDetails?.decisionStatus === DECISION_STATUS.AMBIGUOUS) result.naReason = 'Ambiguous';
+        else if (resolvedDetails?.decisionStatus === DECISION_STATUS.REVIEW) result.naReason = 'Review';
     }
     return result;
 }
@@ -9751,7 +9775,7 @@ async function resolveSjrRanking(venueName, publicationYear) {
     pushName(utils?.canonicalizeCsrankingsVenueName ? utils.canonicalizeCsrankingsVenueName(venueName) : null);
     const result = { system: 'SJR', rank: 'N/A', matchedVenue: null, venueMatchConfidence: null, sourceYear: null, naReason: null, decisionStatus: null, decisionEvidence: null, matchedKey: null, matchedSourceId: null, sourceYearFallback: false, shouldPersist: true, topCandidates: null };
     let bestSjr = null;
-    let sawAmbiguous = false;
+    let sawReview = false;
     let sawHistorical = false;
     let transientFailure = false;
     for (const name of names) {
@@ -9764,7 +9788,7 @@ async function resolveSjrRanking(venueName, publicationYear) {
             transientFailure = false;
             continue;
         }
-        if (sjrResult.status === 'ambiguous') sawAmbiguous = true;
+        if (sjrResult.status === 'review') sawReview = true;
         if (sjrResult.status === 'historical_coverage_unavailable') sawHistorical = true;
         if (sjrResult.status === 'error' && sjrResult.transient) transientFailure = true;
     }
@@ -9779,11 +9803,11 @@ async function resolveSjrRanking(venueName, publicationYear) {
         result.decisionStatus = DECISION_STATUS.MATCHED;
         result.decisionEvidence = bestSjr.matchedSourceId ? [`source:${bestSjr.matchedSourceId}`] : null;
     }
-    else if (sawAmbiguous) {
-        result.naReason = 'Ambiguous Journal Match';
-        result.decisionStatus = DECISION_STATUS.AMBIGUOUS;
+    else if (sawReview) {
+        result.naReason = 'Review Journal Match';
+        result.decisionStatus = DECISION_STATUS.REVIEW;
         result.matchedKey = venueName ?? null;
-        result.decisionEvidence = ['sjr_ambiguous'];
+        result.decisionEvidence = ['sjr_review'];
     }
     else if (sawHistorical) {
         result.naReason = 'SJR Historical Coverage Unavailable';
@@ -9856,16 +9880,16 @@ async function pickVenueRanking(venueName, titleText, publicationYear) {
     }
     const dblpVenueMatch = await resolveDblpVenueCatalogMatch(venueName, trackInfo);
     if (dblpVenueMatch.catalogAvailable) {
-        if (dblpVenueMatch.status === DECISION_STATUS.AMBIGUOUS) {
+        if (dblpVenueMatch.status === DECISION_STATUS.REVIEW) {
             return remember({
                 system: 'CORE',
                 rank: 'N/A',
                 matchedVenue: null,
                 venueMatchConfidence: dblpVenueMatch.score ?? null,
                 sourceYear: null,
-                naReason: 'Ambiguous',
-                decisionStatus: DECISION_STATUS.AMBIGUOUS,
-                decisionEvidence: ['dblp_venue_ambiguous'],
+                naReason: 'Review',
+                decisionStatus: DECISION_STATUS.REVIEW,
+                decisionEvidence: ['dblp_venue_review'],
                 matchedKey: null,
                 matchedSourceId: null,
                 topCandidates: dblpVenueMatch.topCandidates ?? null
@@ -9923,7 +9947,7 @@ async function pickVenueRanking(venueName, titleText, publicationYear) {
         const rankCandidates = getRankCandidateNamesFromDblpVenue(dblpVenueMatch, venueName);
         const useSjr = dblpVenueMatch.entry.type === 'journal';
         let best = null;
-        let sawAmbiguous = false;
+        let sawReview = false;
         for (const candidate of rankCandidates) {
             let result = useSjr
                 ? await resolveSjrRanking(candidate, publicationYear)
@@ -9951,21 +9975,21 @@ async function pickVenueRanking(venueName, titleText, publicationYear) {
                     decisionStatus: DECISION_STATUS.MATCHED
                 });
             }
-            if (result.decisionStatus === DECISION_STATUS.AMBIGUOUS)
-                sawAmbiguous = true;
+            if (result.decisionStatus === DECISION_STATUS.REVIEW)
+                sawReview = true;
             if (!best || (result.matchedVenue && !best.matchedVenue)) {
                 best = result;
             }
         }
-        if (sawAmbiguous) {
+        if (sawReview) {
             return remember({
-                ...(best || createUnrankedDblpVenueDecision(dblpVenueMatch, 'Ambiguous')),
+                ...(best || createUnrankedDblpVenueDecision(dblpVenueMatch, 'Review')),
                 rank: 'N/A',
                 matchedVenue: dblpVenueMatch.entry.title,
                 venueMatchConfidence: dblpVenueMatch.score ?? null,
-                naReason: 'Ambiguous',
-                decisionStatus: DECISION_STATUS.AMBIGUOUS,
-                decisionEvidence: ['dblp_venue_match', useSjr ? 'sjr_ambiguous' : 'ambiguous_fuzzy_core'],
+                naReason: 'Review',
+                decisionStatus: DECISION_STATUS.REVIEW,
+                decisionEvidence: ['dblp_venue_match', useSjr ? 'sjr_review' : 'review_fuzzy_core'],
                 matchedKey: dblpVenueMatch.entry.id,
                 matchedSourceId: dblpVenueMatch.entry.id
             });

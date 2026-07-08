@@ -15,7 +15,7 @@
     profileSnapshots: "gsvr_profile_snapshots_v1",
     savedCompareSet: "gsvr_saved_compare_set_v1",
   });
-  const SCORE_MODEL_VERSION = "gsvr-fractional-venue-v1";
+  const SCORE_MODEL_VERSION = "gsvr-full-venue-v1";
   const AVAILABLE_RANKING_PACKS = Object.freeze(["core", "sjr"]);
   const DEFAULT_RANKING_PACKS = Object.freeze(["core", "sjr"]);
   const DEFAULT_SETTINGS = Object.freeze({
@@ -320,13 +320,13 @@
     }
 
     const strongScoreThreshold = Number(options?.profileStrongScoreThreshold);
-    const ambiguityGap = Number(options?.profileAmbiguityGap);
+    const reviewGap = Number(options?.profileReviewGap);
     if (
       runnerUp
       && Number.isFinite(strongScoreThreshold)
-      && Number.isFinite(ambiguityGap)
+      && Number.isFinite(reviewGap)
       && scoreValue(best) < strongScoreThreshold
-      && (scoreValue(best) - scoreValue(runnerUp)) < ambiguityGap
+      && (scoreValue(best) - scoreValue(runnerUp)) < reviewGap
     ) {
       return null;
     }
@@ -336,7 +336,7 @@
 
   function shouldEscalateProfileVerification(status) {
     const normalized = String(status || "").trim().toLowerCase();
-    return normalized === "no_match" || normalized === "ambiguous";
+    return normalized === "no_match" || normalized === "review";
   }
 
   async function getArea() {

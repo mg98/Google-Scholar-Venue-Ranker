@@ -510,7 +510,7 @@ function findBestSjrMatch({ normalizedQuery, queryIssns, dataset }) {
       }
     }
     const issnGap = secondIssnMatch ? bestIssnMatch.score - secondIssnMatch.score : Number.POSITIVE_INFINITY;
-    if (bestIssnMatch && (bestIssnMatch.score >= 0.97 || issnGap >= core.RANKING_CONFIG.sjrAmbiguityGap)) {
+    if (bestIssnMatch && (bestIssnMatch.score >= 0.97 || issnGap >= core.RANKING_CONFIG.sjrReviewGap)) {
       return {
         status: DECISION_STATUS.MATCHED,
         entry: bestIssnMatch.entry,
@@ -518,7 +518,7 @@ function findBestSjrMatch({ normalizedQuery, queryIssns, dataset }) {
         matchedBy: 'issn',
       };
     }
-    return { status: DECISION_STATUS.AMBIGUOUS, score: 1, matchedBy: 'issn' };
+    return { status: DECISION_STATUS.REVIEW, score: 1, matchedBy: 'issn' };
   }
 
   const directMatch = dataset.byNormalized.get(normalizedQuery);
@@ -554,8 +554,8 @@ function findBestSjrMatch({ normalizedQuery, queryIssns, dataset }) {
   }
 
   const gap = second ? best.score - second.score : Number.POSITIVE_INFINITY;
-  if (second && best.score < 0.97 && gap < core.RANKING_CONFIG.sjrAmbiguityGap) {
-    return { status: DECISION_STATUS.AMBIGUOUS, score: best.score, gap, matchedBy: 'title_fuzzy' };
+  if (second && best.score < 0.97 && gap < core.RANKING_CONFIG.sjrReviewGap) {
+    return { status: DECISION_STATUS.REVIEW, score: best.score, gap, matchedBy: 'title_fuzzy' };
   }
 
   return {
@@ -618,13 +618,13 @@ function resolveJournalQuerySync(journalName, publicationYear, journalMeta) {
 
   const dataset = loadSjrDataset();
   const queryIssns = normalizeIssnList(journalMeta?.issns || []);
-  let sawAmbiguous = false;
+  let sawReview = false;
 
   for (const normalizedQuery of variants) {
     const match = findBestSjrMatch({ normalizedQuery, queryIssns, dataset });
     if (!match || match.status === DECISION_STATUS.MISSING) continue;
-    if (match.status === DECISION_STATUS.AMBIGUOUS) {
-      sawAmbiguous = true;
+    if (match.status === DECISION_STATUS.REVIEW) {
+      sawReview = true;
       continue;
     }
 
@@ -655,7 +655,7 @@ function resolveJournalQuerySync(journalName, publicationYear, journalMeta) {
   }
 
   return {
-    status: sawAmbiguous ? DECISION_STATUS.AMBIGUOUS : DECISION_STATUS.MISSING,
+    status: sawReview ? DECISION_STATUS.REVIEW : DECISION_STATUS.MISSING,
     quartile: 'N/A',
     sourceYear: null,
     matchedTitle: null,
@@ -741,7 +741,7 @@ function getConferenceSearchStatusPriority(status) {
       return 4;
     case DECISION_STATUS.UNRANKED:
       return 3;
-    case DECISION_STATUS.AMBIGUOUS:
+    case DECISION_STATUS.REVIEW:
       return 2;
     default:
       return 1;
@@ -909,12 +909,12 @@ function resolveProfileMatchFixture(input) {
     : null;
   if (secondScore !== null) {
     const gap = bestScore - secondScore;
-    if (gap < core.RANKING_CONFIG.profileAmbiguityGap && bestScore < core.RANKING_CONFIG.profileStrongScoreThreshold) {
+    if (gap < core.RANKING_CONFIG.profileReviewGap && bestScore < core.RANKING_CONFIG.profileStrongScoreThreshold) {
       return {
-        status: DECISION_STATUS.AMBIGUOUS,
+        status: DECISION_STATUS.REVIEW,
         matchedPid: null,
         confidence: best.evaluation.confidence ?? null,
-        reason: 'profile_candidate_ambiguous',
+        reason: 'profile_candidate_review',
         scoreGap: gap,
       };
     }
@@ -1074,8 +1074,8 @@ function resolvePipelineFixture(input) {
       system: 'DBLP',
       rank: 'DBLP Entry Missing',
       reason: null,
-      decisionStatus: publicationMatch.status === DECISION_STATUS.AMBIGUOUS
-        ? DECISION_STATUS.AMBIGUOUS
+      decisionStatus: publicationMatch.status === DECISION_STATUS.REVIEW
+        ? DECISION_STATUS.REVIEW
         : DECISION_STATUS.MISSING,
       matchedVenue: null,
       matchedKey: null,
@@ -1132,9 +1132,9 @@ function resolvePipelineFixture(input) {
     rank = 'N/A';
     reason = 'Short-paper';
     decisionStatus = DECISION_STATUS.UNRANKED;
-  } else if (decisionStatus === DECISION_STATUS.AMBIGUOUS) {
+  } else if (decisionStatus === DECISION_STATUS.REVIEW) {
     rank = 'N/A';
-    reason = 'Ambiguous';
+    reason = 'Review';
   } else if ((baseResult.system === 'CORE' && !VALID_RANKS.includes(rank))
     || (baseResult.system === 'SJR' && !SJR_QUARTILES.includes(rank))) {
     rank = 'N/A';
@@ -1170,7 +1170,7 @@ function resolveSearchQueryFixture(input) {
     });
     return {
       status: result.status,
-      primaryLabel: result.status === DECISION_STATUS.MATCHED ? result.quartile : (result.status === DECISION_STATUS.AMBIGUOUS ? 'Ambiguous' : 'Not found'),
+      primaryLabel: result.status === DECISION_STATUS.MATCHED ? result.quartile : (result.status === DECISION_STATUS.REVIEW ? 'Review' : 'Not found'),
       matchedVenue: result.matchedTitle || null,
       currentStatusLabel: result.status === DECISION_STATUS.MATCHED ? result.quartile : null,
       latestRankedSnapshot: null,
@@ -1185,7 +1185,7 @@ function resolveSearchQueryFixture(input) {
     status: primary.status,
     primaryLabel: primary.status === DECISION_STATUS.MATCHED
       ? primary.rank
-      : (primary.status === DECISION_STATUS.UNRANKED ? 'Unranked' : (primary.status === DECISION_STATUS.AMBIGUOUS ? 'Ambiguous' : 'Not found')),
+      : (primary.status === DECISION_STATUS.UNRANKED ? 'Unranked' : (primary.status === DECISION_STATUS.REVIEW ? 'Review' : 'Not found')),
     matchedVenue: primary.matchedVenue || null,
     currentStatusLabel: formatCoreStatusLabel(primary.rawRankLabel) || null,
     latestRankedSnapshot: resolved.latestRankedSnapshot

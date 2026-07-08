@@ -11,10 +11,9 @@
     "verified_ranked",
     "verified_unranked",
     "dblp_missing",
-    "match_ambiguous",
+    "match_review",
     "excluded_type",
     "rank_not_found",
-    "missing_author_count",
     "source_rate_limited",
     "source_unavailable",
     "unknown",
@@ -57,14 +56,11 @@
     if (evidence.includes("dblp_entry_missing") || ["missing", "no_match", "not_found"].includes(decisionStatus)) {
       return "dblp_missing";
     }
-    if (decisionStatus === "ambiguous" || evidence.includes("publication_ambiguous") || reason.includes("ambiguous")) {
-      return "match_ambiguous";
+    if (decisionStatus === "review" || evidence.includes("publication_review") || reason.includes("review")) {
+      return "match_review";
     }
     if (publication?.classification?.scoreEligibleByType === false || publication?.score?.exclusionReason === "excluded_type") {
       return "excluded_type";
-    }
-    if (publication?.score?.exclusionReason === "missing_author_count") {
-      return "missing_author_count";
     }
     if (isRanked(publication)) {
       return "verified_ranked";
@@ -90,9 +86,8 @@
       excludedBookChapters: 0,
       excludedUnknown: 0,
       dblpMissing: 0,
-      ambiguousMatches: 0,
+      reviewMatches: 0,
       unrankedVenues: 0,
-      missingAuthorCount: 0,
       sourceRateLimited: 0,
       sourceUnavailable: 0,
       excludedPublications: 0,
@@ -130,17 +125,14 @@
       case "dblp_missing":
         summary.dblpMissing += 1;
         break;
-      case "ambiguous_match":
-      case "match_ambiguous":
-        summary.ambiguousMatches += 1;
+      case "review_match":
+      case "match_review":
+        summary.reviewMatches += 1;
         break;
       case "rank_not_found":
       case "verified_unranked":
       case "verified_but_source_missing":
         summary.unrankedVenues += 1;
-        break;
-      case "missing_author_count":
-        summary.missingAuthorCount += 1;
         break;
       case "source_rate_limited":
         summary.sourceRateLimited += 1;

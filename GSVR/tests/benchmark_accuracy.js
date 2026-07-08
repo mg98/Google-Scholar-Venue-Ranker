@@ -128,14 +128,14 @@ function renderSuiteMarkdown(report, suiteName, suiteReport) {
   const sections = [
     `## ${suiteName}`,
     '',
-    '| Family | Total | Pass | Accuracy | Precision | Recall | Abstain | Ambiguous | Mean | P95 |',
+    '| Family | Total | Pass | Accuracy | Precision | Recall | Abstain | Review | Mean | P95 |',
     '| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |',
   ];
 
   for (const familyName of Object.keys(suiteReport.families).sort()) {
     const family = suiteReport.families[familyName];
     sections.push(
-      `| ${familyName} | ${family.total} | ${family.passed} | ${percent(family.exactAccuracy)} | ${percent(family.precision)} | ${percent(family.recall)} | ${percent(family.abstainRate)} | ${percent(family.ambiguityRate)} | ${formatMs(family.meanLatencyMs)} | ${formatMs(family.p95LatencyMs)} |`
+      `| ${familyName} | ${family.total} | ${family.passed} | ${percent(family.exactAccuracy)} | ${percent(family.precision)} | ${percent(family.recall)} | ${percent(family.abstainRate)} | ${percent(family.reviewRate)} | ${formatMs(family.meanLatencyMs)} | ${formatMs(family.p95LatencyMs)} |`
     );
   }
 
@@ -282,7 +282,7 @@ function renderFamilyTableHtml(suiteReport) {
       <td data-sort-value="${family.precision}">${escapeHtml(percent(family.precision))}</td>
       <td data-sort-value="${family.recall}">${escapeHtml(percent(family.recall))}</td>
       <td data-sort-value="${family.abstainRate}">${escapeHtml(percent(family.abstainRate))}</td>
-      <td data-sort-value="${family.ambiguityRate}">${escapeHtml(percent(family.ambiguityRate))}</td>
+      <td data-sort-value="${family.reviewRate}">${escapeHtml(percent(family.reviewRate))}</td>
       <td data-sort-value="${family.meanLatencyMs}">${escapeHtml(formatMs(family.meanLatencyMs))}</td>
       <td data-sort-value="${family.p95LatencyMs}">${escapeHtml(formatMs(family.p95LatencyMs))}</td>
     </tr>`;
@@ -299,7 +299,7 @@ function renderFamilyTableHtml(suiteReport) {
           <th data-sortable="number">Precision</th>
           <th data-sortable="number">Recall</th>
           <th data-sortable="number">Abstain</th>
-          <th data-sortable="number">Ambiguous</th>
+          <th data-sortable="number">Review</th>
           <th data-sortable="number">Mean</th>
           <th data-sortable="number">P95</th>
         </tr>
@@ -317,7 +317,7 @@ function renderFamilyPanels(suiteReport) {
       renderMetricChip('Precision', percent(family.precision), metricTone(family.precision, 'quality')),
       renderMetricChip('Recall', percent(family.recall), metricTone(family.recall, 'quality')),
       renderMetricChip('Abstain', percent(family.abstainRate), metricTone(family.abstainRate, 'secondary')),
-      renderMetricChip('Ambiguous', percent(family.ambiguityRate), metricTone(family.ambiguityRate, 'secondary')),
+      renderMetricChip('Review', percent(family.reviewRate), metricTone(family.reviewRate, 'secondary')),
       renderMetricChip('P95', formatMs(family.p95LatencyMs), metricTone(family.p95LatencyMs, 'latency')),
     ].join('');
 
@@ -938,14 +938,14 @@ function createAccumulator(suiteName, familyName) {
     fp: 0,
     fn: 0,
     abstainCount: 0,
-    ambiguityCount: 0,
+    reviewCount: 0,
     statusConfusion: {},
     conferenceRankConfusion: {},
     journalQuartileConfusion: {},
     failures: [],
     falsePositives: [],
     falseNegatives: [],
-    ambiguousFailures: [],
+    reviewFailures: [],
   };
 }
 
@@ -960,8 +960,8 @@ function recordFixture(accumulator, evaluatedFixture) {
     incrementNestedCounter(accumulator.statusConfusion, expectedStatus || 'null', actualStatus || 'null');
   }
 
-  if (actualStatus === lib.DECISION_STATUS.AMBIGUOUS) accumulator.ambiguityCount += 1;
-  if (actualStatus === lib.DECISION_STATUS.AMBIGUOUS || actualStatus === lib.DECISION_STATUS.MISSING) {
+  if (actualStatus === lib.DECISION_STATUS.REVIEW) accumulator.reviewCount += 1;
+  if (actualStatus === lib.DECISION_STATUS.REVIEW || actualStatus === lib.DECISION_STATUS.MISSING) {
     accumulator.abstainCount += 1;
   }
 
@@ -989,8 +989,8 @@ function recordFixture(accumulator, evaluatedFixture) {
     accumulator.failures.push(evaluatedFixture);
     if (!expectedPositive && actualPositive) accumulator.falsePositives.push(evaluatedFixture);
     if (expectedPositive && !actualPositive) accumulator.falseNegatives.push(evaluatedFixture);
-    if (expectedStatus === lib.DECISION_STATUS.AMBIGUOUS && actualPositive) {
-      accumulator.ambiguousFailures.push(evaluatedFixture);
+    if (expectedStatus === lib.DECISION_STATUS.REVIEW && actualPositive) {
+      accumulator.reviewFailures.push(evaluatedFixture);
     }
   }
 }
@@ -1011,7 +1011,7 @@ function finalizeAccumulator(accumulator) {
     falsePositiveCount: accumulator.fp,
     falseNegativeCount: accumulator.fn,
     abstainRate: accumulator.total > 0 ? accumulator.abstainCount / accumulator.total : 0,
-    ambiguityRate: accumulator.total > 0 ? accumulator.ambiguityCount / accumulator.total : 0,
+    reviewRate: accumulator.total > 0 ? accumulator.reviewCount / accumulator.total : 0,
     meanLatencyMs: mean(accumulator.latencies),
     p95LatencyMs: percentile(accumulator.latencies, 0.95),
     statusConfusion: accumulator.statusConfusion,
@@ -1027,7 +1027,7 @@ function finalizeAccumulator(accumulator) {
     })),
     topFalsePositives: accumulator.falsePositives.slice(0, 5).map((entry) => entry.id),
     topFalseNegatives: accumulator.falseNegatives.slice(0, 5).map((entry) => entry.id),
-    topAmbiguousFailures: accumulator.ambiguousFailures.slice(0, 5).map((entry) => entry.id),
+    topReviewFailures: accumulator.reviewFailures.slice(0, 5).map((entry) => entry.id),
   };
 }
 

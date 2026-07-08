@@ -45,7 +45,7 @@
     const total = Number(input.total ?? diagnostics.totalScholarItems ?? 0);
     const scored = Number(input.scored ?? scores.eligibleRankedPublications ?? diagnostics.eligibleRankedPublications ?? 0);
     const dblpMissing = Number(input.dblpMissing ?? diagnostics.dblpMissing ?? diagnostics.missingDblp ?? 0);
-    const ambiguous = Number(input.ambiguous ?? diagnostics.ambiguousMatches ?? diagnostics.ambiguous ?? 0);
+    const review = Number(input.review ?? diagnostics.reviewMatches ?? diagnostics.review ?? 0);
     const rankNotFound = Number(input.rankNotFound ?? diagnostics.unrankedVenues ?? diagnostics.sourceMissing ?? 0);
     const excludedType = Number(input.excludedType ?? (
       Number(diagnostics.excludedShortPapers ?? 0)
@@ -54,7 +54,6 @@
       + Number(diagnostics.excludedExtendedAbstracts ?? 0)
       + Number(diagnostics.excludedPreprints ?? 0)
     ));
-    const missingAuthorCount = Number(input.missingAuthorCount ?? diagnostics.missingAuthorCount ?? 0);
     const lookupUnavailable = Number(input.lookupUnavailable ?? (
       Number(diagnostics.sourceRateLimited ?? 0)
       + Number(diagnostics.sourceUnavailable ?? 0)
@@ -63,19 +62,17 @@
       total: Number.isFinite(total) ? total : 0,
       scored: Number.isFinite(scored) ? scored : 0,
       dblpMissing: Number.isFinite(dblpMissing) ? dblpMissing : 0,
-      ambiguous: Number.isFinite(ambiguous) ? ambiguous : 0,
+      review: Number.isFinite(review) ? review : 0,
       rankNotFound: Number.isFinite(rankNotFound) ? rankNotFound : 0,
       excludedType: Number.isFinite(excludedType) ? excludedType : 0,
-      missingAuthorCount: Number.isFinite(missingAuthorCount) ? missingAuthorCount : 0,
       lookupUnavailable: Number.isFinite(lookupUnavailable) ? lookupUnavailable : 0,
     };
     const segmentDefinitions = [
       ["scored", "Scored"],
-      ["dblpMissing", "DBLP missing"],
-      ["ambiguous", "Ambiguous match"],
+      ["dblpMissing", "Publication match missing"],
+      ["review", "Needs review"],
       ["rankNotFound", "Venue unranked"],
       ["excludedType", "Excluded type"],
-      ["missingAuthorCount", "Missing author count"],
       ["lookupUnavailable", "Lookup unavailable"],
     ];
     return {
@@ -186,17 +183,17 @@
         confidence: input.dblpProfile?.confidence ?? null,
       },
       settings: {
-        scoringMode: "fractional_venue_score",
-        authorshipModel: "fractional_counting",
+        scoringMode: "full_venue_score",
+        authorshipModel: "full_venue_counting",
         publicationTypePolicy: input.settings?.publicationTypePolicy ?? "full_papers_only",
         rankingPacks: Array.isArray(input.settings?.rankingPacks) ? input.settings.rankingPacks.slice() : ["core", "sjr"],
       },
       scoringPolicy: {
-        formula: policy.formula ?? "sum(venueValue / authorCount)",
-        authorship: "fractional",
+        formula: policy.formula ?? "sum(venueValue)",
+        authorship: "none",
         eligiblePublicationTypes: Array.isArray(policy.eligiblePublicationTypes) ? policy.eligiblePublicationTypes.slice() : ["full_conference", "full_journal"],
         venueValues: asObject(policy.venueValues),
-        fractionalCountingOnly: true,
+        fractionalCountingOnly: false,
       },
       scores: {
         gsvrScore: scores.gsvrScore ?? input.gsvrScore ?? 0,
@@ -216,9 +213,8 @@
         excludedExtendedAbstracts: diagnostics.excludedExtendedAbstracts ?? 0,
         excludedPreprints: diagnostics.excludedPreprints ?? 0,
         dblpMissing: diagnostics.dblpMissing ?? diagnostics.missingDblp ?? 0,
-        ambiguousMatches: diagnostics.ambiguousMatches ?? diagnostics.ambiguous ?? 0,
+        reviewMatches: diagnostics.reviewMatches ?? diagnostics.review ?? 0,
         unrankedVenues: diagnostics.unrankedVenues ?? diagnostics.sourceMissing ?? 0,
-        missingAuthorCount: diagnostics.missingAuthorCount ?? 0,
         sourceRateLimited: diagnostics.sourceRateLimited ?? 0,
         sourceUnavailable: diagnostics.sourceUnavailable ?? 0,
         excludedPublications: diagnostics.excludedPublications ?? diagnostics.excluded ?? 0,

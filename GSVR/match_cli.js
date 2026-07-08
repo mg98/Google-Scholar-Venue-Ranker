@@ -154,8 +154,8 @@ async function report(query, year) {
   console.log('\nDBLP venue catalog');
   if (dblp.status === 'matched' && dblp.entry) {
     console.log(`  => ${dblp.entry.type}  ${dblp.entry.id}  "${dblp.entry.title}"  score=${formatConfidence(dblp.score)}  (${dblp.matchedBy || 'match'})`);
-  } else if (dblp.status === 'ambiguous') {
-    console.log(`  => ambiguous (${dblp.matchedBy || 'match'}); closest DBLP venues:`);
+  } else if (dblp.status === 'review') {
+    console.log(`  => review (${dblp.matchedBy || 'match'}); closest DBLP venues:`);
     for (const candidate of dblp.topCandidates || []) {
       console.log(`       ${formatConfidence(candidate.confidence)}  ${candidate.status || ''}  ${candidate.matchedKey || ''}  "${candidate.matchedVenue || ''}"`);
     }

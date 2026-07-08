@@ -72,7 +72,7 @@ function testDeterministicDblpMatch() {
   assert.strictEqual(r1.dblpKey, 'conf/sensys/enssys2020', 'Expected lexicographically smallest dblpKey in a tie');
 }
 
-function testAmbiguousDblpMatchAbstains() {
+function testReviewDblpMatchAbstains() {
   const pubs = [
     { dblpKey: 'conf/foo/2024a', title: 'Energy Harvesting for Embedded Systems', year: '2024', venue: 'FOO' },
     { dblpKey: 'conf/foo/2024b', title: 'Energy Harvesting of Embedded Systems', year: '2024', venue: 'FOO' },
@@ -84,7 +84,7 @@ function testAmbiguousDblpMatchAbstains() {
     dblpPublications: pubs,
   });
 
-  assert.strictEqual(result.status, core.DECISION_STATUS.AMBIGUOUS);
+  assert.strictEqual(result.status, core.DECISION_STATUS.REVIEW);
   assert.strictEqual(core.selectBestDblpMatch({
     scholarTitle: 'Energy Harvesting Embedded Systems',
     scholarYear: 2024,
@@ -179,7 +179,7 @@ function testCoreAliasResolution() {
   assert.strictEqual(mobicom.rank, 'A*');
 }
 
-function testAmbiguousCoreAcronymAbstains() {
+function testReviewCoreAcronymAbstains() {
   const coreData = [
     { title: 'International Workshop on Smart Systems', acronym: 'IWS', rank: 'B' },
     { title: 'International Workshop on Secure Storage', acronym: 'IWS', rank: 'A' },
@@ -191,7 +191,7 @@ function testAmbiguousCoreAcronymAbstains() {
     coreData,
     aliasIndex,
   });
-  assert.strictEqual(result.status, core.DECISION_STATUS.AMBIGUOUS);
+  assert.strictEqual(result.status, core.DECISION_STATUS.REVIEW);
 }
 
 
@@ -505,13 +505,14 @@ function testSummaryDistributionRenderUsesFilteredCounts() {
     source.includes("getTimelineFocusedHistograms(currentSummaryState.timeline, 'recent')"),
     'Sidebar should render focused recent histograms from currentSummaryState'
   );
-  assert.ok(
-    source.includes('const SPARSE_PROFILE_RANKED_LIMIT = 25') &&
-    source.includes("document.querySelector('#gsc_rsb_cit .gsc_g_hist_wrp')") &&
-    source.includes('if (!citationChipState?.isSparse)') &&
-    source.includes('scheduleCitationGraphRankChips(citationChipState)'),
-    'Sparse profiles should annotate the citation graph while dense profiles keep the timeline view'
-  );
+	assert.ok(
+	  source.includes('const SPARSE_PROFILE_RANKED_LIMIT = 25') &&
+	  source.includes("document.querySelector('#gsc_rsb_cit .gsc_g_hist_wrp')") &&
+	  source.includes('countCitationGraphVisibleRankChips(chipState)') &&
+	  source.includes('shouldUseCitationGraphRankChips(citationChipState)') &&
+	  source.includes('scheduleCitationGraphRankChips(citationChipState)'),
+	  'Sparse profiles should annotate the citation graph while dense profiles keep the timeline view'
+	);
 }
 
 function testReportTimelineChartsUseStackedHorizontalLayout() {
@@ -824,7 +825,7 @@ function testProfileVerificationCandidateSelection() {
     },
   ], {
     profileStrongScoreThreshold: core.RANKING_CONFIG.profileStrongScoreThreshold,
-    profileAmbiguityGap: core.RANKING_CONFIG.profileAmbiguityGap,
+    profileReviewGap: core.RANKING_CONFIG.profileReviewGap,
   });
   assert.strictEqual(exactWinner.pid, '64/4311');
   assert.strictEqual(exactWinner.matchedScholarUserId, '78KBaPsAAAAJ');
@@ -846,11 +847,11 @@ function testProfileVerificationCandidateSelection() {
     },
   ], {
     profileStrongScoreThreshold: core.RANKING_CONFIG.profileStrongScoreThreshold,
-    profileAmbiguityGap: core.RANKING_CONFIG.profileAmbiguityGap,
+    profileReviewGap: core.RANKING_CONFIG.profileReviewGap,
   });
   assert.strictEqual(publicationWinner.pid, '12/3456');
 
-  const ambiguous = settings.selectBestProfileVerificationCandidate([
+  const review = settings.selectBestProfileVerificationCandidate([
     {
       pid: '12/3456',
       matchReason: 'publication_overlap',
@@ -867,14 +868,14 @@ function testProfileVerificationCandidateSelection() {
     },
   ], {
     profileStrongScoreThreshold: core.RANKING_CONFIG.profileStrongScoreThreshold,
-    profileAmbiguityGap: core.RANKING_CONFIG.profileAmbiguityGap,
+    profileReviewGap: core.RANKING_CONFIG.profileReviewGap,
   });
-  assert.strictEqual(ambiguous, null);
+  assert.strictEqual(review, null);
 }
 
 function testProfileVerificationEscalationGate() {
   assert.strictEqual(settings.shouldEscalateProfileVerification('no_match'), true);
-  assert.strictEqual(settings.shouldEscalateProfileVerification('ambiguous'), true);
+  assert.strictEqual(settings.shouldEscalateProfileVerification('review'), true);
   assert.strictEqual(settings.shouldEscalateProfileVerification('matched'), false);
   assert.strictEqual(settings.shouldEscalateProfileVerification('rate_limited'), false);
   assert.strictEqual(settings.shouldEscalateProfileVerification('unavailable'), false);
@@ -902,7 +903,7 @@ function testWolfgangScholarUserRegression() {
     },
   ], {
     profileStrongScoreThreshold: core.RANKING_CONFIG.profileStrongScoreThreshold,
-    profileAmbiguityGap: core.RANKING_CONFIG.profileAmbiguityGap,
+    profileReviewGap: core.RANKING_CONFIG.profileReviewGap,
   });
 
   assert.strictEqual(selected.pid, '64/4311');
@@ -965,7 +966,7 @@ function testFixtureCorpusMetrics() {
       }),
     },
     {
-      expected: core.DECISION_STATUS.AMBIGUOUS,
+      expected: core.DECISION_STATUS.REVIEW,
       result: core.resolveCoreVenue({
         venueKey: 'IWS',
         fullVenueTitle: null,
@@ -993,7 +994,7 @@ function testFixtureCorpusMetrics() {
     if (status === core.DECISION_STATUS.MATCHED) {
       matched++;
       if (fixture.expected === status) correctMatches++;
-    } else if (status === core.DECISION_STATUS.AMBIGUOUS || status === core.DECISION_STATUS.MISSING) {
+    } else if (status === core.DECISION_STATUS.REVIEW || status === core.DECISION_STATUS.MISSING) {
       abstained++;
     }
   }
@@ -1113,11 +1114,13 @@ function testSparseRankChips() {
   const sparse = timelineStats.buildSparseRankChips(pubs, { currentYear: 2026 });
   assert.strictEqual(sparse.isSparse, true);
   assert.strictEqual(sparse.totalRanked, 4);
+  assert.strictEqual(sparse.allRanked, 6);
   assert.strictEqual(sparse.startYear, 2019);
   assert.strictEqual(sparse.endYear, 2026);
   assert.deepStrictEqual(sparse.chipsByYear[2024], ['A*', 'A*']);
   // Ascending prestige: C renders at the bottom of the stack, Q1 on top.
   assert.deepStrictEqual(sparse.chipsByYear[2019], ['C', 'Q1']);
+  assert.deepStrictEqual(sparse.allChipsByYear[2010], ['A']);
 
   const dense = timelineStats.buildSparseRankChips(
     Array.from({ length: 25 }, () => ({ publicationYear: 2024, system: 'CORE', rank: 'A' })),
@@ -1125,6 +1128,16 @@ function testSparseRankChips() {
   );
   assert.strictEqual(dense.isSparse, false);
   assert.strictEqual(dense.totalRanked, 25);
+
+  const sparseWithoutVisibleChips = timelineStats.buildSparseRankChips(
+    [{ publicationYear: 2010, system: 'CORE', rank: 'A' }],
+    { currentYear: 2026 }
+  );
+  assert.strictEqual(sparseWithoutVisibleChips.isSparse, false);
+  assert.strictEqual(sparseWithoutVisibleChips.totalRanked, 0);
+  assert.strictEqual(sparseWithoutVisibleChips.allRanked, 1);
+  assert.deepStrictEqual(sparseWithoutVisibleChips.chipsByYear, {});
+  assert.deepStrictEqual(sparseWithoutVisibleChips.allChipsByYear, { 2010: ['A'] });
 
   // Zero ranked papers: nothing to draw, not sparse.
   assert.strictEqual(timelineStats.buildSparseRankChips([], { currentYear: 2026 }).isSparse, false);
@@ -1178,16 +1191,16 @@ function testTruncatedTitleMatching() {
   assert.strictEqual(matchResult.truncatedTitleMatch, true);
 
   // Two papers sharing the truncated prefix must abstain instead of guessing.
-  const ambiguousPubs = [
+  const reviewPubs = [
     { dblpKey: 'conf/x/p1', title: 'A Longitudinal Study of Network Behavior in Campus Networks: Measurements', year: '2022', venue: 'X' },
     { dblpKey: 'conf/x/p2', title: 'A Longitudinal Study of Network Behavior in Campus Networks: Modeling', year: '2022', venue: 'X' },
   ];
-  const ambiguousResult = core.selectBestDblpMatchDetailed({
+  const reviewResult = core.selectBestDblpMatchDetailed({
     scholarTitle: 'A Longitudinal Study of Network Behavior in Campus Networks…',
     scholarYear: 2022,
-    dblpPublications: ambiguousPubs,
+    dblpPublications: reviewPubs,
   });
-  assert.strictEqual(ambiguousResult.status, core.DECISION_STATUS.AMBIGUOUS);
+  assert.strictEqual(reviewResult.status, core.DECISION_STATUS.REVIEW);
 
   // A short truncated prefix carries too little signal and must abstain.
   const shortResult = core.selectBestDblpMatchDetailed({ scholarTitle: 'Short title…', scholarYear: 2022, dblpPublications: pubs });
@@ -1207,7 +1220,7 @@ function testAcronymTitleCrossCheck() {
     coreData,
     aliasIndex,
   });
-  assert.strictEqual(mismatch.status, core.DECISION_STATUS.AMBIGUOUS, 'Unrelated full title must abstain');
+  assert.strictEqual(mismatch.status, core.DECISION_STATUS.REVIEW, 'Unrelated full title must abstain');
   assert.strictEqual(mismatch.reason, 'acronym_title_mismatch');
 
   const legit = core.resolveCoreVenue({
@@ -1250,7 +1263,7 @@ async function run() {
   testDeterministicDblpMatch();
   testWorkshopClassification();
   testDemoPosterClassification();
-  testAmbiguousDblpMatchAbstains();
+  testReviewDblpMatchAbstains();
   testDemoKeywordNotTrackWhenPagesHigh();
   testDemoKeywordNotTrackEvenWithoutPages();
   testExtendedAbstractClassification();
@@ -1277,7 +1290,7 @@ async function run() {
   testAcronymTitleCrossCheck();
   testHistoricalSjrCoverageUnavailable();
   testCoreAliasResolution();
-  testAmbiguousCoreAcronymAbstains();
+  testReviewCoreAcronymAbstains();
   testProfileCandidateScoring();
   testProfileCacheReuseRequiresVerifiedPid();
   testScholarVerificationSampleBuilder();
