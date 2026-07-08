@@ -4449,6 +4449,14 @@ const VENUE_RANKING_DECISION_CACHE_LIMIT = 5000;
 let sjrDatasetPromise = null;
 let rankingsDataPromise = null;
 let rankingsDataWarmupStarted = false;
+// Match worker: hosts the production matcher off the main thread (see
+// rankings_worker.js). Populated lazily; falls back to the in-process matcher.
+const MATCH_WORKER_CHUNK_SIZE = 60;
+let matchWorkerInstance = null;        // { worker, objectUrl, mode }
+let matchWorkerReadyPromise = null;    // resolves once the worker dataset is warm
+let matchWorkerDisabled = false;       // permanent in-process fallback for this page
+let matchWorkerRequestSeq = 0;
+const matchWorkerPending = new Map();  // requestId -> { resolve, reject }
 function createTokenIndexFromPacked(tokenToIndexesRows, tokenFrequencyRows) {
     const tokenToIndexes = new Map();
     for (const [token, indexes] of Array.isArray(tokenToIndexesRows) ? tokenToIndexesRows : []) {
@@ -4461,73 +4469,6 @@ function createTokenIndexFromPacked(tokenToIndexesRows, tokenFrequencyRows) {
             tokenFrequency.set(String(token), numericCount);
     }
     return { tokenToIndexes, tokenFrequency };
-}
-function hydrateRankingsWorkerPayload(payload) {
-    const timer = gsvrTimingStart('hydrateRankingsWorkerPayload');
-    const coreByYear = new Map();
-    for (const [year, rows] of Array.isArray(payload?.coreByYear) ? payload.coreByYear : []) {
-        const numericYear = Number(year);
-        if (Number.isFinite(numericYear)) {
-            coreByYear.set(numericYear, Array.isArray(rows) ? rows : []);
-        }
-    }
-    const sjrEntries = (Array.isArray(payload?.sjrDataset?.entries) ? payload.sjrDataset.entries : [])
-        .map((entry) => createSjrEntry(entry.normalizedTitle, entry.resolvedTitle, entry.quartileString, entry.quartileStartYear, {
-        tokens: entry.tokenSet,
-        issns: entry.issns,
-        sourceId: entry.sourceId,
-        coverage: entry.coverage
-    }));
-    const sjrByNormalized = new Map();
-    for (const [normalized, index] of Array.isArray(payload?.sjrDataset?.byNormalized) ? payload.sjrDataset.byNormalized : []) {
-        const entry = sjrEntries[Number(index)];
-        if (entry)
-            sjrByNormalized.set(String(normalized), entry);
-    }
-    const sjrDataset = {
-        version: payload?.sjrDataset?.version ?? 1,
-        startYear: payload?.sjrDataset?.startYear ?? SJR_DATASET_START_YEAR,
-        endYear: payload?.sjrDataset?.endYear ?? SJR_DATASET_END_YEAR,
-        byNormalized: sjrByNormalized,
-        byIssn: new Map(),
-        entries: sjrEntries,
-        tokenIndex: createTokenIndexFromPacked(payload?.sjrDataset?.tokenIndex?.tokenToIndexes, payload?.sjrDataset?.tokenIndex?.tokenFrequency),
-        tokenIndexPromise: null
-    };
-    const venueEntries = (Array.isArray(payload?.venueDataset?.entries) ? payload.venueDataset.entries : [])
-        .map((entry, index) => ({
-        index,
-        id: String(entry.id || ''),
-        type: String(entry.type || 'unknown'),
-        title: String(entry.title || ''),
-        shortName: String(entry.shortName || ''),
-        aliases: Array.isArray(entry.aliases) ? entry.aliases.map(String) : [],
-        normalizedAliases: Array.isArray(entry.normalizedAliases) ? entry.normalizedAliases.map(String).filter(Boolean) : [],
-        flags: Array.isArray(entry.flags) ? entry.flags.map(String) : [],
-        yearStart: Number.isFinite(entry.yearStart) ? entry.yearStart : null,
-        yearEnd: Number.isFinite(entry.yearEnd) ? entry.yearEnd : null,
-        count: Number.isFinite(entry.count) ? entry.count : 0,
-        rankInfo: Array.isArray(entry.rankInfo) ? entry.rankInfo : null
-    }));
-    const byNormalized = new Map();
-    for (const [normalized, indexes] of Array.isArray(payload?.venueDataset?.byNormalized) ? payload.venueDataset.byNormalized : []) {
-        const matches = (Array.isArray(indexes) ? indexes : [indexes])
-            .map(index => venueEntries[Number(index)])
-            .filter(Boolean);
-        if (matches.length)
-            byNormalized.set(String(normalized), matches);
-    }
-    const venueDataset = {
-        version: payload?.venueDataset?.version ?? 1,
-        source: payload?.venueDataset?.source || null,
-        entries: venueEntries,
-        byNormalized,
-        tokenIndex: createTokenIndexFromPacked(payload?.venueDataset?.tokenIndex?.tokenToIndexes, payload?.venueDataset?.tokenIndex?.tokenFrequency),
-        tokenIndexPromise: null,
-        available: venueEntries.length > 0
-    };
-    gsvrTimingEnd(timer, `(${sjrEntries.length} SJR entries, ${venueEntries.length} DBLP venues)`);
-    return { coreByYear, sjrDataset, venueDataset, workerTimings: payload?.timings || null };
 }
 async function createRankingsWorkerInstance() {
     const workerUrl = chrome.runtime.getURL('rankings_worker.js');
@@ -4550,52 +4491,16 @@ async function createRankingsWorkerInstance() {
         }
     }
 }
+// Retired: the previous design parsed the index in a throwaway worker and
+// structured-cloned the entire ~15 MB dataset back to the main thread, which
+// then re-hydrated it into Maps/Sets. rankings_worker.js is now the *matching*
+// worker (it hosts the production matcher and keeps the dataset inside the
+// worker), so nothing ships the dataset across the boundary anymore. Returning
+// null makes loadRankingsData use its content-thread loader, which is exactly
+// what runs inside the match worker (fast path) or on the main thread (the
+// in-process fallback). Kept as a shim so loadRankingsData stays unchanged.
 function loadRankingsDataViaWorker(indexUrl) {
-    if (typeof Worker !== 'function' || !(chrome?.runtime?.getURL)) {
-        return null;
-    }
-    return (async () => {
-        const { worker, objectUrl, mode } = await createRankingsWorkerInstance();
-        return new Promise((resolve, reject) => {
-            const timer = gsvrTimingStart('rankingsWorkerRoundTrip');
-            let settled = false;
-            const cleanup = () => {
-                try {
-                    worker.terminate();
-                }
-                catch {
-                    // ignore termination failures
-                }
-                if (objectUrl) {
-                    URL.revokeObjectURL(objectUrl);
-                }
-            };
-            worker.onmessage = (event) => {
-                if (settled)
-                    return;
-                const message = event.data || {};
-                if (message.type === 'ready') {
-                    settled = true;
-                    cleanup();
-                    gsvrTimingEnd(timer, `${mode} ${message.timings ? JSON.stringify(message.timings) : ''}`);
-                    resolve(hydrateRankingsWorkerPayload(message.payload));
-                }
-                else if (message.type === 'error') {
-                    settled = true;
-                    cleanup();
-                    reject(new Error(message.error || 'Rankings worker failed'));
-                }
-            };
-            worker.onerror = (event) => {
-                if (settled)
-                    return;
-                settled = true;
-                cleanup();
-                reject(new Error(event?.message || 'Rankings worker error'));
-            };
-            worker.postMessage({ type: 'load', indexUrl });
-        });
-    })();
+    return null;
 }
 // Single source of truth: the prebuilt data/rankings-index.json (generated from
 // rankings.csv by scripts/generate_rankings_index.mjs). Loaded and indexed once,
@@ -4674,6 +4579,177 @@ function warmRankingsData(reason = 'warmup') {
         console.warn(`GSR: Rankings data ${reason} failed:`, error);
     });
     return promise;
+}
+// ---------------------------------------------------------------------------
+// Match worker client. Runs the production matcher (rankings_worker.js) off the
+// main thread: the venue index is built and queried inside the worker, so the
+// ~15 MB of structures never cross to the page. On any worker failure the page
+// falls back to the identical in-process matcher for the rest of the session.
+// ---------------------------------------------------------------------------
+function getMatchWorkerUrls() {
+    const getURL = chrome?.runtime?.getURL ? (path) => chrome.runtime.getURL(path) : (path) => path;
+    return { baseUrl: getURL(''), indexUrl: getURL('data/rankings-index.json') };
+}
+function disableMatchWorker(reason) {
+    if (!matchWorkerDisabled) {
+        console.warn('GSR: match worker unavailable; using in-process matcher.', reason);
+    }
+    matchWorkerDisabled = true;
+    const error = new Error(`match worker unavailable: ${reason}`);
+    for (const pending of matchWorkerPending.values()) {
+        pending.reject(error);
+    }
+    matchWorkerPending.clear();
+    const instance = matchWorkerInstance;
+    matchWorkerInstance = null;
+    if (instance) {
+        try {
+            instance.worker.terminate();
+        }
+        catch {
+            // ignore termination failures
+        }
+        if (instance.objectUrl) {
+            try {
+                URL.revokeObjectURL(instance.objectUrl);
+            }
+            catch {
+                // ignore revoke failures
+            }
+        }
+    }
+}
+function handleMatchWorkerMessage(event) {
+    const message = event?.data || {};
+    const pending = matchWorkerPending.get(message.requestId);
+    if (!pending)
+        return;
+    matchWorkerPending.delete(message.requestId);
+    if (message.ok) {
+        pending.resolve(message);
+    }
+    else {
+        pending.reject(new Error(message.error || 'match worker error'));
+    }
+}
+function postMatchWorkerRequest(type, payload) {
+    return new Promise((resolve, reject) => {
+        const instance = matchWorkerInstance;
+        if (!instance?.worker) {
+            reject(new Error('match worker not available'));
+            return;
+        }
+        const requestId = ++matchWorkerRequestSeq;
+        matchWorkerPending.set(requestId, { resolve, reject });
+        const { baseUrl, indexUrl } = getMatchWorkerUrls();
+        try {
+            instance.worker.postMessage({ type, requestId, baseUrl, indexUrl, ...payload });
+        }
+        catch (error) {
+            matchWorkerPending.delete(requestId);
+            reject(error);
+        }
+    });
+}
+function ensureMatchWorker() {
+    if (matchWorkerDisabled) {
+        return Promise.reject(new Error('match worker disabled'));
+    }
+    if (matchWorkerReadyPromise) {
+        return matchWorkerReadyPromise;
+    }
+    matchWorkerReadyPromise = (async () => {
+        if (typeof Worker !== 'function' || !(chrome?.runtime?.getURL)) {
+            throw new Error('Worker API unavailable');
+        }
+        const instance = await createRankingsWorkerInstance();
+        matchWorkerInstance = instance;
+        instance.worker.onmessage = handleMatchWorkerMessage;
+        instance.worker.onerror = (event) => disableMatchWorker(event?.message || 'worker error');
+        instance.worker.onmessageerror = () => disableMatchWorker('worker message error');
+        await postMatchWorkerRequest('warm', {});
+        return instance;
+    })();
+    matchWorkerReadyPromise.catch((error) => {
+        disableMatchWorker(error?.message || String(error));
+    });
+    return matchWorkerReadyPromise;
+}
+// Warm the matcher: prefer spinning up the off-thread worker (which loads the
+// index inside the worker). Only if the worker is unavailable do we warm the
+// main-thread dataset for the in-process fallback.
+async function warmMatchEngine(reason = 'warmup') {
+    if (!matchWorkerDisabled) {
+        try {
+            await ensureMatchWorker();
+            return;
+        }
+        catch {
+            // fall through to the in-process warmup below
+        }
+    }
+    try {
+        await warmRankingsData(reason);
+    }
+    catch (error) {
+        console.warn(`GSR: rankings data ${reason} warmup failed:`, error);
+    }
+}
+async function rankVenueDecisionsViaWorker(items, sessionId, onProgress) {
+    await ensureMatchWorker();
+    const decisions = new Array(items.length);
+    let completed = 0;
+    for (let start = 0; start < items.length; start += MATCH_WORKER_CHUNK_SIZE) {
+        throwIfStaleScanSession(sessionId);
+        const chunk = items.slice(start, start + MATCH_WORKER_CHUNK_SIZE);
+        const response = await postMatchWorkerRequest('rankBatch', {
+            items: chunk.map((item) => ({ venue: item.venue, title: item.title, year: item.year }))
+        });
+        const chunkDecisions = Array.isArray(response.decisions) ? response.decisions : [];
+        for (let i = 0; i < chunk.length; i++) {
+            decisions[start + i] = chunkDecisions[i] ?? null;
+        }
+        completed += chunk.length;
+        if (typeof onProgress === 'function')
+            onProgress(completed);
+    }
+    return decisions;
+}
+// Compute a ranking decision for each { venue, title, year } item, off the main
+// thread when possible and via the identical in-process matcher otherwise.
+// Returns an array of decisions aligned to `items` (a null entry means "no
+// decision", handled downstream exactly like an in-process matcher throw).
+async function computeVenueRankingDecisions(items, sessionId, onProgress) {
+    if (!items.length)
+        return [];
+    if (!matchWorkerDisabled) {
+        try {
+            const decisions = await rankVenueDecisionsViaWorker(items, sessionId, onProgress);
+            throwIfStaleScanSession(sessionId);
+            return decisions;
+        }
+        catch (error) {
+            if (error instanceof ScanSessionCancelledError)
+                throw error;
+            disableMatchWorker(error?.message || String(error));
+        }
+    }
+    await warmRankingsData('scan-fallback');
+    const decisions = new Array(items.length);
+    for (let i = 0; i < items.length; i++) {
+        throwIfStaleScanSession(sessionId);
+        try {
+            decisions[i] = await pickVenueRanking(items[i].venue, items[i].title, items[i].year);
+        }
+        catch (error) {
+            if (error instanceof ScanSessionCancelledError)
+                throw error;
+            decisions[i] = null;
+        }
+        if (typeof onProgress === 'function')
+            onProgress(i + 1);
+    }
+    return decisions;
 }
 function buildSjrLookupCacheKey(normalizedQuery, queryIssns = []) {
     const utils = (typeof window !== 'undefined' && window.GSVRUtils) ? window.GSVRUtils : null;
@@ -8254,7 +8330,7 @@ function displayDormantStatus() {
     runButton.textContent = 'Run Analysis';
     runButton.addEventListener('click', () => {
         document.getElementById(STATUS_ELEMENT_ID)?.remove();
-        warmRankingsData('manual-run');
+        warmMatchEngine('manual-run').catch(() => { });
         main().catch(error => console.error('GSR: Error while manually starting analysis.', error));
     });
     actions.appendChild(runButton);
@@ -10061,8 +10137,12 @@ async function evaluatePublicationRanks(publicationLinkElements, statusElement, 
             decisionEvidence: existing.decisionEvidence ?? null
         })
     });
-    const processPublication = async (pubInfo, titlesAlreadyProcessedSet) => {
-        throwIfStaleScanSession(sessionId);
+    // Turn a precomputed venue-ranking decision (from the worker or the
+    // in-process matcher) into a publication result. This is the exact
+    // post-decision logic of the former inline processPublication, minus the
+    // pickVenueRanking call itself, so behavior and the stateful title-dedup are
+    // unchanged.
+    const buildResultFromDecision = (pubInfo, decision, hasDecision, titlesAlreadyProcessedSet) => {
         const publicationYear = pubInfo.yearFromProfile ?? null;
         const buildResult = (extra) => ({
             rank: 'N/A',
@@ -10092,21 +10172,7 @@ async function evaluatePublicationRanks(publicationLinkElements, statusElement, 
         if (!venueName) {
             return buildResult({ reason: 'No Venue', ...mergeDecisionMeta(createDecisionMeta(), { decisionStatus: DECISION_STATUS.MISSING, decisionEvidence: ['no_venue'] }) });
         }
-        let decision = null;
-        const timer = gsvrTimingStart('pickVenueRanking');
-        try {
-            decision = await pickVenueRanking(venueName, pubInfo.titleText, publicationYear);
-        }
-        catch (error) {
-            if (error instanceof ScanSessionCancelledError) {
-                throw error;
-            }
-            console.warn(`GSR Error processing publication (URL: ${pubInfo.url}, Title: "${pubInfo.titleText.substring(0, 50)}..."):`, error);
-        }
-        finally {
-            gsvrTimingEnd(timer, `(${publicationYear || 'no-year'} "${venueName.slice(0, 80)}")`);
-        }
-        if (!decision) {
+        if (!hasDecision || !decision) {
             return buildResult();
         }
         const isRanked = (decision.system === 'CORE' && VALID_RANKS.includes(decision.rank)) || (decision.system === 'SJR' && SJR_QUARTILES.includes(decision.rank));
@@ -10142,13 +10208,51 @@ async function evaluatePublicationRanks(publicationLinkElements, statusElement, 
             ...decisionMeta
         };
     };
-    for (const pubInfo of publicationLinkElements) {
-        throwIfStaleScanSession(sessionId);
+    // Decide which rows need a fresh decision (rows whose cached rank cannot be
+    // reused, with a non-empty venue), then compute all of them in one batched
+    // pass — off the main thread via the match worker when available.
+    const reuseByIndex = new Array(publicationLinkElements.length);
+    const computeIndexByPubIndex = new Map();
+    const itemsToCompute = [];
+    for (let i = 0; i < publicationLinkElements.length; i++) {
+        const pubInfo = publicationLinkElements[i];
         const existingRank = existingRanksByUrl.get(pubInfo.url);
         const canReuseExistingRank = existingRank?.decisionVersion === DECISION_VERSION && isResearchQualityRankedInfo(existingRank);
-        const result = canReuseExistingRank
-            ? buildResultFromExistingRank(pubInfo, existingRank)
-            : await processPublication(pubInfo, scholarTitlesAlreadyRanked);
+        reuseByIndex[i] = canReuseExistingRank ? existingRank : null;
+        if (canReuseExistingRank) {
+            continue;
+        }
+        const venueName = String(pubInfo.venueText || '').trim();
+        if (!venueName) {
+            continue;
+        }
+        computeIndexByPubIndex.set(i, itemsToCompute.length);
+        itemsToCompute.push({ venue: venueName, title: pubInfo.titleText, year: pubInfo.yearFromProfile ?? null });
+    }
+    let decisions = [];
+    if (itemsToCompute.length) {
+        const progressBase = publicationLinkElements.length - itemsToCompute.length;
+        decisions = await computeVenueRankingDecisions(itemsToCompute, sessionId, (done) => {
+            updateStatusElement(statusElement, progressBase + done, publicationLinkElements.length, "Ranking");
+        });
+    }
+    throwIfStaleScanSession(sessionId);
+    // Render in profile order. The stateful title-dedup and running counts are
+    // applied here exactly as before; only the decision computation moved.
+    for (let i = 0; i < publicationLinkElements.length; i++) {
+        throwIfStaleScanSession(sessionId);
+        const pubInfo = publicationLinkElements[i];
+        const existingRank = reuseByIndex[i];
+        let result;
+        if (existingRank) {
+            result = buildResultFromExistingRank(pubInfo, existingRank);
+        }
+        else {
+            const computeIndex = computeIndexByPubIndex.get(i);
+            const hasDecision = computeIndex !== undefined;
+            const decision = hasDecision ? decisions[computeIndex] : null;
+            result = buildResultFromDecision(pubInfo, decision, hasDecision, scholarTitlesAlreadyRanked);
+        }
         addResultToCounts(result);
         const publicationRankInfo = createPublicationRankInfo(result);
         displayRankBadgeAfterTitle(result.rowElement, result.rank, result.system, result.reason, publicationRankInfo);
@@ -10359,7 +10463,7 @@ async function runScanPass({ phase, sessionId, statusElement = null, context = {
     }
     if (statusTextElement)
         statusTextElement.textContent = "Loading venue index…";
-    await warmRankingsData('scan');
+    await warmMatchEngine('scan');
     throwIfStaleScanSession(sessionId);
     updateStatusElement(statusElement, 0, publicationLinkElements.length, "Ranking");
     const rankingResult = await evaluatePublicationRanks(publicationLinkElements, statusElement, sessionId, {
@@ -10804,7 +10908,7 @@ function attemptPageInitialization() {
     if (window.location.pathname.includes("/citations")) {
         const tableBodyElement = document.getElementById('gsc_a_b');
         if (tableBodyElement) {
-            warmRankingsData('profile-detected');
+            warmMatchEngine('profile-detected').catch(() => { });
             if (pageInitializationObserver) {
                 pageInitializationObserver.disconnect();
                 pageInitializationObserver = null;
