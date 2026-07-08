@@ -505,14 +505,13 @@ function testSummaryDistributionRenderUsesFilteredCounts() {
     source.includes("getTimelineFocusedHistograms(currentSummaryState.timeline, 'recent')"),
     'Sidebar should render focused recent histograms from currentSummaryState'
   );
-	assert.ok(
-	  source.includes('const SPARSE_PROFILE_RANKED_LIMIT = 25') &&
-	  source.includes("document.querySelector('#gsc_rsb_cit .gsc_g_hist_wrp')") &&
-	  source.includes('countCitationGraphVisibleRankChips(chipState)') &&
-	  source.includes('shouldUseCitationGraphRankChips(citationChipState)') &&
-	  source.includes('scheduleCitationGraphRankChips(citationChipState)'),
-	  'All profiles should annotate the citation graph while dense profiles also keep the timeline view'
-	);
+  assert.ok(
+    source.includes("document.querySelector('#gsc_rsb_cit .gsc_g_hist_wrp')") &&
+    source.includes('countCitationGraphVisibleRankChips(chipState)') &&
+    source.includes('Citation graph badges are additive') &&
+    source.includes('scheduleCitationGraphRankChips(citationChipState)'),
+    'Citation graph badges should be additive and timeline charts should remain available'
+  );
 }
 
 function testReportTimelineChartsUseStackedHorizontalLayout() {

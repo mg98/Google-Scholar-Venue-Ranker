@@ -8375,9 +8375,8 @@ function displayDormantStatus() {
 // --- Citation-graph rank chips ----------------------------------------------
 // Every profile gets per-year rank chips stacked above Scholar's own
 // citations-per-year bars; years with many ranked papers fold into a "+N"
-// chip. Dense profiles (>= SPARSE_PROFILE_RANKED_LIMIT ranked papers in the
-// visible window) additionally keep the aggregate timeline view, which the
-// chips replace on sparse profiles.
+// chip. Citation graph badges are additive, so the timeline panel remains
+// available as fallback/context for profiles whose visible chart window differs.
 const SPARSE_PROFILE_RANKED_LIMIT = 25;
 const SPARSE_CHIP_WINDOW_YEARS = 8;
 const MAX_CITATION_CHIPS_PER_YEAR = 4;
@@ -8477,24 +8476,11 @@ function countCitationGraphVisibleRankChips(chipState) {
 function shouldUseCitationGraphRankChips(chipState) {
     // The chart gets per-year rank chips whenever there is anything to show;
     // dense years fold into a "+N" chip, so density needs no separate gate.
-    // (Profile density still matters, but only for whether the timeline
-    // charts render too -- see isCitationGraphProfileDense.)
     if (!chipState) {
         return false;
     }
     const chipsByYear = chipState.allChipsByYear || chipState.chipsByYear || {};
     return Object.values(chipsByYear).some((chips) => Array.isArray(chips) && chips.length > 0);
-}
-function isCitationGraphProfileDense(chipState) {
-    if (!chipState) {
-        return false;
-    }
-    const limit = Number(chipState.sparseLimit) || SPARSE_PROFILE_RANKED_LIMIT;
-    const visibleRanked = countCitationGraphVisibleRankChips(chipState);
-    if (visibleRanked != null) {
-        return visibleRanked >= limit;
-    }
-    return chipState.isSparse !== true;
 }
 function isRenderedCitationGraphElement(element) {
     if (!(element instanceof HTMLElement)) {
@@ -9078,11 +9064,11 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
     panel.appendChild(summarySectionsContainer);
     const timelineYear = currentSummaryState.timeline?.currentYear || getTimelineCurrentYear();
     const recentFocusedHistograms = getTimelineFocusedHistograms(currentSummaryState.timeline, 'recent');
-    // Every profile gets per-year rank chips on Scholar's citation graph;
-    // dense profiles (>=25 ranked papers in the visible window) additionally
-    // keep the timeline charts, which the chips replace on sparse profiles.
+    // Citation graph badges are additive. Keep the timeline panel as a stable
+    // fallback/context because Scholar renders different chart year ranges on
+    // different profiles.
     const citationChipState = getSparseRankChipState(currentSummaryState);
-    if (!shouldUseCitationGraphRankChips(citationChipState) || isCitationGraphProfileDense(citationChipState)) {
+    {
         // Tier-3 "Explore": the tall timeline charts are secondary to the verdict
         // (score) and distribution tiers, so they collapse by default. Native
         // <details> keeps this keyboard-accessible for free; the open state
