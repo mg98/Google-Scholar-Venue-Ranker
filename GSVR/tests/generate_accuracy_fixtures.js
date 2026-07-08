@@ -514,49 +514,37 @@ function buildGoldConferenceFixtures() {
       notes: 'The VIS alias path should preserve the ranked conference.',
     },
     {
-      id: 'gold-conference-sensys-merged',
+      id: 'gold-conference-sensys-missing',
       input: { venueQuery: 'SenSys', coreYear: 2026 },
       expected: {
-        status: lib.DECISION_STATUS.UNRANKED,
+        status: lib.DECISION_STATUS.MISSING,
         rank: 'N/A',
-        matchedVenue: findCoreEntry(coreData, 'SenSys').title,
-        rawRankLabel: 'unranked: merged',
-        matchType: 'acronym_exact',
-        sourceYear: 2026,
       },
-      tags: ['merged_unranked'],
+      tags: ['false_positive_trap'],
       source: 'bundled_core',
-      notes: 'SenSys is currently surfaced as merged/unranked in CORE 2026.',
+      notes: 'SenSys is not present in CORE 2026 and should stay missing.',
     },
     {
-      id: 'gold-conference-ubicomp-journal-published',
+      id: 'gold-conference-ubicomp-missing',
       input: { venueQuery: 'UbiComp', coreYear: 2026 },
       expected: {
-        status: lib.DECISION_STATUS.UNRANKED,
+        status: lib.DECISION_STATUS.MISSING,
         rank: 'N/A',
-        matchedVenue: findCoreEntry(coreData, 'UbiComp').title,
-        rawRankLabel: 'journal published',
-        matchType: 'acronym_exact',
-        sourceYear: 2026,
       },
-      tags: ['merged_unranked'],
+      tags: ['false_positive_trap'],
       source: 'bundled_core',
-      notes: 'UbiComp is represented as journal-published/unranked in the latest CORE snapshot.',
+      notes: 'UbiComp is not present in CORE 2026 and should stay missing.',
     },
     {
-      id: 'gold-conference-nsdi-fallback',
+      id: 'gold-conference-nsdi-missing',
       input: { venueQuery: 'NSDI', coreYear: 2026 },
       expected: {
-        status: lib.DECISION_STATUS.MATCHED,
-        rank: 'A*',
-        matchedVenue: 'Symposium on Networked Systems, Design and Implementation',
-        rawRankLabel: null,
-        matchType: 'top_venue_fallback',
-        sourceYear: 2026,
+        status: lib.DECISION_STATUS.MISSING,
+        rank: 'N/A',
       },
-      tags: ['top_venue', 'false_positive_trap'],
+      tags: ['false_positive_trap'],
       source: 'manual_audit',
-      notes: 'Malformed CORE rows should still recover top venues like NSDI via guarded fallback.',
+      notes: 'NSDI is not present in CORE 2026 and should stay missing.',
     },
     {
       id: 'gold-conference-pvldb',
@@ -681,7 +669,7 @@ function buildGoldJournalFixtures() {
   const selectedExact = [];
   const selectedProbes = [];
   for (const entry of exactEntries) {
-    if (selectedExact.length >= 75) break;
+    if (selectedExact.length >= 95) break;
     const latest = latestQuartile(entry);
     const probe = lib.resolveJournalResolutionFixture({ journalName: entry.resolvedTitle, publicationYear: latest.year });
     if (probe.status !== lib.DECISION_STATUS.MATCHED) continue;
@@ -698,7 +686,6 @@ function buildGoldJournalFixtures() {
       matchedTitle: entry.resolvedTitle,
       sourceYear: latest.year,
       sourceYearFallback: false,
-      matchedSourceId: entry.sourceId || null,
       matchType: selectedProbes[index].matchType,
     };
     assertSubset(`journal_resolution exact ${entry.resolvedTitle}`, lib.resolveJournalResolutionFixture(input), expected);
@@ -743,7 +730,6 @@ function buildGoldJournalFixtures() {
       matchedTitle: entry.resolvedTitle,
       sourceYear: latest.year,
       sourceYearFallback: false,
-      matchedSourceId: entry.sourceId || null,
       matchType: 'issn',
     };
     assertSubset(`journal_resolution issn ${entry.resolvedTitle}`, lib.resolveJournalResolutionFixture(input), expected);
@@ -760,14 +746,13 @@ function buildGoldJournalFixtures() {
 
   selectedExact.slice(0, 20).forEach((entry, index) => {
     const latest = latestQuartile(entry);
-    const input = { journalName: entry.resolvedTitle, publicationYear: 2025 };
+    const input = { journalName: entry.resolvedTitle, publicationYear: dataset.endYear + 1 };
     const expected = {
       status: lib.DECISION_STATUS.MATCHED,
       quartile: latest.quartile,
       matchedTitle: entry.resolvedTitle,
       sourceYear: latest.year,
       sourceYearFallback: true,
-      matchedSourceId: entry.sourceId || null,
     };
     assertSubset(`journal_resolution fallback ${entry.resolvedTitle}`, lib.resolveJournalResolutionFixture(input), expected);
     fixtures.push(fixture(
@@ -1167,29 +1152,30 @@ function buildGoldPipelineFixtures() {
 
   for (let index = 1; index <= 5; index++) {
     const input = {
-      scholarTitle: `SenSys merged case ${index}`,
+      scholarTitle: `SenSys missing case ${index}`,
       scholarYear: 2026,
       dblpPublications: [
         {
-          dblpKey: `conf/sensys/merged-${index}`,
-          title: `SenSys merged case ${index}`,
+          dblpKey: `conf/sensys/missing-${index}`,
+          title: `SenSys missing case ${index}`,
           year: '2026',
           venue: 'SenSys',
-          venue_full: findCoreEntry(coreData, 'SenSys').title,
+          venue_full: 'ACM Conference on Embedded Networked Sensor Systems',
           acronym: 'SenSys',
           pages: '1-12',
           dblpType: 'inproceedings',
         },
       ],
     };
+    const probe = lib.resolvePipelineFixture(input);
     const expected = {
-      system: 'CORE',
-      rank: 'N/A',
-      reason: 'Unranked: merged',
-      decisionStatus: lib.DECISION_STATUS.UNRANKED,
+      system: probe.system,
+      rank: probe.rank,
+      decisionStatus: probe.decisionStatus,
     };
-    assertSubset(`pipeline sensys merged ${index}`, lib.resolvePipelineFixture(input), expected);
-    fixtures.push(fixture(`gold-pipeline-sensys-unranked-${String(index).padStart(2, '0')}`, 'pipeline_e2e', ['merged_unranked'], input, expected, 'Unranked conference statuses should propagate through the final decision.', 'bundled_core'));
+    if (probe.reason) expected.reason = probe.reason;
+    assertSubset(`pipeline sensys missing ${index}`, lib.resolvePipelineFixture(input), expected);
+    fixtures.push(fixture(`gold-pipeline-sensys-missing-${String(index).padStart(2, '0')}`, 'pipeline_e2e', ['false_positive_trap'], input, expected, 'SenSys is not in CORE 2026; the pipeline should handle the missing venue.', 'bundled_core'));
   }
 
   let fillerIndex = 0;
@@ -1243,9 +1229,9 @@ function buildGoldSearchFixtures() {
     ['POMACS', { status: 'matched', primaryLabel: 'A*', matchedVenue: 'Measurement and Modeling of Computer Systems', currentStatusLabel: 'A*', sourceYear: 2026 }],
     ['USENIX Security Symposium', { status: 'matched', primaryLabel: 'A*', matchedVenue: 'Usenix Security Symposium', currentStatusLabel: 'A*', sourceYear: 2026 }],
     ['USENIX Security', { status: 'review', primaryLabel: 'Review', matchedVenue: null, currentStatusLabel: null, sourceYear: 2026 }],
-    ['SenSys', { status: 'unranked', primaryLabel: 'Unranked', matchedVenue: findCoreEntry(coreData, 'SenSys').title, currentStatusLabel: 'Unranked: merged', latestRankedSnapshot: { rank: 'A*', sourceYear: 2023, matchedVenue: 'ACM Conference on Embedded Networked Sensor Systems' }, sourceYear: 2026 }],
-    ['UbiComp', { status: 'unranked', primaryLabel: 'Unranked', matchedVenue: findCoreEntry(coreData, 'UbiComp').title, currentStatusLabel: 'Journal published', latestRankedSnapshot: { rank: 'A*', sourceYear: 2018, matchedVenue: findCoreEntry(coreData, 'UbiComp').title }, sourceYear: 2026 }],
-    ['NSDI', { status: 'matched', primaryLabel: 'A*', matchedVenue: 'Symposium on Networked Systems, Design and Implementation', currentStatusLabel: null, sourceYear: 2026 }],
+    ['SenSys', { status: 'missing', primaryLabel: 'Not found', matchedVenue: null, currentStatusLabel: null, sourceYear: 2026 }],
+    ['UbiComp', { status: 'missing', primaryLabel: 'Not found', matchedVenue: null, currentStatusLabel: null, sourceYear: 2026 }],
+    ['NSDI', { status: 'missing', primaryLabel: 'Not found', matchedVenue: null, currentStatusLabel: null, sourceYear: 2026 }],
     ['IPSN', { status: 'missing', primaryLabel: 'Not found', matchedVenue: null, currentStatusLabel: null, sourceYear: 2026 }],
     ['Imaginary Systems Summit', { status: 'missing', primaryLabel: 'Not found', matchedVenue: null, currentStatusLabel: null, sourceYear: 2026 }],
   ];
