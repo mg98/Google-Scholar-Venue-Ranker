@@ -8347,7 +8347,6 @@ function displayDormantStatus() {
 // Profiles with only a handful of ranked papers get per-year rank chips
 // stacked above Scholar's own citations-per-year bars (richer than the nearly
 // empty aggregate histograms). Dense profiles keep the timeline view instead.
-const CITATION_GRAPH_BADGES_ID = 'gsr-citation-graph-badges';
 const SPARSE_PROFILE_RANKED_LIMIT = 25;
 const SPARSE_CHIP_WINDOW_YEARS = 8;
 const MAX_CITATION_CHIPS_PER_YEAR = 4;
@@ -8358,7 +8357,7 @@ const CITATION_GRAPH_RETRY_LIMIT = 2;
 const CITATION_CHIP_EDGE_PADDING = 15;
 const CITATION_GRAPH_GUTTER_CLASS = 'gsr-citation-graph-gutter';
 function removeCitationGraphRankChips() {
-    document.getElementById(CITATION_GRAPH_BADGES_ID)?.remove();
+    document.querySelectorAll('.gsr-citation-chips').forEach((node) => node.remove());
     document.querySelectorAll('.gsr-scholar-year-rank-badges').forEach((node) => node.remove());
     document.querySelectorAll('.gsr-scholar-year-chart--badged').forEach((node) => {
         node.classList.remove('gsr-scholar-year-chart--badged');
@@ -8449,6 +8448,7 @@ function getCitationGraphYearLayout(label, bars, graphRect) {
     const labelCenterX = labelRect.left - graphRect.left + (labelRect.width / 2);
     let chipCenterX = labelCenterX;
     let barTop = graphRect.height - labelRect.height - CITATION_CHIP_HEIGHT - 8;
+    let matchedBarWidth = labelRect.width;
     let bestDistance = Number.POSITIVE_INFINITY;
     for (const bar of bars) {
         const barRect = bar.getBoundingClientRect();
@@ -8458,13 +8458,21 @@ function getCitationGraphYearLayout(label, bars, graphRect) {
             bestDistance = distance;
             barTop = barRect.top - graphRect.top;
             chipCenterX = barCenter;
+            matchedBarWidth = barRect.width;
         }
     }
-    return { barTop, chipCenterX };
+    // Scholar keeps the full citation history in the DOM even when the small
+    // sidebar widget only scrolls/clips a recent window into view. Years
+    // outside that visible window still resolve to a real (very negative or
+    // overflowing) chipCenterX; without this check they'd otherwise get
+    // clamped onto the visible edge and pile up on the first visible bar.
+    const isVisible = chipCenterX >= -matchedBarWidth && chipCenterX <= graphRect.width + matchedBarWidth;
+    return { barTop, chipCenterX, isVisible };
 }
 function scheduleCitationGraphRankChips(chipState) {
     if (!shouldUseCitationGraphRankChips(chipState)) {
         removeCitationGraphRankChips();
+        observeCitationGraphModal(null);
         return;
     }
     const run = () => annotateScholarCitationGraph(chipState, 0);
@@ -8474,12 +8482,13 @@ function scheduleCitationGraphRankChips(chipState) {
     else {
         run();
     }
+    observeCitationGraphModal(chipState);
 }
-function retryCitationGraphAnnotation(chipState, attempt) {
+function retryCitationGraphAnnotation(chipState, attempt, targetGraph) {
     if (attempt >= CITATION_GRAPH_RETRY_LIMIT || !shouldUseCitationGraphRankChips(chipState)) {
         return;
     }
-    const run = () => annotateScholarCitationGraph(chipState, attempt + 1);
+    const run = () => annotateScholarCitationGraph(chipState, attempt + 1, targetGraph);
     if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
         window.requestAnimationFrame(run);
     }
@@ -8490,14 +8499,40 @@ function retryCitationGraphAnnotation(chipState, attempt) {
         run();
     }
 }
-function annotateScholarCitationGraph(chipState, attempt = 0) {
-    removeCitationGraphRankChips();
+let citationGraphModalObserver = null;
+const annotatedCitationGraphModals = typeof WeakSet === 'function' ? new WeakSet() : null;
+function observeCitationGraphModal(chipState) {
+    if (citationGraphModalObserver) {
+        citationGraphModalObserver.disconnect();
+        citationGraphModalObserver = null;
+    }
+    if (!chipState || !shouldUseCitationGraphRankChips(chipState) || typeof MutationObserver !== 'function') {
+        return;
+    }
+    // The "Citations per year" detail dialog (#gsc_g) is only created once the
+    // user opens it, well after the initial annotation pass runs against the
+    // sidebar widget. Watch for it so the full-history graph gets its own
+    // (correctly scaled) badges instead of staying unannotated.
+    citationGraphModalObserver = new MutationObserver(() => {
+        const modalGraph = document.getElementById('gsc_g');
+        if (!modalGraph || annotatedCitationGraphModals?.has(modalGraph)) {
+            return;
+        }
+        annotatedCitationGraphModals?.add(modalGraph);
+        annotateScholarCitationGraph(chipState, 0, modalGraph);
+    });
+    citationGraphModalObserver.observe(document.body, { childList: true, subtree: true });
+}
+function annotateScholarCitationGraph(chipState, attempt = 0, targetGraph = null) {
+    if (!targetGraph) {
+        removeCitationGraphRankChips();
+    }
     if (!shouldUseCitationGraphRankChips(chipState)) {
         return;
     }
-    const graph = findScholarCitationGraphElement();
+    const graph = targetGraph || findScholarCitationGraphElement();
     if (!graph) {
-        retryCitationGraphAnnotation(chipState, attempt);
+        retryCitationGraphAnnotation(chipState, attempt, targetGraph);
         return;
     }
     if (getComputedStyle(graph).position === 'static') {
@@ -8505,19 +8540,19 @@ function annotateScholarCitationGraph(chipState, attempt = 0) {
     }
     const yearLabels = Array.from(graph.querySelectorAll('.gsc_g_t'));
     if (!yearLabels.length) {
-        retryCitationGraphAnnotation(chipState, attempt);
+        retryCitationGraphAnnotation(chipState, attempt, targetGraph);
         return;
     }
     let graphRect = graph.getBoundingClientRect();
     if (!graphRect.width || !graphRect.height) {
-        retryCitationGraphAnnotation(chipState, attempt);
+        retryCitationGraphAnnotation(chipState, attempt, targetGraph);
         return;
     }
     const bars = Array.from(graph.querySelectorAll('a.gsc_g_a, .gsc_g_a'));
     graph.classList.add('gsr-citation-graph--with-badges');
     graph.querySelector(`:scope > .${CITATION_GRAPH_GUTTER_CLASS}`)?.remove();
+    graph.querySelectorAll(':scope > .gsr-citation-chips').forEach((node) => node.remove());
     const container = document.createElement('div');
-    container.id = CITATION_GRAPH_BADGES_ID;
     container.className = 'gsr-citation-chips';
     container.setAttribute('aria-hidden', 'false');
     const chipStep = CITATION_CHIP_HEIGHT + CITATION_CHIP_GAP;
@@ -8528,7 +8563,15 @@ function annotateScholarCitationGraph(chipState, attempt = 0) {
         if (!Number.isFinite(year) || !chips?.length) {
             continue;
         }
-        const { barTop, chipCenterX } = getCitationGraphYearLayout(label, bars, graphRect);
+        const { barTop, chipCenterX, isVisible } = getCitationGraphYearLayout(label, bars, graphRect);
+        if (!isVisible) {
+            // This year's bar is scrolled/clipped out of the currently visible
+            // window (Scholar keeps the full history in the DOM even for the
+            // windowed sidebar widget); skip it instead of clamping it onto
+            // the visible edge, which is what caused every off-window year's
+            // badges to pile up on the first visible bar.
+            continue;
+        }
         // chips[] is sorted ascending by prestige; keep the TOP of the stack
         // (the strongest ranks) and fold the rest into a "+N" chip.
         let visibleChips = chips;
