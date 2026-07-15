@@ -8420,10 +8420,27 @@ function shouldUseCitationGraphRankChips(chipState) {
     }
     return chipState.isSparse === true;
 }
+function isRenderedCitationGraphElement(element) {
+    if (!(element instanceof HTMLElement)) {
+        return false;
+    }
+    const rect = element.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
+}
 function findScholarCitationGraphElement() {
-    return document.getElementById('gsc_g')
-        || document.querySelector('#gsc_rsb_cit .gsc_g_hist_wrp')
-        || document.querySelector('.gsc_g_hist_wrp');
+    // Scholar keeps the "Citations per year" dialog's #gsc_g chart in the DOM
+    // (hidden) after it has been opened once, so prefer whichever candidate is
+    // actually rendered; a hidden dialog chart measures 0x0 and would make
+    // every annotation pass bail out after wiping the sidebar's chips.
+    // The sidebar wrapper comes first so that an open dialog (both rendered)
+    // never captures the sidebar's own annotation pass; on older layouts the
+    // sidebar chart itself is #gsc_g and remains the only candidate.
+    const candidates = [
+        document.querySelector('#gsc_rsb_cit .gsc_g_hist_wrp'),
+        document.querySelector('.gsc_g_hist_wrp'),
+        document.getElementById('gsc_g')
+    ].filter(Boolean);
+    return candidates.find((element) => isRenderedCitationGraphElement(element)) || candidates[0] || null;
 }
 function getCitationGraphStackDepth(chipState) {
     let maxDepth = 0;
@@ -8445,6 +8462,11 @@ function getCitationChipStackHeight(chipCount) {
 }
 function getCitationGraphYearLayout(label, bars, graphRect) {
     const labelRect = label.getBoundingClientRect();
+    if (!labelRect.width && !labelRect.height) {
+        // display:none labels (years Scholar clipped out of the window)
+        // measure 0x0 at the viewport origin; never place chips for them.
+        return { barTop: 0, chipCenterX: 0, isVisible: false };
+    }
     const labelCenterX = labelRect.left - graphRect.left + (labelRect.width / 2);
     let chipCenterX = labelCenterX;
     let barTop = graphRect.height - labelRect.height - CITATION_CHIP_HEIGHT - 8;
@@ -8500,7 +8522,16 @@ function retryCitationGraphAnnotation(chipState, attempt, targetGraph) {
     }
 }
 let citationGraphModalObserver = null;
-const annotatedCitationGraphModals = typeof WeakSet === 'function' ? new WeakSet() : null;
+function annotateCitationGraphModalIfVisible(chipState) {
+    const modalGraph = document.getElementById('gsc_g');
+    if (!modalGraph || !isRenderedCitationGraphElement(modalGraph)) {
+        return;
+    }
+    if (modalGraph.querySelector(':scope > .gsr-citation-chips')) {
+        return;
+    }
+    annotateScholarCitationGraph(chipState, 0, modalGraph);
+}
 function observeCitationGraphModal(chipState) {
     if (citationGraphModalObserver) {
         citationGraphModalObserver.disconnect();
@@ -8509,19 +8540,23 @@ function observeCitationGraphModal(chipState) {
     if (!chipState || !shouldUseCitationGraphRankChips(chipState) || typeof MutationObserver !== 'function') {
         return;
     }
-    // The "Citations per year" detail dialog (#gsc_g) is only created once the
-    // user opens it, well after the initial annotation pass runs against the
-    // sidebar widget. Watch for it so the full-history graph gets its own
-    // (correctly scaled) badges instead of staying unannotated.
+    // The "Citations per year" detail dialog (#gsc_g) is only created (or
+    // shown again) once the user opens it, well after the initial annotation
+    // pass runs against the sidebar widget. Annotate it whenever it is
+    // visible but has no chips yet: this covers first open, re-open after
+    // close (Scholar hides rather than removes the dialog), and Scholar
+    // rebuilding the dialog's bars. Annotating adds a chips container, so
+    // the observer settles into a cheap no-op on subsequent mutations.
     citationGraphModalObserver = new MutationObserver(() => {
-        const modalGraph = document.getElementById('gsc_g');
-        if (!modalGraph || annotatedCitationGraphModals?.has(modalGraph)) {
-            return;
-        }
-        annotatedCitationGraphModals?.add(modalGraph);
-        annotateScholarCitationGraph(chipState, 0, modalGraph);
+        annotateCitationGraphModalIfVisible(chipState);
     });
-    citationGraphModalObserver.observe(document.body, { childList: true, subtree: true });
+    citationGraphModalObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['style', 'class']
+    });
+    annotateCitationGraphModalIfVisible(chipState);
 }
 function annotateScholarCitationGraph(chipState, attempt = 0, targetGraph = null) {
     if (!targetGraph) {
