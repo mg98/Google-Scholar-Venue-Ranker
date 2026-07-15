@@ -33,6 +33,9 @@ jobs:
       - name: Accuracy benchmark (fail on regression vs committed baseline)
         run: npm run benchmark:accuracy -- --suite all --fail-on-regression
 
+      - name: Match worker parity (worker decisions == in-process matcher)
+        run: npm run test:worker-parity
+
       - name: Build unpacked extension
         run: npm run build
 

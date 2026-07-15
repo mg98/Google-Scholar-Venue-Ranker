@@ -427,6 +427,11 @@
     {
       "resources": [
         "core/timeline_stats.js",
+        "core/text_normalize.js",
+        "venue_data.js",
+        "rank_core.js",
+        "settings.js",
+        "content.js",
         "rankings_worker.js",
         "data/rankings-index.json",
         "vendor/pdfmake.min.js",

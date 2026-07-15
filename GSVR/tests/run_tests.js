@@ -948,10 +948,19 @@ function testRankingsWorkerBundleSmoke() {
 
   assert.ok(contentSource.includes("chrome.runtime.getURL('rankings_worker.js')"));
   assert.ok(contentSource.includes("chrome.runtime.getURL('data/rankings-index.json')"));
-  assert.ok(contentSource.includes('loadRankingsDataViaWorker(url)'));
-  assert.ok(contentSource.includes('rankingsWorkerRoundTrip'));
+  // rankings_worker.js now hosts the production matcher off the main thread;
+  // the main thread offloads batches to it and falls back to the in-process
+  // matcher (warmMatchEngine) when it is unavailable.
+  assert.ok(contentSource.includes('warmMatchEngine'));
+  assert.ok(contentSource.includes("postMatchWorkerRequest('rankBatch'"));
   assert.ok(manifestSource.includes('"rankings_worker.js"'));
   assert.ok(manifestSource.includes('"data/rankings-index.json"'));
+  // The match worker importScripts content.js + its matcher deps, so those must
+  // be web-accessible.
+  assert.ok(manifestSource.includes('"content.js"'));
+  const workerSource = fs.readFileSync(path.join(__dirname, '..', 'rankings_worker.js'), 'utf8');
+  assert.ok(workerSource.includes('GSVRProductionMatcher'));
+  assert.ok(workerSource.includes('pickVenueRanking'));
   assert.ok(!backgroundSource.includes("importScripts('dblp/dblp_scheduler.js')"));
 }
 

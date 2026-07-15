@@ -17,6 +17,7 @@
     "test:score": "node GSVR/tests/run_score_tests.js",
     "test:dblp": "node GSVR/tests/run_dblp_venue_catalog_tests.js",
     "test:dblp-venues": "node GSVR/tests/run_dblp_venue_catalog_tests.js",
+    "test:worker-parity": "node GSVR/tests/run_match_worker_parity.js",
     "benchmark:accuracy:fixtures": "node GSVR/tests/generate_accuracy_fixtures.js",
     "benchmark:accuracy:real-fixtures": "node GSVR/tests/generate_real_fixtures.js",
     "tune:thresholds": "node scripts/tune_thresholds.mjs",
