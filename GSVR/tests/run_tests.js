@@ -511,7 +511,7 @@ function testSummaryDistributionRenderUsesFilteredCounts() {
 	  source.includes('countCitationGraphVisibleRankChips(chipState)') &&
 	  source.includes('shouldUseCitationGraphRankChips(citationChipState)') &&
 	  source.includes('scheduleCitationGraphRankChips(citationChipState)'),
-	  'Sparse profiles should annotate the citation graph while dense profiles keep the timeline view'
+	  'All profiles should annotate the citation graph while dense profiles also keep the timeline view'
 	);
 }
 

@@ -8343,11 +8343,12 @@ function displayDormantStatus() {
     statusElement.appendChild(actions);
     return statusElement;
 }
-// --- Sparse-profile citation-graph chips ------------------------------------
-// Profiles with only a handful of ranked papers get per-year rank chips
-// stacked above Scholar's own citations-per-year bars (richer than the nearly
-// empty aggregate histograms). Dense profiles keep the timeline view instead.
-const CITATION_GRAPH_BADGES_ID = 'gsr-citation-graph-badges';
+// --- Citation-graph rank chips ----------------------------------------------
+// Every profile gets per-year rank chips stacked above Scholar's own
+// citations-per-year bars; years with many ranked papers fold into a "+N"
+// chip. Dense profiles (>= SPARSE_PROFILE_RANKED_LIMIT ranked papers in the
+// visible window) additionally keep the aggregate timeline view, which the
+// chips replace on sparse profiles.
 const SPARSE_PROFILE_RANKED_LIMIT = 25;
 const SPARSE_CHIP_WINDOW_YEARS = 8;
 const MAX_CITATION_CHIPS_PER_YEAR = 4;
@@ -8358,7 +8359,7 @@ const CITATION_GRAPH_RETRY_LIMIT = 2;
 const CITATION_CHIP_EDGE_PADDING = 15;
 const CITATION_GRAPH_GUTTER_CLASS = 'gsr-citation-graph-gutter';
 function removeCitationGraphRankChips() {
-    document.getElementById(CITATION_GRAPH_BADGES_ID)?.remove();
+    document.querySelectorAll('.gsr-citation-chips').forEach((node) => node.remove());
     document.querySelectorAll('.gsr-scholar-year-rank-badges').forEach((node) => node.remove());
     document.querySelectorAll('.gsr-scholar-year-chart--badged').forEach((node) => {
         node.classList.remove('gsr-scholar-year-chart--badged');
@@ -8390,12 +8391,45 @@ function getSparseRankChipState(summaryState) {
         sparseLimit: SPARSE_PROFILE_RANKED_LIMIT
     });
 }
+function getCitationGraphClipRect(graph) {
+    if (!(graph instanceof Element)) {
+        return null;
+    }
+    // The wrapper itself is never clipped; Scholar windows the history via
+    // the overflow:hidden (sidebar) / overflow-x:auto (dialog) inner
+    // container. Its rect is the true visible window -- the wrapper's rect
+    // also spans the y-axis label gutter next to it.
+    const clip = graph.querySelector('.gsc_md_hist_w');
+    const rect = (clip || graph).getBoundingClientRect();
+    return rect.width && rect.height ? rect : graph.getBoundingClientRect();
+}
+function isCitationGraphLabelInView(label, clipRect) {
+    const rect = label.getBoundingClientRect();
+    if (!rect.width && !rect.height) {
+        return false;
+    }
+    const centerX = rect.left + (rect.width / 2);
+    return centerX >= clipRect.left && centerX <= clipRect.right;
+}
 function getVisibleCitationGraphYears() {
     const graph = findScholarCitationGraphElement();
     if (!graph) {
         return null;
     }
+    const clipRect = getCitationGraphClipRect(graph);
+    if (!clipRect || !clipRect.width || !clipRect.height) {
+        // Not laid out yet -- report "unknown" so callers fall back to the
+        // recent-window isSparse heuristic instead of counting zero years.
+        return null;
+    }
+    // Scholar keeps the FULL citation history in the DOM: the sidebar widget
+    // clips older years out of view via an overflow:hidden inner container.
+    // Only count years whose labels actually sit inside the visible window,
+    // matching what the chip renderer can draw; counting every DOM year made
+    // long-history profiles overshoot the sparse limit and silently disabled
+    // the chips even though only a handful would ever be shown.
     const years = Array.from(graph.querySelectorAll('.gsc_g_t'))
+        .filter((label) => isCitationGraphLabelInView(label, clipRect))
         .map((label) => parseInt(label.textContent || '', 10))
         .filter((year) => Number.isFinite(year));
     return years.length ? years : null;
@@ -8412,19 +8446,48 @@ function countCitationGraphVisibleRankChips(chipState) {
     }, 0);
 }
 function shouldUseCitationGraphRankChips(chipState) {
+    // The chart gets per-year rank chips whenever there is anything to show;
+    // dense years fold into a "+N" chip, so density needs no separate gate.
+    // (Profile density still matters, but only for whether the timeline
+    // charts render too -- see isCitationGraphProfileDense.)
     if (!chipState) {
         return false;
     }
+    const chipsByYear = chipState.allChipsByYear || chipState.chipsByYear || {};
+    return Object.values(chipsByYear).some((chips) => Array.isArray(chips) && chips.length > 0);
+}
+function isCitationGraphProfileDense(chipState) {
+    if (!chipState) {
+        return false;
+    }
+    const limit = Number(chipState.sparseLimit) || SPARSE_PROFILE_RANKED_LIMIT;
     const visibleRanked = countCitationGraphVisibleRankChips(chipState);
     if (visibleRanked != null) {
-        return visibleRanked > 0 && visibleRanked < (Number(chipState.sparseLimit) || SPARSE_PROFILE_RANKED_LIMIT);
+        return visibleRanked >= limit;
     }
-    return chipState.isSparse === true;
+    return chipState.isSparse !== true;
+}
+function isRenderedCitationGraphElement(element) {
+    if (!(element instanceof HTMLElement)) {
+        return false;
+    }
+    const rect = element.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
 }
 function findScholarCitationGraphElement() {
-    return document.getElementById('gsc_g')
-        || document.querySelector('#gsc_rsb_cit .gsc_g_hist_wrp')
-        || document.querySelector('.gsc_g_hist_wrp');
+    // Scholar keeps the "Citations per year" dialog's #gsc_g chart in the DOM
+    // (hidden) after it has been opened once, so prefer whichever candidate is
+    // actually rendered; a hidden dialog chart measures 0x0 and would make
+    // every annotation pass bail out after wiping the sidebar's chips.
+    // The sidebar wrapper comes first so that an open dialog (both rendered)
+    // never captures the sidebar's own annotation pass; on older layouts the
+    // sidebar chart itself is #gsc_g and remains the only candidate.
+    const candidates = [
+        document.querySelector('#gsc_rsb_cit .gsc_g_hist_wrp'),
+        document.querySelector('.gsc_g_hist_wrp'),
+        document.getElementById('gsc_g')
+    ].filter(Boolean);
+    return candidates.find((element) => isRenderedCitationGraphElement(element)) || candidates[0] || null;
 }
 function getCitationGraphStackDepth(chipState) {
     let maxDepth = 0;
@@ -8465,6 +8528,7 @@ function getCitationGraphYearLayout(label, bars, graphRect) {
 function scheduleCitationGraphRankChips(chipState) {
     if (!shouldUseCitationGraphRankChips(chipState)) {
         removeCitationGraphRankChips();
+        observeCitationGraphModal(null);
         return;
     }
     const run = () => annotateScholarCitationGraph(chipState, 0);
@@ -8474,12 +8538,13 @@ function scheduleCitationGraphRankChips(chipState) {
     else {
         run();
     }
+    observeCitationGraphModal(chipState);
 }
-function retryCitationGraphAnnotation(chipState, attempt) {
+function retryCitationGraphAnnotation(chipState, attempt, targetGraph) {
     if (attempt >= CITATION_GRAPH_RETRY_LIMIT || !shouldUseCitationGraphRankChips(chipState)) {
         return;
     }
-    const run = () => annotateScholarCitationGraph(chipState, attempt + 1);
+    const run = () => annotateScholarCitationGraph(chipState, attempt + 1, targetGraph);
     if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
         window.requestAnimationFrame(run);
     }
@@ -8490,14 +8555,97 @@ function retryCitationGraphAnnotation(chipState, attempt) {
         run();
     }
 }
-function annotateScholarCitationGraph(chipState, attempt = 0) {
-    removeCitationGraphRankChips();
+let citationGraphModalObserver = null;
+let citationGraphScrollListener = null;
+let citationGraphRefreshQueued = false;
+function queueCitationGraphRefresh(chipState) {
+    if (citationGraphRefreshQueued) {
+        return;
+    }
+    citationGraphRefreshQueued = true;
+    const run = () => {
+        citationGraphRefreshQueued = false;
+        refreshStaleCitationGraphChips(chipState);
+    };
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+        window.requestAnimationFrame(run);
+    }
+    else {
+        run();
+    }
+}
+function getAllCitationGraphElements() {
+    const elements = Array.from(document.querySelectorAll('.gsc_g_hist_wrp'));
+    const legacyGraph = document.getElementById('gsc_g');
+    if (legacyGraph && !elements.includes(legacyGraph)) {
+        elements.push(legacyGraph);
+    }
+    return elements;
+}
+function refreshStaleCitationGraphChips(chipState) {
+    for (const graph of getAllCitationGraphElements()) {
+        if (!isRenderedCitationGraphElement(graph)) {
+            continue;
+        }
+        const container = graph.querySelector(':scope > .gsr-citation-chips');
+        const width = Math.round(graph.getBoundingClientRect().width);
+        if (container && Number(container.dataset.gsrGraphWidth) === width) {
+            continue;
+        }
+        annotateScholarCitationGraph(chipState, 0, graph);
+    }
+}
+function observeCitationGraphModal(chipState) {
+    if (citationGraphModalObserver) {
+        citationGraphModalObserver.disconnect();
+        citationGraphModalObserver = null;
+    }
+    if (citationGraphScrollListener) {
+        document.removeEventListener('scroll', citationGraphScrollListener, true);
+        citationGraphScrollListener = null;
+    }
+    if (!chipState || !shouldUseCitationGraphRankChips(chipState) || typeof MutationObserver !== 'function') {
+        return;
+    }
+    // Scholar's "Citations per year" dialog has no chart of its own: opening
+    // it MOVES the sidebar's .gsc_g_hist_wrp into #gsc_md_hist_c (and moves
+    // it back on close), relaying the bars out at the dialog's full width.
+    // Any chips that traveled along keep their old sidebar coordinates, so
+    // watch for a rendered chart whose chips are missing or were laid out at
+    // a different width and re-annotate it. Fresh charts are a cheap no-op,
+    // so the observer settles immediately after each transition.
+    citationGraphModalObserver = new MutationObserver(() => {
+        queueCitationGraphRefresh(chipState);
+    });
+    citationGraphModalObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['style', 'class']
+    });
+    // On narrow screens the dialog's chart window scrolls horizontally; the
+    // chips live outside the scroller, so re-lay them out for the new window.
+    citationGraphScrollListener = (event) => {
+        const target = event.target;
+        if (!(target instanceof Element) || !target.classList.contains('gsc_md_hist_w')) {
+            return;
+        }
+        const graph = target.closest('.gsc_g_hist_wrp') || target.closest('#gsc_g');
+        graph?.querySelector(':scope > .gsr-citation-chips')?.removeAttribute('data-gsr-graph-width');
+        queueCitationGraphRefresh(chipState);
+    };
+    document.addEventListener('scroll', citationGraphScrollListener, true);
+}
+function annotateScholarCitationGraph(chipState, attempt = 0, targetGraph = null) {
+    if (!targetGraph) {
+        removeCitationGraphRankChips();
+    }
     if (!shouldUseCitationGraphRankChips(chipState)) {
         return;
     }
-    const graph = findScholarCitationGraphElement();
+    const graph = targetGraph || findScholarCitationGraphElement();
     if (!graph) {
-        retryCitationGraphAnnotation(chipState, attempt);
+        retryCitationGraphAnnotation(chipState, attempt, targetGraph);
         return;
     }
     if (getComputedStyle(graph).position === 'static') {
@@ -8505,27 +8653,39 @@ function annotateScholarCitationGraph(chipState, attempt = 0) {
     }
     const yearLabels = Array.from(graph.querySelectorAll('.gsc_g_t'));
     if (!yearLabels.length) {
-        retryCitationGraphAnnotation(chipState, attempt);
+        retryCitationGraphAnnotation(chipState, attempt, targetGraph);
         return;
     }
     let graphRect = graph.getBoundingClientRect();
     if (!graphRect.width || !graphRect.height) {
-        retryCitationGraphAnnotation(chipState, attempt);
+        retryCitationGraphAnnotation(chipState, attempt, targetGraph);
         return;
     }
     const bars = Array.from(graph.querySelectorAll('a.gsc_g_a, .gsc_g_a'));
     graph.classList.add('gsr-citation-graph--with-badges');
     graph.querySelector(`:scope > .${CITATION_GRAPH_GUTTER_CLASS}`)?.remove();
+    graph.querySelectorAll(':scope > .gsr-citation-chips').forEach((node) => node.remove());
     const container = document.createElement('div');
-    container.id = CITATION_GRAPH_BADGES_ID;
     container.className = 'gsr-citation-chips';
     container.setAttribute('aria-hidden', 'false');
+    // Lets the dialog observer detect chips laid out for a different chart
+    // width (the chart element moves between the sidebar and the dialog).
+    container.dataset.gsrGraphWidth = String(Math.round(graphRect.width));
+    const clipRect = getCitationGraphClipRect(graph) || graphRect;
     const chipStep = CITATION_CHIP_HEIGHT + CITATION_CHIP_GAP;
     for (const label of yearLabels) {
         const year = parseInt(label.textContent || '', 10);
         const chipsByYear = chipState.allChipsByYear || chipState.chipsByYear || {};
         const chips = chipsByYear?.[year];
         if (!Number.isFinite(year) || !chips?.length) {
+            continue;
+        }
+        if (!isCitationGraphLabelInView(label, clipRect)) {
+            // Scholar keeps the full citation history in the DOM even for the
+            // windowed sidebar widget; this year is scrolled/clipped out of
+            // the visible window. Skip it instead of clamping it onto the
+            // visible edge, which is what piled every off-window year's
+            // badges onto the first visible bar.
             continue;
         }
         const { barTop, chipCenterX } = getCitationGraphYearLayout(label, bars, graphRect);
@@ -8568,9 +8728,10 @@ function annotateScholarCitationGraph(chipState, attempt = 0) {
             container.appendChild(chip);
         });
     }
-    if (container.childNodes.length) {
-        graph.appendChild(container);
-    }
+    // Append even when empty: the container marks this chart as freshly
+    // annotated at its current width, so the dialog observer's staleness
+    // check stays a no-op instead of re-annotating on every mutation.
+    graph.appendChild(container);
 }
 function createAuthorshipSettingsControl() {
     const wrapper = document.createElement('div');
@@ -8888,10 +9049,11 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
     panel.appendChild(summarySectionsContainer);
     const timelineYear = currentSummaryState.timeline?.currentYear || getTimelineCurrentYear();
     const recentFocusedHistograms = getTimelineFocusedHistograms(currentSummaryState.timeline, 'recent');
-    // Sparse profiles (<25 ranked papers in the recent window) replace the
-    // timeline charts with per-year rank chips on Scholar's citation graph.
+    // Every profile gets per-year rank chips on Scholar's citation graph;
+    // dense profiles (>=25 ranked papers in the visible window) additionally
+    // keep the timeline charts, which the chips replace on sparse profiles.
     const citationChipState = getSparseRankChipState(currentSummaryState);
-    if (!shouldUseCitationGraphRankChips(citationChipState)) {
+    if (!shouldUseCitationGraphRankChips(citationChipState) || isCitationGraphProfileDense(citationChipState)) {
         // Tier-3 "Explore": the tall timeline charts are secondary to the verdict
         // (score) and distribution tiers, so they collapse by default. Native
         // <details> keeps this keyboard-accessible for free; the open state
