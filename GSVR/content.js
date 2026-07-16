@@ -831,9 +831,9 @@ function estimateAuthorCountFromScholarLine(rawLine) {
         .filter((value) => value.length > 0);
     return authors.length > 0 ? authors.length : null;
 }
-function collectPublicationLinkElements() {
+function collectPublicationLinkElements(root = document) {
     const publicationLinkElements = [];
-    document.querySelectorAll('tr.gsc_a_tr').forEach((row) => {
+    root.querySelectorAll('tr.gsc_a_tr').forEach((row) => {
         const linkEl = row.querySelector('td.gsc_a_t a.gsc_a_at');
         const yearEl = row.querySelector('td.gsc_a_y span.gsc_a_h');
         let yearFromProfile = null;
@@ -3948,6 +3948,112 @@ async function expandAllPublications(statusElement) {
         await new Promise(resolve => setTimeout(resolve, 1000));
     }
 }
+// Fetch-based replacement for clicking "Show more": pages through the profile's
+// publication list via the same citations endpoint the button uses, but parses
+// the responses off-DOM so the visible table never grows.
+const PROFILE_FETCH_PAGE_SIZE = 100;
+const PROFILE_FETCH_MAX_PAGES = 30;
+const PROFILE_FETCH_DELAY_MS = 300;
+function buildProfilePublicationsPageUrl(cstart, pagesize) {
+    const currentUrl = new URL(window.location.href);
+    const userId = currentUrl.searchParams.get('user');
+    if (!userId) {
+        return null;
+    }
+    // Rebuild from a clean parameter set so unrelated params (e.g. an open
+    // citation view) don't leak into the pagination request. Sort order and
+    // language must carry over so pages line up with what the profile shows.
+    const params = new URLSearchParams();
+    params.set('user', userId);
+    for (const key of ['hl', 'oi', 'sortby']) {
+        const value = currentUrl.searchParams.get(key);
+        if (value) {
+            params.set(key, value);
+        }
+    }
+    params.set('view_op', 'list_works');
+    params.set('cstart', String(cstart));
+    params.set('pagesize', String(pagesize));
+    return `${currentUrl.origin}${currentUrl.pathname}?${params.toString()}`;
+}
+async function fetchAllPublicationsWithoutExpanding(statusElement) {
+    const statusTextElement = statusElement?.querySelector('.gsr-status-text');
+    // Publications already rendered keep their live row so badges apply
+    // immediately; fetched-only publications carry a null row and get badged
+    // lazily by the table observer if the user expands the list themselves.
+    const liveRowByUrl = new Map();
+    for (const entry of collectPublicationLinkElements()) {
+        if (!liveRowByUrl.has(entry.url)) {
+            liveRowByUrl.set(entry.url, entry.rowElement);
+        }
+    }
+    const collected = [];
+    const seenUrls = new Set();
+    const parser = new DOMParser();
+    let cstart = 0;
+    for (let page = 0; page < PROFILE_FETCH_MAX_PAGES; page++) {
+        const pageUrl = buildProfilePublicationsPageUrl(cstart, PROFILE_FETCH_PAGE_SIZE);
+        if (!pageUrl) {
+            throw new Error('Could not determine the Scholar profile user id for pagination.');
+        }
+        if (statusTextElement) {
+            statusTextElement.textContent = `Loading publications… (${collected.length} found)`;
+        }
+        const response = await fetch(pageUrl, { credentials: 'same-origin' });
+        if (!response.ok) {
+            throw new Error(`Scholar pagination request failed with status ${response.status}.`);
+        }
+        const pageDoc = parser.parseFromString(await response.text(), 'text/html');
+        if (!pageDoc.getElementById('gsc_a_b')) {
+            // Rate-limit and captcha interstitials come back without the table.
+            throw new Error('Scholar pagination response did not contain the publication table.');
+        }
+        const pageEntries = collectPublicationLinkElements(pageDoc);
+        // Advance by the rows Scholar actually returned, in case it honors a
+        // smaller pagesize than requested.
+        cstart += pageEntries.length;
+        let newEntries = 0;
+        for (const entry of pageEntries) {
+            if (seenUrls.has(entry.url)) {
+                continue;
+            }
+            seenUrls.add(entry.url);
+            collected.push({ ...entry, rowElement: liveRowByUrl.get(entry.url) ?? null });
+            newEntries++;
+        }
+        const showMoreButton = pageDoc.getElementById('gsc_bpf_more');
+        // The fetched page's "Show more" state is the end-of-list signal; the
+        // newEntries check guards against looping if Scholar ignores cstart.
+        const hasMore = !!showMoreButton && !showMoreButton.disabled
+            && pageEntries.length > 0
+            && newEntries > 0;
+        if (!hasMore) {
+            break;
+        }
+        if (page + 1 >= PROFILE_FETCH_MAX_PAGES) {
+            console.warn('Google Scholar Ranker: Reached max pagination pages while fetching publications.');
+            break;
+        }
+        await new Promise((resolve) => setTimeout(resolve, PROFILE_FETCH_DELAY_MS));
+    }
+    if (statusTextElement) {
+        statusTextElement.textContent = `All publications loaded (${collected.length}).`;
+    }
+    return collected;
+}
+// Preferred path: fetch the full list in the background. If that fails (e.g.
+// Scholar serves a captcha page), fall back to the legacy click-based
+// expansion so the scan still completes.
+async function acquireAllPublicationLinkElements(statusElement) {
+    try {
+        return await fetchAllPublicationsWithoutExpanding(statusElement);
+    }
+    catch (error) {
+        console.warn('GSR: Background publication fetch failed; falling back to expanding the visible list.', error);
+        await expandAllPublications(statusElement);
+        return collectPublicationLinkElements();
+    }
+}
 // CORE evaluation rounds present in rankings.csv (newest first).
 const CORE_DATASET_YEARS = [2026, 2023, 2021, 2020, 2018, 2017, 2014, 2013, 2010, 2008];
 const ORDERED_CORE_DATA_FILES = CORE_DATASET_YEARS.map((year) => `CORE_${year}`);
@@ -6142,6 +6248,10 @@ function updateRowAuthorshipRail(rowElement, info) {
     }
 }
 function displayRankBadgeAfterTitle(rowElement, rank, system, reason = null, meta = null) {
+    // Publications ranked from fetched (off-DOM) pages have no live row yet;
+    // the table observer badges them if the user expands the list later.
+    if (!rowElement)
+        return;
     const titleCell = rowElement.querySelector('td.gsc_a_t');
     if (titleCell) {
         const oldBadge = titleCell.querySelector('span.gsr-rank-badge-inline');
@@ -10639,10 +10749,9 @@ async function runScanPass({ phase, sessionId, statusElement = null, context = {
         : null;
     if (!publicationLinkElements) {
         if (statusTextElement)
-            statusTextElement.textContent = "Expanding publications list...";
-        await expandAllPublications(statusElement);
+            statusTextElement.textContent = "Loading publications list...";
+        publicationLinkElements = await acquireAllPublicationLinkElements(statusElement);
         throwIfStaleScanSession(sessionId);
-        publicationLinkElements = collectPublicationLinkElements();
     }
     if (!publicationLinkElements.length) {
         return {
@@ -10779,9 +10888,8 @@ async function runExpandedProfileUpdate({ sessionId, statusElement, currentUserI
         if (statusTextElement) {
             statusTextElement.textContent = "Loading remaining publications...";
         }
-        await expandAllPublications(statusElement);
+        const publicationLinkElements = await acquireAllPublicationLinkElements(statusElement);
         throwIfStaleScanSession(sessionId);
-        const publicationLinkElements = collectPublicationLinkElements();
         const expandedResult = await runScanPass({
             phase: 'expanded',
             sessionId,
