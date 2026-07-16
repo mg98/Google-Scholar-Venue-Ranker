@@ -3763,6 +3763,31 @@ tr.gsc_a_tr.gsr-row--preview.gsr-row--dimmed {
   line-height: 1;
 }
 
+.gsr-faculty-score-card__hero--pending {
+  gap: 10px;
+  padding: 18px 10px;
+}
+
+.gsr-faculty-score-card__pending-spinner {
+  width: 18px;
+  height: 18px;
+}
+
+.gsr-faculty-score-card__pending-label {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--gsr-muted);
+  line-height: 1;
+}
+
+.gsr-faculty-score-card__pending-note {
+  margin-top: 8px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--gsr-muted);
+  text-align: center;
+}
+
 .gsr-faculty-score-card__evidence {
   --gsr-evidence-button-face: #fbfcff;
   --gsr-evidence-button-hover-face: #fff6e8;

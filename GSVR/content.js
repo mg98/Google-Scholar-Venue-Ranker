@@ -8136,7 +8136,10 @@ function displayFacultyScorePanel(summaryState) {
     if (!summaryState) {
         return;
     }
-    const facultyScore = resolveFacultyScoreState(summaryState);
+    // While the background expansion pass is still ranking the remaining
+    // publications, the visible-only score is misleading — show a loading
+    // state until the final score is available.
+    const isScorePending = summaryState.scanLifecycle?.status === 'running';
     const panel = document.createElement('div');
     panel.id = FACULTY_SCORE_PANEL_ID;
     panel.className = 'gsc_rsb_s gsc_prf_pnl gsr-card gsr-faculty-score-card';
@@ -8149,16 +8152,39 @@ function displayFacultyScorePanel(summaryState) {
     title.textContent = 'GSVR Score';
     titleGroup.appendChild(title);
     header.appendChild(titleGroup);
-    const detailsButton = document.createElement('button');
-    detailsButton.type = 'button';
-    detailsButton.className = 'gsr-button gsr-button--secondary gsr-button--compact gsr-faculty-score-card__evidence';
-    detailsButton.textContent = 'Evidence';
-    detailsButton.title = 'View publication-level scoring evidence';
-    detailsButton.addEventListener('click', () => openScoreDetailsOverlay());
-    header.appendChild(detailsButton);
+    if (!isScorePending) {
+        const detailsButton = document.createElement('button');
+        detailsButton.type = 'button';
+        detailsButton.className = 'gsr-button gsr-button--secondary gsr-button--compact gsr-faculty-score-card__evidence';
+        detailsButton.textContent = 'Evidence';
+        detailsButton.title = 'View publication-level scoring evidence';
+        detailsButton.addEventListener('click', () => openScoreDetailsOverlay());
+        header.appendChild(detailsButton);
+    }
     panel.appendChild(header);
     const hero = document.createElement('div');
     hero.className = 'gsr-faculty-score-card__hero';
+    if (isScorePending) {
+        hero.classList.add('gsr-faculty-score-card__hero--pending');
+        const spinner = document.createElement('span');
+        spinner.className = 'gsr-spinner gsr-faculty-score-card__pending-spinner';
+        spinner.setAttribute('aria-hidden', 'true');
+        hero.appendChild(spinner);
+        const pendingLabel = document.createElement('span');
+        pendingLabel.className = 'gsr-faculty-score-card__pending-label';
+        pendingLabel.textContent = 'Calculating…';
+        hero.appendChild(pendingLabel);
+        hero.setAttribute('role', 'status');
+        hero.setAttribute('aria-label', 'GSVR Score is being calculated');
+        panel.appendChild(hero);
+        const pendingNote = document.createElement('div');
+        pendingNote.className = 'gsr-faculty-score-card__pending-note';
+        pendingNote.textContent = 'Scoring the remaining publications. The final score appears once all publications are processed.';
+        panel.appendChild(pendingNote);
+        appendFacultyScorePanelToPage(panel);
+        return;
+    }
+    const facultyScore = resolveFacultyScoreState(summaryState);
     const scoreValue = document.createElement('span');
     scoreValue.className = 'gsr-faculty-score-card__value';
     scoreValue.textContent = Number(facultyScore.gsvrScore || 0).toFixed(4);
@@ -8200,6 +8226,9 @@ function displayFacultyScorePanel(summaryState) {
         }
     });
     panel.appendChild(completenessCard);
+    appendFacultyScorePanelToPage(panel);
+}
+function appendFacultyScorePanelToPage(panel) {
     const summaryPanel = document.getElementById(SUMMARY_PANEL_ID);
     const gsBdy = document.getElementById('gs_bdy');
     const rightSidebarContainer = gsBdy?.querySelector('div.gsc_rsb');
@@ -10733,6 +10762,16 @@ function releaseForegroundScanSession(sessionId) {
     isMainProcessing = false;
 }
 async function runExpandedProfileUpdate({ sessionId, statusElement, currentUserId, scholarAuthorName, visiblePassResult = null }) {
+    // If the expansion pass cannot finish, fall back to the visible-pass
+    // results so the GSVR Score card does not stay in its loading state.
+    const showVisiblePassFallback = (message) => {
+        if (!isCurrentScanSession(sessionId) || !visiblePassResult?.ok) {
+            return;
+        }
+        displaySummaryPanel(visiblePassResult.coreRankCounts, visiblePassResult.sjrRankCounts, currentUserId, visiblePassResult.determinedPublicationRanks, Date.now(), null, buildScanLifecycleState('failed', message), {
+            authorName: scholarAuthorName
+        });
+    };
     try {
         throwIfStaleScanSession(sessionId);
         const statusTextElement = statusElement?.querySelector('.gsr-status-text');
@@ -10754,6 +10793,7 @@ async function runExpandedProfileUpdate({ sessionId, statusElement, currentUserI
             }
         });
         if (!expandedResult.ok) {
+            showVisiblePassFallback("Couldn't rank the full publication list. Showing the score for the publications processed so far.");
             return;
         }
         throwIfStaleScanSession(sessionId);
@@ -10779,6 +10819,7 @@ async function runExpandedProfileUpdate({ sessionId, statusElement, currentUserI
             return;
         }
         console.warn('GSR: Background expansion pass failed.', error);
+        showVisiblePassFallback("Couldn't rank the full publication list. Showing the score for the publications processed so far.");
     }
 }
 // --- END: Main Orchestration ---
