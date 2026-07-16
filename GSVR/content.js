@@ -8405,6 +8405,7 @@ function removeCitationGraphRankChips() {
         graph.classList.remove('gsr-citation-graph--with-badges');
         if (graph instanceof HTMLElement) {
             graph.querySelector(`:scope > .${CITATION_GRAPH_GUTTER_CLASS}`)?.remove();
+            graph.style.removeProperty('margin-top');
         }
     });
 }
@@ -8688,6 +8689,7 @@ function annotateScholarCitationGraph(chipState, attempt = 0, targetGraph = null
     container.dataset.gsrGraphWidth = String(Math.round(graphRect.width));
     const clipRect = getCitationGraphClipRect(graph) || graphRect;
     const chipStep = CITATION_CHIP_HEIGHT + CITATION_CHIP_GAP;
+    let chipOverflowAbove = 0;
     for (const label of yearLabels) {
         const year = parseInt(label.textContent || '', 10);
         const chipsByYear = chipState.allChipsByYear || chipState.chipsByYear || {};
@@ -8728,6 +8730,7 @@ function annotateScholarCitationGraph(chipState, attempt = 0, targetGraph = null
             });
         });
         const stackTop = Math.round(barTop - getCitationChipStackHeight(chipEntries.length) - CITATION_CHIP_BAR_GAP);
+        chipOverflowAbove = Math.max(chipOverflowAbove, -stackTop);
         const boundedChipCenterX = Math.max(
             CITATION_CHIP_EDGE_PADDING,
             Math.min(graphRect.width - CITATION_CHIP_EDGE_PADDING, chipCenterX)
@@ -8747,6 +8750,18 @@ function annotateScholarCitationGraph(chipState, attempt = 0, targetGraph = null
     // annotated at its current width, so the dialog observer's staleness
     // check stays a no-op instead of re-annotating on every mutation.
     graph.appendChild(container);
+    // Chip stacks over tall bars extend past the top of the chart; reserve
+    // that overflow as margin so they don't cover the content above (the
+    // Cited-by stats table in the sidebar, the title bar in the dialog).
+    // Margin keeps Scholar's internal bar geometry untouched -- a spacer
+    // child inside the chart broke the absolutely-positioned bar layout.
+    const gutterPx = Math.ceil(Math.max(0, chipOverflowAbove) + (chipOverflowAbove > 0 ? CITATION_CHIP_BAR_GAP : 0));
+    if (gutterPx > 0) {
+        graph.style.marginTop = `${gutterPx}px`;
+    }
+    else {
+        graph.style.removeProperty('margin-top');
+    }
 }
 function createAuthorshipSettingsControl() {
     const wrapper = document.createElement('div');
