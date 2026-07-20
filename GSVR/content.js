@@ -8945,57 +8945,6 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
     titleGroup.appendChild(titleLine);
     headerDiv.appendChild(titleGroup);
     headerDiv.appendChild(createDateRangeToggle(currentSummaryState));
-    if (currentUserId) {
-        const headerActions = document.createElement('div');
-        headerActions.className = 'gsr-summary-header__actions';
-        const createHeaderActionButton = ({ label, ariaLabel = label, iconText, title, variant = 'neutral', onClick }) => {
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.className = `gsr-summary-header__action gsr-summary-header__action--${variant}`;
-            button.setAttribute('title', title);
-            button.setAttribute('aria-label', ariaLabel);
-            if (iconText) {
-                const icon = document.createElement('span');
-                icon.className = 'gsr-summary-header__action-icon';
-                icon.setAttribute('aria-hidden', 'true');
-                const iconGlyph = document.createElement('span');
-                iconGlyph.className = 'gsr-summary-header__action-icon-glyph';
-                iconGlyph.textContent = iconText;
-                icon.appendChild(iconGlyph);
-                button.appendChild(icon);
-            }
-            const actionLabel = document.createElement('span');
-            actionLabel.className = 'gsr-summary-header__action-label';
-            actionLabel.textContent = label;
-            button.appendChild(actionLabel);
-            if (typeof onClick === 'function') {
-                button.addEventListener('click', onClick);
-            }
-            return button;
-        };
-        headerActions.appendChild(createHeaderActionButton({
-            label: 'Rescan',
-            title: 'Clear cached results and rescan this Scholar profile',
-            variant: 'rescan',
-            onClick: () => {
-                rescanCurrentProfile().catch((error) => console.error('GSR: Failed to start rescan.', error));
-            }
-        }));
-        headerActions.appendChild(createHeaderActionButton({
-            label: 'Find Venues',
-            title: 'Find venues across the bundled CORE and SJR datasets',
-            variant: 'explore',
-            onClick: () => openSearchUtilityOverlay()
-        }));
-        headerActions.appendChild(createHeaderActionButton({
-            label: 'Download Report',
-            iconText: '⇩',
-            title: 'Download the current venue profile report',
-            variant: 'download',
-            onClick: () => openExportOverlay()
-        }));
-        headerDiv.appendChild(headerActions);
-    }
     panel.appendChild(headerDiv);
     if (scanLifecycle?.message) {
         const lifecyclePresentation = getScanLifecyclePresentation(scanLifecycle);
@@ -9174,81 +9123,13 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
         getFilter: (rank) => ({ type: 'rank', system: 'sjr', rank: normalizeRankKey(rank) }),
         getLabel: (rank) => rank
     }));
-    const authorshipSummarySection = createSummarySection({
-        titleText: 'Authorship Position',
-        metaText: 'matches',
-        counts: currentSummaryState.authorshipCounts || { first: 0, last: 0 },
-        orderedRanks: ['first', 'last'],
-        system: 'DBLP',
-        getFilter: (role) => ({ type: 'authorship', role }),
-        getLabel: (role) => role === 'first' ? 'First author' : 'Last author',
-        getInlineLabel: (role) => role === 'first' ? 'First author' : 'Last author',
-        showBadge: false
-    });
-    authorshipSummarySection.classList.add('gsr-authorship-summary-section');
     panel.appendChild(summarySectionsContainer);
-    const timelineYear = currentSummaryState.timeline?.currentYear || getTimelineCurrentYear();
-    const recentFocusedHistograms = getTimelineFocusedHistograms(currentSummaryState.timeline, 'recent');
-    // Citation graph badges are additive. Keep the timeline panel as a stable
-    // fallback/context because Scholar renders different chart year ranges on
-    // different profiles.
+    // Citation graph badges are additive; compute their state so the observer
+    // can decorate Scholar's citation chart when it renders.
     const citationChipState = getSparseRankChipState(currentSummaryState);
-    {
-        // Tier-3 "Explore": the tall timeline charts are secondary to the verdict
-        // (score) and distribution tiers, so they collapse by default. Native
-        // <details> keeps this keyboard-accessible for free; the open state
-        // persists per browser.
-        const EXPLORE_OPEN_STORAGE_KEY = 'gsvrExploreTimelinesOpen';
-        const exploreSection = document.createElement('details');
-        exploreSection.className = 'gsr-explore-section';
-        try {
-            exploreSection.open = window.localStorage?.getItem(EXPLORE_OPEN_STORAGE_KEY) === '1';
-        }
-        catch {
-            exploreSection.open = false;
-        }
-        exploreSection.addEventListener('toggle', () => {
-            try {
-                window.localStorage?.setItem(EXPLORE_OPEN_STORAGE_KEY, exploreSection.open ? '1' : '0');
-            }
-            catch {
-                // Storage may be unavailable; the toggle still works for this view.
-            }
-        });
-        const exploreSummary = document.createElement('summary');
-        exploreSummary.className = 'gsr-explore-section__summary';
-        const exploreTitle = document.createElement('span');
-        exploreTitle.className = 'gsr-explore-section__title';
-        exploreTitle.textContent = 'Timelines';
-        const exploreMeta = document.createElement('span');
-        exploreMeta.className = 'gsr-explore-section__meta';
-        exploreMeta.textContent = `A*/A and Q1 per year, ${timelineYear - 7}-${timelineYear}`;
-        const exploreChevron = document.createElement('span');
-        exploreChevron.className = 'gsr-explore-section__chevron';
-        exploreChevron.setAttribute('aria-hidden', 'true');
-        exploreChevron.textContent = '▸';
-        exploreSummary.appendChild(exploreChevron);
-        exploreSummary.appendChild(exploreTitle);
-        exploreSummary.appendChild(exploreMeta);
-        exploreSection.appendChild(exploreSummary);
-        exploreSection.appendChild(createTimelineHistogramSection(recentFocusedHistograms.topCoreHistogram || [], {
-            titleText: 'Top CORE Timeline',
-            subtitleText: `A*/A papers, recent 8 years (${timelineYear - 7}-${timelineYear})`,
-            rankOrder: getTopCoreHistogramRankOrder(),
-            variant: 'top-core'
-        }));
-        exploreSection.appendChild(createTimelineHistogramSection(recentFocusedHistograms.q1Histogram || [], {
-            titleText: 'Q1 Journal Timeline',
-            subtitleText: `Q1 papers, recent 8 years (${timelineYear - 7}-${timelineYear})`,
-            rankOrder: getQ1HistogramRankOrder(),
-            variant: 'q1'
-        }));
-        panel.appendChild(exploreSection);
-    }
     const authorshipControls = document.createElement('div');
     authorshipControls.className = 'gsr-authorship-controls';
     authorshipControls.appendChild(createAuthorshipSettingsControl());
-    authorshipControls.appendChild(authorshipSummarySection);
     panel.appendChild(authorshipControls);
     const finalFooterDiv = document.createElement('div');
     finalFooterDiv.className = 'gsr-card__footer gsr-summary-footer';
@@ -9265,51 +9146,6 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
     }
     if (footerMeta.childNodes.length > 0) {
         finalFooterDiv.appendChild(footerMeta);
-    }
-    const footerActions = document.createElement('div');
-    footerActions.className = 'gsr-summary-footer__actions';
-    const createFooterAction = ({ label, badgeText, title, href = null, variant = 'neutral', onClick = null }) => {
-        const element = href ? document.createElement('a') : document.createElement('button');
-        if (href) {
-            element.href = href;
-            element.target = '_blank';
-            element.rel = 'noopener noreferrer';
-        }
-        else {
-            element.type = 'button';
-        }
-        element.className = `gsr-summary-footer__action gsr-summary-footer__action--${variant}`;
-        element.setAttribute('title', title);
-        if (typeof onClick === 'function') {
-            element.addEventListener('click', onClick);
-        }
-        const icon = document.createElement('span');
-        icon.className = 'gsr-summary-footer__action-icon';
-        icon.setAttribute('aria-hidden', 'true');
-        icon.textContent = badgeText;
-        const text = document.createElement('span');
-        text.className = 'gsr-summary-footer__action-label';
-        text.textContent = label;
-        element.appendChild(icon);
-        element.appendChild(text);
-        return element;
-    };
-    footerActions.appendChild(createFooterAction({
-        label: 'Report Issue',
-        badgeText: '!',
-        title: 'Open the issue report form in a new tab',
-        variant: 'report',
-        onClick: () => window.open(REPORT_FORM_URL, '_blank', 'noopener,noreferrer')
-    }));
-    footerActions.appendChild(createFooterAction({
-        label: 'About',
-        badgeText: 'i',
-        title: 'About the extension, ranking sources, and editorial rules',
-        variant: 'about',
-        onClick: () => openAboutOverlay()
-    }));
-    if (footerActions.childNodes.length > 0) {
-        finalFooterDiv.appendChild(footerActions);
     }
     panel.appendChild(finalFooterDiv);
     const gsBdy = document.getElementById('gs_bdy');
