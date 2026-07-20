@@ -595,35 +595,6 @@ function syncSettingsClasses() {
     root.classList.toggle('gsr-authorship-off', currentSettings.showAuthorshipHighlights !== true);
     root.classList.toggle('gsr-authorship-on', currentSettings.showAuthorshipHighlights === true);
     applyGsvrTheme();
-    syncAuthorshipSettingControls();
-}
-function syncAuthorshipSettingControls() {
-    const enabled = currentSettings.showAuthorshipHighlights === true;
-    document.querySelectorAll('[data-gsr-authorship-toggle-input]').forEach((input) => {
-        if (input instanceof HTMLInputElement) {
-            input.checked = enabled;
-        }
-    });
-    document.querySelectorAll('[data-gsr-authorship-toggle-state]').forEach((stateEl) => {
-        stateEl.textContent = enabled ? 'On' : 'Off';
-    });
-}
-async function setAuthorshipHighlightsEnabled(enabled) {
-    currentSettings = { ...currentSettings, showAuthorshipHighlights: enabled === true };
-    syncSettingsClasses();
-    if (currentSettings.showAuthorshipHighlights !== true && activeSummaryFilter?.type === 'authorship') {
-        activeSummaryFilter = null;
-    }
-    if (currentSettings.showAuthorshipHighlights !== true && previewSummaryFilter?.type === 'authorship') {
-        previewSummaryFilter = null;
-    }
-    applyActiveSummaryFilter();
-    if (SETTINGS_API?.saveSettings) {
-        await SETTINGS_API.saveSettings({ showAuthorshipHighlights: currentSettings.showAuthorshipHighlights });
-    }
-    else if (chrome?.storage?.local && SETTINGS_API?.SETTINGS_KEY) {
-        await chrome.storage.local.set({ [SETTINGS_API.SETTINGS_KEY]: currentSettings });
-    }
 }
 async function loadSettingsIntoState() {
     if (SETTINGS_API?.loadSettings) {
@@ -8873,36 +8844,6 @@ function annotateScholarCitationGraph(chipState, attempt = 0, targetGraph = null
         graph.style.removeProperty('margin-top');
     }
 }
-function createAuthorshipSettingsControl() {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'gsr-authorship-setting';
-    const label = document.createElement('label');
-    label.className = 'gsr-authorship-setting__label';
-    const title = document.createElement('span');
-    title.className = 'gsr-authorship-setting__title';
-    title.textContent = 'Highlight first- and last-author publications';
-    const input = document.createElement('input');
-    input.type = 'checkbox';
-    input.className = 'gsr-authorship-setting__input';
-    input.dataset.gsrAuthorshipToggleInput = 'true';
-    input.checked = currentSettings.showAuthorshipHighlights === true;
-    input.setAttribute('aria-label', 'Highlight first and last authorship');
-    input.addEventListener('change', () => {
-        setAuthorshipHighlightsEnabled(input.checked).catch((error) => {
-            console.error('GSR: Failed to update authorship highlight setting.', error);
-            input.checked = currentSettings.showAuthorshipHighlights === true;
-            syncAuthorshipSettingControls();
-        });
-    });
-    const switchVisual = document.createElement('span');
-    switchVisual.className = 'gsr-authorship-setting__switch';
-    switchVisual.setAttribute('aria-hidden', 'true');
-    label.appendChild(title);
-    label.appendChild(input);
-    label.appendChild(switchVisual);
-    wrapper.appendChild(label);
-    return wrapper;
-}
 function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initialCachedPubRanks, cacheTimestamp, dblpAuthorPid, scanLifecycle = null, profileContextOverrides = null) {
     document.getElementById(STATUS_ELEMENT_ID)?.remove();
     document.getElementById(SUMMARY_PANEL_ID)?.remove();
@@ -9127,10 +9068,6 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
     // Citation graph badges are additive; compute their state so the observer
     // can decorate Scholar's citation chart when it renders.
     const citationChipState = getSparseRankChipState(currentSummaryState);
-    const authorshipControls = document.createElement('div');
-    authorshipControls.className = 'gsr-authorship-controls';
-    authorshipControls.appendChild(createAuthorshipSettingsControl());
-    panel.appendChild(authorshipControls);
     const finalFooterDiv = document.createElement('div');
     finalFooterDiv.className = 'gsr-card__footer gsr-summary-footer';
     const footerMeta = document.createElement('div');
