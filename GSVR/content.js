@@ -595,35 +595,6 @@ function syncSettingsClasses() {
     root.classList.toggle('gsr-authorship-off', currentSettings.showAuthorshipHighlights !== true);
     root.classList.toggle('gsr-authorship-on', currentSettings.showAuthorshipHighlights === true);
     applyGsvrTheme();
-    syncAuthorshipSettingControls();
-}
-function syncAuthorshipSettingControls() {
-    const enabled = currentSettings.showAuthorshipHighlights === true;
-    document.querySelectorAll('[data-gsr-authorship-toggle-input]').forEach((input) => {
-        if (input instanceof HTMLInputElement) {
-            input.checked = enabled;
-        }
-    });
-    document.querySelectorAll('[data-gsr-authorship-toggle-state]').forEach((stateEl) => {
-        stateEl.textContent = enabled ? 'On' : 'Off';
-    });
-}
-async function setAuthorshipHighlightsEnabled(enabled) {
-    currentSettings = { ...currentSettings, showAuthorshipHighlights: enabled === true };
-    syncSettingsClasses();
-    if (currentSettings.showAuthorshipHighlights !== true && activeSummaryFilter?.type === 'authorship') {
-        activeSummaryFilter = null;
-    }
-    if (currentSettings.showAuthorshipHighlights !== true && previewSummaryFilter?.type === 'authorship') {
-        previewSummaryFilter = null;
-    }
-    applyActiveSummaryFilter();
-    if (SETTINGS_API?.saveSettings) {
-        await SETTINGS_API.saveSettings({ showAuthorshipHighlights: currentSettings.showAuthorshipHighlights });
-    }
-    else if (chrome?.storage?.local && SETTINGS_API?.SETTINGS_KEY) {
-        await chrome.storage.local.set({ [SETTINGS_API.SETTINGS_KEY]: currentSettings });
-    }
 }
 async function loadSettingsIntoState() {
     if (SETTINGS_API?.loadSettings) {
@@ -8241,122 +8212,6 @@ function openCompletenessBreakdownOverlay() {
     body.appendChild(formula);
     openDialogOverlay(overlay, panel);
 }
-function displayFacultyScorePanel(summaryState) {
-    document.getElementById(FACULTY_SCORE_PANEL_ID)?.remove();
-    if (!summaryState) {
-        return;
-    }
-    // While the background expansion pass is still ranking the remaining
-    // publications, the visible-only score is misleading — show a loading
-    // state until the final score is available.
-    const isScorePending = summaryState.scanLifecycle?.status === 'running';
-    const panel = document.createElement('div');
-    panel.id = FACULTY_SCORE_PANEL_ID;
-    panel.className = 'gsc_rsb_s gsc_prf_pnl gsr-card gsr-faculty-score-card';
-    const header = document.createElement('div');
-    header.className = 'gsr-card__header';
-    const titleGroup = document.createElement('div');
-    titleGroup.className = 'gsr-card__title-group';
-    const title = document.createElement('div');
-    title.className = 'gsr-card__title';
-    title.textContent = 'GSVR Score';
-    titleGroup.appendChild(title);
-    header.appendChild(titleGroup);
-    if (!isScorePending) {
-        const detailsButton = document.createElement('button');
-        detailsButton.type = 'button';
-        detailsButton.className = 'gsr-button gsr-button--secondary gsr-button--compact gsr-faculty-score-card__evidence';
-        detailsButton.textContent = 'Evidence';
-        detailsButton.title = 'View publication-level scoring evidence';
-        detailsButton.addEventListener('click', () => openScoreDetailsOverlay());
-        header.appendChild(detailsButton);
-    }
-    panel.appendChild(header);
-    const hero = document.createElement('div');
-    hero.className = 'gsr-faculty-score-card__hero';
-    if (isScorePending) {
-        hero.classList.add('gsr-faculty-score-card__hero--pending');
-        const spinner = document.createElement('span');
-        spinner.className = 'gsr-spinner gsr-faculty-score-card__pending-spinner';
-        spinner.setAttribute('aria-hidden', 'true');
-        hero.appendChild(spinner);
-        const pendingLabel = document.createElement('span');
-        pendingLabel.className = 'gsr-faculty-score-card__pending-label';
-        pendingLabel.textContent = 'Calculating…';
-        hero.appendChild(pendingLabel);
-        hero.setAttribute('role', 'status');
-        hero.setAttribute('aria-label', 'GSVR Score is being calculated');
-        panel.appendChild(hero);
-        const pendingNote = document.createElement('div');
-        pendingNote.className = 'gsr-faculty-score-card__pending-note';
-        pendingNote.textContent = 'Scoring the remaining publications. The final score appears once all publications are processed.';
-        panel.appendChild(pendingNote);
-        appendFacultyScorePanelToPage(panel);
-        return;
-    }
-    const facultyScore = resolveFacultyScoreState(summaryState);
-    const scoreValue = document.createElement('span');
-    scoreValue.className = 'gsr-faculty-score-card__value';
-    scoreValue.textContent = Number(facultyScore.gsvrScore || 0).toFixed(4);
-    hero.appendChild(scoreValue);
-    panel.appendChild(hero);
-    const completeness = normalizeScoringCompleteness(facultyScore.completeness, facultyScore.diagnostics || facultyScore.coverage, facultyScore.combinedIndex || facultyScore.rawProfileScore?.scores, summaryState.publicationRanks || []);
-    const completenessCard = document.createElement('div');
-    completenessCard.setAttribute('role', 'button');
-    completenessCard.tabIndex = 0;
-    completenessCard.className = 'gsr-completeness-card';
-    completenessCard.title = 'Scoring Completeness shows how much of this Scholar profile could be used in the GSVR Score. Publications may be unscored because the venue is unranked, the match needs review, the publication type is excluded, or a required lookup was unavailable.';
-    completenessCard.setAttribute('aria-label', `Scoring Completeness ${formatCompletenessPercent(completeness)}. Open breakdown.`);
-    const completenessHead = document.createElement('div');
-    completenessHead.className = 'gsr-completeness-card__head';
-    const completenessLabel = document.createElement('span');
-    completenessLabel.className = 'gsr-completeness-card__label';
-    completenessLabel.textContent = 'Scoring Completeness';
-    const infoIcon = document.createElement('span');
-    infoIcon.className = 'gsr-completeness-card__info';
-    infoIcon.textContent = 'i';
-    infoIcon.setAttribute('aria-hidden', 'true');
-    completenessLabel.appendChild(infoIcon);
-    const completenessPercent = document.createElement('strong');
-    completenessPercent.className = 'gsr-completeness-card__percent';
-    completenessPercent.textContent = formatCompletenessPercent(completeness);
-    completenessHead.appendChild(completenessLabel);
-    completenessHead.appendChild(completenessPercent);
-    completenessCard.appendChild(completenessHead);
-    completenessCard.appendChild(createScoringCompletenessBar(completeness));
-    const completenessSummary = document.createElement('div');
-    completenessSummary.className = 'gsr-completeness-card__summary';
-    completenessSummary.textContent = `${completeness.scored}/${completeness.total} scored · ${formatCompletenessPercent(completeness)} completeness`;
-    completenessCard.appendChild(completenessSummary);
-    completenessCard.addEventListener('click', () => openCompletenessBreakdownOverlay());
-    completenessCard.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            openCompletenessBreakdownOverlay();
-        }
-    });
-    panel.appendChild(completenessCard);
-    appendFacultyScorePanelToPage(panel);
-}
-function appendFacultyScorePanelToPage(panel) {
-    const summaryPanel = document.getElementById(SUMMARY_PANEL_ID);
-    const gsBdy = document.getElementById('gs_bdy');
-    const rightSidebarContainer = gsBdy?.querySelector('div.gsc_rsb');
-    if (rightSidebarContainer) {
-        if (summaryPanel) {
-            rightSidebarContainer.insertBefore(panel, summaryPanel);
-        }
-        else {
-            rightSidebarContainer.prepend(panel);
-        }
-    }
-    else if (summaryPanel?.parentNode) {
-        summaryPanel.parentNode.insertBefore(panel, summaryPanel);
-    }
-    else {
-        document.body.prepend(panel);
-    }
-}
 // --- END: Manual Rank/Quartile Search Utility (Phase 2) ---
 function createStatusElement(initialMessage = "Initializing...") {
     disconnectPublicationTableObserver();
@@ -8873,36 +8728,6 @@ function annotateScholarCitationGraph(chipState, attempt = 0, targetGraph = null
         graph.style.removeProperty('margin-top');
     }
 }
-function createAuthorshipSettingsControl() {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'gsr-authorship-setting';
-    const label = document.createElement('label');
-    label.className = 'gsr-authorship-setting__label';
-    const title = document.createElement('span');
-    title.className = 'gsr-authorship-setting__title';
-    title.textContent = 'Highlight first- and last-author publications';
-    const input = document.createElement('input');
-    input.type = 'checkbox';
-    input.className = 'gsr-authorship-setting__input';
-    input.dataset.gsrAuthorshipToggleInput = 'true';
-    input.checked = currentSettings.showAuthorshipHighlights === true;
-    input.setAttribute('aria-label', 'Highlight first and last authorship');
-    input.addEventListener('change', () => {
-        setAuthorshipHighlightsEnabled(input.checked).catch((error) => {
-            console.error('GSR: Failed to update authorship highlight setting.', error);
-            input.checked = currentSettings.showAuthorshipHighlights === true;
-            syncAuthorshipSettingControls();
-        });
-    });
-    const switchVisual = document.createElement('span');
-    switchVisual.className = 'gsr-authorship-setting__switch';
-    switchVisual.setAttribute('aria-hidden', 'true');
-    label.appendChild(title);
-    label.appendChild(input);
-    label.appendChild(switchVisual);
-    wrapper.appendChild(label);
-    return wrapper;
-}
 function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initialCachedPubRanks, cacheTimestamp, dblpAuthorPid, scanLifecycle = null, profileContextOverrides = null) {
     document.getElementById(STATUS_ELEMENT_ID)?.remove();
     document.getElementById(SUMMARY_PANEL_ID)?.remove();
@@ -8945,57 +8770,6 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
     titleGroup.appendChild(titleLine);
     headerDiv.appendChild(titleGroup);
     headerDiv.appendChild(createDateRangeToggle(currentSummaryState));
-    if (currentUserId) {
-        const headerActions = document.createElement('div');
-        headerActions.className = 'gsr-summary-header__actions';
-        const createHeaderActionButton = ({ label, ariaLabel = label, iconText, title, variant = 'neutral', onClick }) => {
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.className = `gsr-summary-header__action gsr-summary-header__action--${variant}`;
-            button.setAttribute('title', title);
-            button.setAttribute('aria-label', ariaLabel);
-            if (iconText) {
-                const icon = document.createElement('span');
-                icon.className = 'gsr-summary-header__action-icon';
-                icon.setAttribute('aria-hidden', 'true');
-                const iconGlyph = document.createElement('span');
-                iconGlyph.className = 'gsr-summary-header__action-icon-glyph';
-                iconGlyph.textContent = iconText;
-                icon.appendChild(iconGlyph);
-                button.appendChild(icon);
-            }
-            const actionLabel = document.createElement('span');
-            actionLabel.className = 'gsr-summary-header__action-label';
-            actionLabel.textContent = label;
-            button.appendChild(actionLabel);
-            if (typeof onClick === 'function') {
-                button.addEventListener('click', onClick);
-            }
-            return button;
-        };
-        headerActions.appendChild(createHeaderActionButton({
-            label: 'Rescan',
-            title: 'Clear cached results and rescan this Scholar profile',
-            variant: 'rescan',
-            onClick: () => {
-                rescanCurrentProfile().catch((error) => console.error('GSR: Failed to start rescan.', error));
-            }
-        }));
-        headerActions.appendChild(createHeaderActionButton({
-            label: 'Find Venues',
-            title: 'Find venues across the bundled CORE and SJR datasets',
-            variant: 'explore',
-            onClick: () => openSearchUtilityOverlay()
-        }));
-        headerActions.appendChild(createHeaderActionButton({
-            label: 'Download Report',
-            iconText: '⇩',
-            title: 'Download the current venue profile report',
-            variant: 'download',
-            onClick: () => openExportOverlay()
-        }));
-        headerDiv.appendChild(headerActions);
-    }
     panel.appendChild(headerDiv);
     if (scanLifecycle?.message) {
         const lifecyclePresentation = getScanLifecyclePresentation(scanLifecycle);
@@ -9174,82 +8948,10 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
         getFilter: (rank) => ({ type: 'rank', system: 'sjr', rank: normalizeRankKey(rank) }),
         getLabel: (rank) => rank
     }));
-    const authorshipSummarySection = createSummarySection({
-        titleText: 'Authorship Position',
-        metaText: 'matches',
-        counts: currentSummaryState.authorshipCounts || { first: 0, last: 0 },
-        orderedRanks: ['first', 'last'],
-        system: 'DBLP',
-        getFilter: (role) => ({ type: 'authorship', role }),
-        getLabel: (role) => role === 'first' ? 'First author' : 'Last author',
-        getInlineLabel: (role) => role === 'first' ? 'First author' : 'Last author',
-        showBadge: false
-    });
-    authorshipSummarySection.classList.add('gsr-authorship-summary-section');
     panel.appendChild(summarySectionsContainer);
-    const timelineYear = currentSummaryState.timeline?.currentYear || getTimelineCurrentYear();
-    const recentFocusedHistograms = getTimelineFocusedHistograms(currentSummaryState.timeline, 'recent');
-    // Citation graph badges are additive. Keep the timeline panel as a stable
-    // fallback/context because Scholar renders different chart year ranges on
-    // different profiles.
+    // Citation graph badges are additive; compute their state so the observer
+    // can decorate Scholar's citation chart when it renders.
     const citationChipState = getSparseRankChipState(currentSummaryState);
-    {
-        // Tier-3 "Explore": the tall timeline charts are secondary to the verdict
-        // (score) and distribution tiers, so they collapse by default. Native
-        // <details> keeps this keyboard-accessible for free; the open state
-        // persists per browser.
-        const EXPLORE_OPEN_STORAGE_KEY = 'gsvrExploreTimelinesOpen';
-        const exploreSection = document.createElement('details');
-        exploreSection.className = 'gsr-explore-section';
-        try {
-            exploreSection.open = window.localStorage?.getItem(EXPLORE_OPEN_STORAGE_KEY) === '1';
-        }
-        catch {
-            exploreSection.open = false;
-        }
-        exploreSection.addEventListener('toggle', () => {
-            try {
-                window.localStorage?.setItem(EXPLORE_OPEN_STORAGE_KEY, exploreSection.open ? '1' : '0');
-            }
-            catch {
-                // Storage may be unavailable; the toggle still works for this view.
-            }
-        });
-        const exploreSummary = document.createElement('summary');
-        exploreSummary.className = 'gsr-explore-section__summary';
-        const exploreTitle = document.createElement('span');
-        exploreTitle.className = 'gsr-explore-section__title';
-        exploreTitle.textContent = 'Timelines';
-        const exploreMeta = document.createElement('span');
-        exploreMeta.className = 'gsr-explore-section__meta';
-        exploreMeta.textContent = `A*/A and Q1 per year, ${timelineYear - 7}-${timelineYear}`;
-        const exploreChevron = document.createElement('span');
-        exploreChevron.className = 'gsr-explore-section__chevron';
-        exploreChevron.setAttribute('aria-hidden', 'true');
-        exploreChevron.textContent = '▸';
-        exploreSummary.appendChild(exploreChevron);
-        exploreSummary.appendChild(exploreTitle);
-        exploreSummary.appendChild(exploreMeta);
-        exploreSection.appendChild(exploreSummary);
-        exploreSection.appendChild(createTimelineHistogramSection(recentFocusedHistograms.topCoreHistogram || [], {
-            titleText: 'Top CORE Timeline',
-            subtitleText: `A*/A papers, recent 8 years (${timelineYear - 7}-${timelineYear})`,
-            rankOrder: getTopCoreHistogramRankOrder(),
-            variant: 'top-core'
-        }));
-        exploreSection.appendChild(createTimelineHistogramSection(recentFocusedHistograms.q1Histogram || [], {
-            titleText: 'Q1 Journal Timeline',
-            subtitleText: `Q1 papers, recent 8 years (${timelineYear - 7}-${timelineYear})`,
-            rankOrder: getQ1HistogramRankOrder(),
-            variant: 'q1'
-        }));
-        panel.appendChild(exploreSection);
-    }
-    const authorshipControls = document.createElement('div');
-    authorshipControls.className = 'gsr-authorship-controls';
-    authorshipControls.appendChild(createAuthorshipSettingsControl());
-    authorshipControls.appendChild(authorshipSummarySection);
-    panel.appendChild(authorshipControls);
     const finalFooterDiv = document.createElement('div');
     finalFooterDiv.className = 'gsr-card__footer gsr-summary-footer';
     const footerMeta = document.createElement('div');
@@ -9265,51 +8967,6 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
     }
     if (footerMeta.childNodes.length > 0) {
         finalFooterDiv.appendChild(footerMeta);
-    }
-    const footerActions = document.createElement('div');
-    footerActions.className = 'gsr-summary-footer__actions';
-    const createFooterAction = ({ label, badgeText, title, href = null, variant = 'neutral', onClick = null }) => {
-        const element = href ? document.createElement('a') : document.createElement('button');
-        if (href) {
-            element.href = href;
-            element.target = '_blank';
-            element.rel = 'noopener noreferrer';
-        }
-        else {
-            element.type = 'button';
-        }
-        element.className = `gsr-summary-footer__action gsr-summary-footer__action--${variant}`;
-        element.setAttribute('title', title);
-        if (typeof onClick === 'function') {
-            element.addEventListener('click', onClick);
-        }
-        const icon = document.createElement('span');
-        icon.className = 'gsr-summary-footer__action-icon';
-        icon.setAttribute('aria-hidden', 'true');
-        icon.textContent = badgeText;
-        const text = document.createElement('span');
-        text.className = 'gsr-summary-footer__action-label';
-        text.textContent = label;
-        element.appendChild(icon);
-        element.appendChild(text);
-        return element;
-    };
-    footerActions.appendChild(createFooterAction({
-        label: 'Report Issue',
-        badgeText: '!',
-        title: 'Open the issue report form in a new tab',
-        variant: 'report',
-        onClick: () => window.open(REPORT_FORM_URL, '_blank', 'noopener,noreferrer')
-    }));
-    footerActions.appendChild(createFooterAction({
-        label: 'About',
-        badgeText: 'i',
-        title: 'About the extension, ranking sources, and editorial rules',
-        variant: 'about',
-        onClick: () => openAboutOverlay()
-    }));
-    if (footerActions.childNodes.length > 0) {
-        finalFooterDiv.appendChild(footerActions);
     }
     panel.appendChild(finalFooterDiv);
     const gsBdy = document.getElementById('gs_bdy');
@@ -9336,7 +8993,6 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
         else
             document.body.prepend(panel);
     }
-    displayFacultyScorePanel(currentSummaryState);
     if (initialCachedPubRanks && initialCachedPubRanks.length > 0) {
         activeCachedPublicationRanks = initialCachedPubRanks;
         rankMapForObserver = new Map();
