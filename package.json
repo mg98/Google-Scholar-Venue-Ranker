@@ -3,7 +3,7 @@
   "version": "2.2.0",
   "private": true,
   "type": "commonjs",
-  "description": "Build tooling for the Google Scholar Venue Ranker Chrome extension.",
+  "description": "Build tooling for the Google Scholar with Venue Ranks Chrome extension.",
   "engines": {
     "node": ">=18"
   },

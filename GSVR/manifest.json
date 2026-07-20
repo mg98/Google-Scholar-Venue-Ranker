@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Google Scholar Venue Ranker (GSVR)",
+  "name": "Google Scholar with Venue Ranks (GSVR)",
   "description": "Adds CORE/SJR venue ranks, raw GSVR scores, completeness diagnostics, and reports to Scholar profiles, matched directly from the venue text on each profile.",
   "version": "2.2.0",
   "permissions": [
@@ -9,7 +9,7 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Google Scholar Venue Ranker"
+    "default_title": "Google Scholar with Venue Ranks"
   },
   "options_page": "options.html",
   "content_scripts": [

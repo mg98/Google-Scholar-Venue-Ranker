@@ -6462,7 +6462,7 @@ function ensureAboutOverlay() {
         overlayId: 'gsr-about-overlay',
         panelClass: 'gsr-search-panel gsr-about-panel',
         titleId: 'gsr-about-panel-title',
-        titleText: 'About Google Scholar Venue Ranker',
+        titleText: 'About Google Scholar with Venue Ranks',
         descriptionId: 'gsr-about-panel-description',
         descriptionText: 'Open-source ranking logic, data sources, and editorial rules used by the extension.'
     });
