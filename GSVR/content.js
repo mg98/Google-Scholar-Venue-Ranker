@@ -8212,122 +8212,6 @@ function openCompletenessBreakdownOverlay() {
     body.appendChild(formula);
     openDialogOverlay(overlay, panel);
 }
-function displayFacultyScorePanel(summaryState) {
-    document.getElementById(FACULTY_SCORE_PANEL_ID)?.remove();
-    if (!summaryState) {
-        return;
-    }
-    // While the background expansion pass is still ranking the remaining
-    // publications, the visible-only score is misleading — show a loading
-    // state until the final score is available.
-    const isScorePending = summaryState.scanLifecycle?.status === 'running';
-    const panel = document.createElement('div');
-    panel.id = FACULTY_SCORE_PANEL_ID;
-    panel.className = 'gsc_rsb_s gsc_prf_pnl gsr-card gsr-faculty-score-card';
-    const header = document.createElement('div');
-    header.className = 'gsr-card__header';
-    const titleGroup = document.createElement('div');
-    titleGroup.className = 'gsr-card__title-group';
-    const title = document.createElement('div');
-    title.className = 'gsr-card__title';
-    title.textContent = 'GSVR Score';
-    titleGroup.appendChild(title);
-    header.appendChild(titleGroup);
-    if (!isScorePending) {
-        const detailsButton = document.createElement('button');
-        detailsButton.type = 'button';
-        detailsButton.className = 'gsr-button gsr-button--secondary gsr-button--compact gsr-faculty-score-card__evidence';
-        detailsButton.textContent = 'Evidence';
-        detailsButton.title = 'View publication-level scoring evidence';
-        detailsButton.addEventListener('click', () => openScoreDetailsOverlay());
-        header.appendChild(detailsButton);
-    }
-    panel.appendChild(header);
-    const hero = document.createElement('div');
-    hero.className = 'gsr-faculty-score-card__hero';
-    if (isScorePending) {
-        hero.classList.add('gsr-faculty-score-card__hero--pending');
-        const spinner = document.createElement('span');
-        spinner.className = 'gsr-spinner gsr-faculty-score-card__pending-spinner';
-        spinner.setAttribute('aria-hidden', 'true');
-        hero.appendChild(spinner);
-        const pendingLabel = document.createElement('span');
-        pendingLabel.className = 'gsr-faculty-score-card__pending-label';
-        pendingLabel.textContent = 'Calculating…';
-        hero.appendChild(pendingLabel);
-        hero.setAttribute('role', 'status');
-        hero.setAttribute('aria-label', 'GSVR Score is being calculated');
-        panel.appendChild(hero);
-        const pendingNote = document.createElement('div');
-        pendingNote.className = 'gsr-faculty-score-card__pending-note';
-        pendingNote.textContent = 'Scoring the remaining publications. The final score appears once all publications are processed.';
-        panel.appendChild(pendingNote);
-        appendFacultyScorePanelToPage(panel);
-        return;
-    }
-    const facultyScore = resolveFacultyScoreState(summaryState);
-    const scoreValue = document.createElement('span');
-    scoreValue.className = 'gsr-faculty-score-card__value';
-    scoreValue.textContent = Number(facultyScore.gsvrScore || 0).toFixed(4);
-    hero.appendChild(scoreValue);
-    panel.appendChild(hero);
-    const completeness = normalizeScoringCompleteness(facultyScore.completeness, facultyScore.diagnostics || facultyScore.coverage, facultyScore.combinedIndex || facultyScore.rawProfileScore?.scores, summaryState.publicationRanks || []);
-    const completenessCard = document.createElement('div');
-    completenessCard.setAttribute('role', 'button');
-    completenessCard.tabIndex = 0;
-    completenessCard.className = 'gsr-completeness-card';
-    completenessCard.title = 'Scoring Completeness shows how much of this Scholar profile could be used in the GSVR Score. Publications may be unscored because the venue is unranked, the match needs review, the publication type is excluded, or a required lookup was unavailable.';
-    completenessCard.setAttribute('aria-label', `Scoring Completeness ${formatCompletenessPercent(completeness)}. Open breakdown.`);
-    const completenessHead = document.createElement('div');
-    completenessHead.className = 'gsr-completeness-card__head';
-    const completenessLabel = document.createElement('span');
-    completenessLabel.className = 'gsr-completeness-card__label';
-    completenessLabel.textContent = 'Scoring Completeness';
-    const infoIcon = document.createElement('span');
-    infoIcon.className = 'gsr-completeness-card__info';
-    infoIcon.textContent = 'i';
-    infoIcon.setAttribute('aria-hidden', 'true');
-    completenessLabel.appendChild(infoIcon);
-    const completenessPercent = document.createElement('strong');
-    completenessPercent.className = 'gsr-completeness-card__percent';
-    completenessPercent.textContent = formatCompletenessPercent(completeness);
-    completenessHead.appendChild(completenessLabel);
-    completenessHead.appendChild(completenessPercent);
-    completenessCard.appendChild(completenessHead);
-    completenessCard.appendChild(createScoringCompletenessBar(completeness));
-    const completenessSummary = document.createElement('div');
-    completenessSummary.className = 'gsr-completeness-card__summary';
-    completenessSummary.textContent = `${completeness.scored}/${completeness.total} scored · ${formatCompletenessPercent(completeness)} completeness`;
-    completenessCard.appendChild(completenessSummary);
-    completenessCard.addEventListener('click', () => openCompletenessBreakdownOverlay());
-    completenessCard.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            openCompletenessBreakdownOverlay();
-        }
-    });
-    panel.appendChild(completenessCard);
-    appendFacultyScorePanelToPage(panel);
-}
-function appendFacultyScorePanelToPage(panel) {
-    const summaryPanel = document.getElementById(SUMMARY_PANEL_ID);
-    const gsBdy = document.getElementById('gs_bdy');
-    const rightSidebarContainer = gsBdy?.querySelector('div.gsc_rsb');
-    if (rightSidebarContainer) {
-        if (summaryPanel) {
-            rightSidebarContainer.insertBefore(panel, summaryPanel);
-        }
-        else {
-            rightSidebarContainer.prepend(panel);
-        }
-    }
-    else if (summaryPanel?.parentNode) {
-        summaryPanel.parentNode.insertBefore(panel, summaryPanel);
-    }
-    else {
-        document.body.prepend(panel);
-    }
-}
 // --- END: Manual Rank/Quartile Search Utility (Phase 2) ---
 function createStatusElement(initialMessage = "Initializing...") {
     disconnectPublicationTableObserver();
@@ -9109,7 +8993,6 @@ function displaySummaryPanel(coreRankCounts, sjrRankCounts, currentUserId, initi
         else
             document.body.prepend(panel);
     }
-    displayFacultyScorePanel(currentSummaryState);
     if (initialCachedPubRanks && initialCachedPubRanks.length > 0) {
         activeCachedPublicationRanks = initialCachedPubRanks;
         rankMapForObserver = new Map();
