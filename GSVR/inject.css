@@ -566,12 +566,12 @@
 }
 
 .gsr-date-range-toggle {
-  --gsr-date-range-toggle-pad: 4px;
+  --gsr-date-range-toggle-pad: 3px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   position: relative;
   width: 100%;
-  min-height: 38px;
+  min-height: 24px;
   padding: var(--gsr-date-range-toggle-pad);
   border: 1px solid var(--gsr-border-strong);
   border-radius: 18px;
@@ -603,7 +603,7 @@
   position: relative;
   z-index: 2;
   min-width: 0;
-  min-height: 30px;
+  min-height: 18px;
   padding: 0 8px;
   border-radius: 14px;
   color: var(--gsr-muted);

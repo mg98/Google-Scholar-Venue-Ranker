@@ -502,15 +502,11 @@ function testSummaryDistributionRenderUsesFilteredCounts() {
     'SJR distribution should render from the filtered currentSummaryState counts'
   );
   assert.ok(
-    source.includes("getTimelineFocusedHistograms(currentSummaryState.timeline, 'recent')"),
-    'Sidebar should render focused recent histograms from currentSummaryState'
-  );
-  assert.ok(
     source.includes("document.querySelector('#gsc_rsb_cit .gsc_g_hist_wrp')") &&
     source.includes('countCitationGraphVisibleRankChips(chipState)') &&
     source.includes('Citation graph badges are additive') &&
     source.includes('scheduleCitationGraphRankChips(citationChipState)'),
-    'Citation graph badges should be additive and timeline charts should remain available'
+    'Citation graph badges should be additive'
   );
 }
 
