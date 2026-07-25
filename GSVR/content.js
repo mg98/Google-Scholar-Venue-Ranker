@@ -6131,6 +6131,7 @@ const BADGE_REASON_QUALIFIERS = Object.freeze({
     'review journal match': 'Review',
     'sjr historical coverage unavailable': 'No SJR data',
     'preprint': 'Preprint',
+    'truncated venue': 'Clipped venue',
 });
 function getBadgeReasonQualifier(reason) {
     const key = String(reason || '').trim().toLowerCase();
@@ -7550,7 +7551,12 @@ function getScholarSurfaceMode() {
     if (params.get('view_op') === 'view_citation') {
         return 'citation-detail';
     }
-    if (params.has('q') && !params.has('user')) {
+    if (params.has('user')) {
+        return 'profile';
+    }
+    // Keyword search, "Cited by" lists, and version clusters all render the
+    // same /scholar result list, so they share one surface.
+    if (/^\/scholar\b/.test(window.location.pathname) || params.has('q') || params.has('cluster')) {
         return 'search-results';
     }
     return 'profile';
@@ -7593,6 +7599,361 @@ function teardownOffProfileSurfaceUi() {
     gsrExportOverlayEl = null;
     gsrCompareOverlayEl = null;
     gsrManualDblpOverlayEl = null;
+}
+// --- Keyword search results surface -----------------------------------------
+// Scholar's /scholar result list (keyword search, "Cited by", version clusters)
+// carries the same venue text as a profile row, just formatted differently:
+// "AUTHORS - VENUE, YEAR - SOURCE" on a single .gs_a line. Parsing that line
+// lets the exact same matcher badge search hits, with no extra network calls.
+const SEARCH_RESULT_BADGE_CLASS = 'gsr-search-rank-badge';
+const SEARCH_RESULT_RANK_DEBOUNCE_MS = 150;
+let searchResultsSurfaceInitialized = false;
+let searchResultsObserver = null;
+let searchResultsRankTimer = null;
+let searchResultsRankingInFlight = false;
+let searchResultsRerunQueued = false;
+let lastSearchResultRankedCount = 0;
+let lastSearchResultBadgedCount = 0;
+function getSearchResultContainer() {
+    return document.getElementById('gs_res_ccl_mid') || document.getElementById('gs_res_ccl') || null;
+}
+// The trailing "- SOURCE" segment is a bare host name or a short publisher
+// label; it is never the venue, so a lone trailing segment that looks like one
+// must not be matched against CORE/SJR.
+function looksLikeSearchResultSource(value) {
+    const text = String(value || '').trim();
+    if (!text) {
+        return true;
+    }
+    return /^[a-z0-9][a-z0-9-]*(?:\.[a-z0-9-]+)+$/i.test(text);
+}
+function parseScholarSearchResultMeta(rawLine) {
+    const text = String(rawLine || '').replace(/\s+/g, ' ').trim();
+    const empty = { authorText: null, venueText: null, year: null, sourceText: null };
+    if (!text) {
+        return empty;
+    }
+    // Both the venue and the source are optional: citation-only records often
+    // drop the source, preprints and patents often have no venue at all.
+    const segments = text.split(/\s+-\s+/).map((part) => part.trim()).filter(Boolean);
+    if (segments.length === 0) {
+        return empty;
+    }
+    if (segments.length === 1) {
+        // Only an author list survived; there is nothing to rank.
+        return { ...empty, authorText: segments[0] };
+    }
+    const authorText = segments[0];
+    const rest = segments.slice(1);
+    let venueSegments = null;
+    let year = null;
+    let sourceText = null;
+    // The venue segment is the one ending in the publication year, so anchor on
+    // that rather than guessing which " - " segment holds the venue.
+    for (let i = 0; i < rest.length; i++) {
+        const yearMatch = rest[i].match(/^(.*?)[\s,]*\b((?:1[5-9]|20)\d{2})$/);
+        if (!yearMatch) {
+            continue;
+        }
+        year = parseInt(yearMatch[2], 10);
+        const venuePrefix = yearMatch[1].trim();
+        venueSegments = rest.slice(0, i).concat(venuePrefix ? [venuePrefix] : []);
+        sourceText = rest.slice(i + 1).join(' - ') || null;
+        break;
+    }
+    if (year === null) {
+        if (rest.length > 1) {
+            venueSegments = rest.slice(0, -1);
+            sourceText = rest[rest.length - 1];
+        }
+        else if (looksLikeSearchResultSource(rest[0])) {
+            venueSegments = [];
+            sourceText = rest[0];
+        }
+        else {
+            venueSegments = rest.slice();
+        }
+    }
+    const venueRaw = venueSegments.join(' - ').trim();
+    return {
+        authorText,
+        venueText: venueRaw ? extractVenueFromProfileLine(venueRaw) : null,
+        year,
+        sourceText
+    };
+}
+function extractSearchResultTitle(titleElement, linkElement) {
+    const raw = (linkElement ? linkElement.textContent : titleElement?.textContent) || '';
+    // Scholar prefixes titles with type tags ("[PDF]", "[BOOK][B]", "[CITATION]")
+    // that live outside the anchor but inside the heading.
+    return raw.replace(/^(?:\s*\[[^\]]*\])+\s*/, '').replace(/\s+/g, ' ').trim();
+}
+function buildSearchResultCacheKey(resultElement, linkElement, paperTitle) {
+    if (linkElement instanceof HTMLAnchorElement && linkElement.href) {
+        return normalizeUrlForCache(linkElement.href);
+    }
+    const clusterId = resultElement?.dataset?.cid || resultElement?.getAttribute?.('data-cid');
+    if (clusterId) {
+        return `gsvr:search-cluster:${clusterId}`;
+    }
+    return `gsvr:search-title:${paperTitle.toLowerCase()}`;
+}
+function collectSearchResultElements(root = null) {
+    const container = root || getSearchResultContainer() || document;
+    const items = [];
+    container.querySelectorAll('div.gs_r').forEach((resultElement) => {
+        const body = resultElement.querySelector('div.gs_ri') || resultElement;
+        const titleElement = body.querySelector('h3.gs_rt');
+        const metaElement = body.querySelector('div.gs_a');
+        // Only genuine result blocks carry both; the "User profiles" and
+        // "Related searches" blocks reuse .gs_r without them.
+        if (!titleElement || !metaElement) {
+            return;
+        }
+        const linkElement = titleElement.querySelector('a');
+        const paperTitle = extractSearchResultTitle(titleElement, linkElement);
+        if (!paperTitle) {
+            return;
+        }
+        const meta = parseScholarSearchResultMeta(metaElement.textContent);
+        items.push({
+            url: buildSearchResultCacheKey(resultElement, linkElement, paperTitle),
+            resultElement,
+            titleElement,
+            paperTitle,
+            titleText: paperTitle.toLowerCase(),
+            authorCount: estimateAuthorCountFromScholarLine(meta.authorText),
+            venueText: meta.venueText,
+            yearFromProfile: meta.year
+        });
+    });
+    return items;
+}
+// Boilerplate that appears in hundreds of venue names and therefore carries no
+// identifying signal on its own. A clipped venue made only of these words could
+// be almost any conference in the catalog.
+const GENERIC_VENUE_TOKENS = new Set([
+    'proceedings', 'proceeding', 'proc', 'papers', 'companion', 'extended', 'abstracts',
+    'acm', 'ieee', 'ifip', 'usenix', 'sig', 'sigplan',
+    'international', 'intl', 'national', 'european', 'asian', 'american', 'australasian', 'joint',
+    'conference', 'conf', 'symposium', 'symp', 'workshop', 'congress',
+    'journal', 'transactions', 'trans', 'annual', 'special', 'interest', 'group',
+    'part', 'series', 'vol', 'volume',
+    'the', 'of', 'on', 'in', 'and', 'for', 'an'
+]);
+function isTruncatedVenueText(venueText) {
+    return /(?:…|\.\.\.)\s*$/.test(String(venueText || ''));
+}
+function getDistinctiveVenueTokens(value) {
+    // Fold via the shared normalizer so "Zurich"/"Zürich" tokenize alike, with a
+    // plain fallback for headless hosts that never loaded it.
+    const fold = (typeof window !== 'undefined' && typeof window.GSVRTextNormalize?.foldDiacritics === 'function')
+        ? window.GSVRTextNormalize.foldDiacritics
+        : (input) => String(input ?? '');
+    return fold(String(value || ''))
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim()
+        .split(/\s+/)
+        .filter((token) => token.length >= 3 && !/^\d+$/.test(token) && !GENERIC_VENUE_TOKENS.has(token));
+}
+// Scholar clips long venue names on the result list ("ACM International
+// Conference on …"). The matcher is *confidently* wrong on those clipped
+// prefixes — measured against full venue titles, roughly a third of the ranks
+// it returns for a clipped prefix contradict the rank for the full name, and
+// match confidence does not separate the good from the bad. So a clipped venue
+// only keeps its rank when the surviving prefix carries at least two
+// identifying words and every one of them is present in the venue that was
+// matched; otherwise the result abstains instead of showing a wrong rank.
+function isTruncationSafeDecision(decision, venueText) {
+    const prefixTokens = getDistinctiveVenueTokens(venueText.replace(/\s*(?:…|\.\.\.)\s*$/, ''));
+    if (prefixTokens.length < 2) {
+        return false;
+    }
+    const matchedTokens = new Set(getDistinctiveVenueTokens(`${decision?.matchedVenue || ''} ${decision?.matchedKey || ''}`));
+    return prefixTokens.every((token) => matchedTokens.has(token));
+}
+function applySearchVenueTruncationGuard(decision, venueText) {
+    if (!decision || !isTruncatedVenueText(venueText)) {
+        return decision;
+    }
+    const isRanked = (decision.system === 'CORE' && VALID_RANKS.includes(decision.rank))
+        || (decision.system === 'SJR' && SJR_QUARTILES.includes(decision.rank));
+    if (!isRanked || isTruncationSafeDecision(decision, venueText)) {
+        return decision;
+    }
+    return {
+        ...decision,
+        rank: 'N/A',
+        naReason: 'Truncated Venue',
+        decisionStatus: DECISION_STATUS.REVIEW,
+        decisionEvidence: [...(decision.decisionEvidence || []), 'venue_text_truncated']
+    };
+}
+function hasSearchResultBadge(resultElement) {
+    return !!resultElement?.querySelector(`span.${SEARCH_RESULT_BADGE_CLASS}`);
+}
+function setSearchResultRankingMetadata(resultElement, info) {
+    if (!resultElement || !info) {
+        return;
+    }
+    const statusKind = getRowStatusKind(info);
+    resultElement.dataset.gsrSystem = String(info.system || 'UNKNOWN').toLowerCase();
+    resultElement.dataset.gsrRank = normalizeRankKey(info.rank || 'N/A');
+    resultElement.dataset.gsrStatus = statusKind;
+    resultElement.classList.toggle('gsr-search-result--ranked', statusKind === 'ranked');
+    resultElement.classList.toggle('gsr-search-result--needs-review', statusKind !== 'ranked');
+}
+function displaySearchResultRankBadge(item, info) {
+    const titleElement = item?.titleElement;
+    if (!titleElement) {
+        return false;
+    }
+    titleElement.querySelector(`span.${SEARCH_RESULT_BADGE_CLASS}`)?.remove();
+    const badge = createRankBadgeElement(info.rank, info.system, info.reason, info);
+    if (!badge) {
+        return false;
+    }
+    badge.classList.add('gsr-rank-badge-inline', SEARCH_RESULT_BADGE_CLASS);
+    const linkElement = titleElement.querySelector('a');
+    if (linkElement) {
+        linkElement.insertAdjacentElement('afterend', badge);
+    }
+    else {
+        titleElement.appendChild(badge);
+    }
+    setSearchResultRankingMetadata(item.resultElement, info);
+    return true;
+}
+function removeSearchResultBadges() {
+    document.querySelectorAll(`span.${SEARCH_RESULT_BADGE_CLASS}`).forEach((badge) => badge.remove());
+    lastSearchResultRankedCount = 0;
+    lastSearchResultBadgedCount = 0;
+}
+async function rankVisibleSearchResults(sessionId) {
+    const pending = collectSearchResultElements().filter((item) => !hasSearchResultBadge(item.resultElement));
+    if (pending.length === 0) {
+        return 0;
+    }
+    // Results with no venue text never reach the matcher; they render the same
+    // "No Venue" abstention a profile row would.
+    const computeIndexByItemIndex = new Map();
+    const itemsToCompute = [];
+    pending.forEach((item, index) => {
+        const venueName = String(item.venueText || '').trim();
+        if (!venueName) {
+            return;
+        }
+        computeIndexByItemIndex.set(index, itemsToCompute.length);
+        itemsToCompute.push({ venue: venueName, title: item.titleText, year: item.yearFromProfile ?? null });
+    });
+    const decisions = itemsToCompute.length
+        ? await computeVenueRankingDecisions(itemsToCompute, sessionId, null)
+        : [];
+    throwIfStaleScanSession(sessionId);
+    let badgedCount = 0;
+    pending.forEach((item, index) => {
+        const computeIndex = computeIndexByItemIndex.get(index);
+        const hasDecision = computeIndex !== undefined;
+        const decision = hasDecision
+            ? applySearchVenueTruncationGuard(decisions[computeIndex], String(item.venueText || ''))
+            : null;
+        const result = buildRankResultFromDecision(item, decision, hasDecision);
+        const info = createPublicationRankInfo(result);
+        if (displaySearchResultRankBadge(item, info)) {
+            badgedCount++;
+            if (isRankedResultInfo(info)) {
+                lastSearchResultRankedCount++;
+            }
+        }
+    });
+    lastSearchResultBadgedCount += badgedCount;
+    return badgedCount;
+}
+async function runSearchResultsRanking() {
+    if (searchResultsRankingInFlight) {
+        searchResultsRerunQueued = true;
+        return;
+    }
+    searchResultsRankingInFlight = true;
+    const sessionId = nextScanSessionId();
+    try {
+        await rankVisibleSearchResults(sessionId);
+    }
+    catch (error) {
+        if (!(error instanceof ScanSessionCancelledError)) {
+            console.warn('GSVR: search-result ranking failed.', error);
+        }
+    }
+    finally {
+        searchResultsRankingInFlight = false;
+        if (searchResultsRerunQueued) {
+            searchResultsRerunQueued = false;
+            scheduleSearchResultsRanking();
+        }
+    }
+}
+function scheduleSearchResultsRanking() {
+    if (searchResultsRankTimer) {
+        clearTimeout(searchResultsRankTimer);
+    }
+    searchResultsRankTimer = window.setTimeout(() => {
+        searchResultsRankTimer = null;
+        runSearchResultsRanking();
+    }, SEARCH_RESULT_RANK_DEBOUNCE_MS);
+}
+function observeSearchResultList(container) {
+    if (searchResultsObserver) {
+        searchResultsObserver.disconnect();
+        searchResultsObserver = null;
+    }
+    if (!container) {
+        return;
+    }
+    searchResultsObserver = new MutationObserver((mutations, observerInstance) => {
+        if (!document.body.contains(container) || searchResultsObserver !== observerInstance) {
+            observerInstance.disconnect();
+            if (searchResultsObserver === observerInstance) {
+                searchResultsObserver = null;
+            }
+            return;
+        }
+        // Our own badges are spans, so only newly inserted result blocks (an
+        // expanded version cluster, an in-place re-render) trigger a re-scan.
+        const hasNewResults = mutations.some((mutation) => mutation.type === 'childList'
+            && Array.from(mutation.addedNodes).some((node) => node instanceof HTMLElement
+                && (node.classList.contains('gs_r') || !!node.querySelector('div.gs_r'))));
+        if (hasNewResults) {
+            scheduleSearchResultsRanking();
+        }
+    });
+    try {
+        searchResultsObserver.observe(container, { childList: true, subtree: true });
+    }
+    catch (error) {
+        console.warn('GSVR: failed to observe the Scholar search result list.', error);
+    }
+}
+function initializeSearchResultsSurface() {
+    if (searchResultsSurfaceInitialized) {
+        return true;
+    }
+    const container = getSearchResultContainer();
+    if (!container || !container.querySelector('div.gs_r')) {
+        return false;
+    }
+    searchResultsSurfaceInitialized = true;
+    currentProfileContext = { ...currentProfileContext, surfaceMode: 'search-results' };
+    warmMatchEngine('search-results-detected').catch(() => { });
+    observeSearchResultList(container);
+    loadSettingsIntoState()
+        .then(() => {
+            if (currentSettings.autoRun !== false) {
+                scheduleSearchResultsRanking();
+            }
+        })
+        .catch((error) => console.warn('GSVR: could not load settings for the search surface.', error));
+    return true;
 }
 function buildReviewReasonCounts(publicationRanks) {
     const counts = {};
@@ -10388,6 +10749,73 @@ async function pickVenueRanking(venueName, titleText, publicationYear) {
     if (sjr.naReason || sjr.matchedVenue) return remember(sjr);
     return remember(core);
 }
+// An "undecided" result: the shape every surface renders, with no rank, no
+// reason, and empty decision metadata.
+function buildBlankRankResult(pubInfo, extra = {}) {
+    return {
+        rank: 'N/A',
+        system: 'UNKNOWN',
+        reason: null,
+        rowElement: pubInfo.rowElement ?? null,
+        paperTitle: pubInfo.paperTitle,
+        titleText: pubInfo.titleText,
+        publicationYear: pubInfo.yearFromProfile ?? null,
+        authorCount: pubInfo.authorCount ?? null,
+        url: pubInfo.url,
+        shouldPersist: true,
+        matchConfidence: null,
+        matchedVenue: null,
+        venueMatchConfidence: null,
+        dblpVenue: null,
+        sourceYear: null,
+        dblpKey: null,
+        topCandidates: null,
+        ...createDecisionMeta(),
+        ...extra
+    };
+}
+// Turn a precomputed venue-ranking decision (from the worker or the in-process
+// matcher) into a publication result. Shared by the profile table and the
+// keyword-search result list: both hand in the same { venueText, titleText,
+// yearFromProfile, ... } shape and get back a renderable result.
+function buildRankResultFromDecision(pubInfo, decision, hasDecision) {
+    const venueName = String(pubInfo.venueText || '').trim();
+    if (!venueName) {
+        return buildBlankRankResult(pubInfo, { reason: 'No Venue', ...mergeDecisionMeta(createDecisionMeta(), { decisionStatus: DECISION_STATUS.MISSING, decisionEvidence: ['no_venue'] }) });
+    }
+    if (!hasDecision || !decision) {
+        return buildBlankRankResult(pubInfo);
+    }
+    const isRanked = (decision.system === 'CORE' && VALID_RANKS.includes(decision.rank)) || (decision.system === 'SJR' && SJR_QUARTILES.includes(decision.rank));
+    const decisionMeta = mergeDecisionMeta(createDecisionMeta(), {
+        decisionStatus: decision.decisionStatus ?? (isRanked ? DECISION_STATUS.MATCHED : DECISION_STATUS.UNRANKED),
+        confidence: decision.venueMatchConfidence ?? null,
+        matchedKey: decision.matchedKey ?? decision.matchedVenue ?? null,
+        matchedSourceId: decision.matchedSourceId ?? null,
+        sourceYearFallback: decision.sourceYearFallback === true,
+        decisionEvidence: decision.decisionEvidence ?? null
+    });
+    return {
+        rank: decision.rank,
+        system: decision.system,
+        reason: decision.rank === 'N/A' ? decision.naReason : null,
+        rowElement: pubInfo.rowElement ?? null,
+        paperTitle: pubInfo.paperTitle,
+        titleText: pubInfo.titleText,
+        publicationYear: pubInfo.yearFromProfile ?? null,
+        authorCount: pubInfo.authorCount ?? null,
+        url: pubInfo.url,
+        shouldPersist: decision.shouldPersist !== false,
+        matchConfidence: null,
+        matchedVenue: decision.matchedVenue ?? null,
+        venueMatchConfidence: decision.venueMatchConfidence ?? null,
+        dblpVenue: null,
+        sourceYear: decision.sourceYear ?? null,
+        dblpKey: null,
+        topCandidates: decision.topCandidates ?? null,
+        ...decisionMeta
+    };
+}
 async function evaluatePublicationRanks(publicationLinkElements, statusElement, sessionId, options = {}) {
     const determinedPublicationRanks = [];
     const persistentPublicationRanks = [];
@@ -10439,76 +10867,18 @@ async function evaluatePublicationRanks(publicationLinkElements, statusElement, 
             decisionEvidence: existing.decisionEvidence ?? null
         })
     });
-    // Turn a precomputed venue-ranking decision (from the worker or the
-    // in-process matcher) into a publication result. This is the exact
-    // post-decision logic of the former inline processPublication, minus the
-    // pickVenueRanking call itself, so behavior and the stateful title-dedup are
-    // unchanged.
+    // Wrap the shared decision mapper with the stateful title-dedup: once a
+    // title has produced a ranked result, later duplicates of the same title
+    // render blank so a profile cannot count one paper twice.
     const buildResultFromDecision = (pubInfo, decision, hasDecision, titlesAlreadyProcessedSet) => {
-        const publicationYear = pubInfo.yearFromProfile ?? null;
-        const buildResult = (extra) => ({
-            rank: 'N/A',
-            system: 'UNKNOWN',
-            reason: null,
-            rowElement: pubInfo.rowElement,
-            paperTitle: pubInfo.paperTitle,
-            titleText: pubInfo.titleText,
-            publicationYear,
-            authorCount: pubInfo.authorCount ?? null,
-            url: pubInfo.url,
-            shouldPersist: true,
-            matchConfidence: null,
-            matchedVenue: null,
-            venueMatchConfidence: null,
-            dblpVenue: null,
-            sourceYear: null,
-            dblpKey: null,
-            topCandidates: null,
-            ...createDecisionMeta(),
-            ...extra
-        });
         if (titlesAlreadyProcessedSet.has(pubInfo.titleText)) {
-            return buildResult();
+            return buildBlankRankResult(pubInfo);
         }
-        const venueName = String(pubInfo.venueText || '').trim();
-        if (!venueName) {
-            return buildResult({ reason: 'No Venue', ...mergeDecisionMeta(createDecisionMeta(), { decisionStatus: DECISION_STATUS.MISSING, decisionEvidence: ['no_venue'] }) });
-        }
-        if (!hasDecision || !decision) {
-            return buildResult();
-        }
-        const isRanked = (decision.system === 'CORE' && VALID_RANKS.includes(decision.rank)) || (decision.system === 'SJR' && SJR_QUARTILES.includes(decision.rank));
-        if (isRanked) {
+        const result = buildRankResultFromDecision(pubInfo, decision, hasDecision);
+        if (isRankedResultInfo(result)) {
             titlesAlreadyProcessedSet.add(pubInfo.titleText);
         }
-        const decisionMeta = mergeDecisionMeta(createDecisionMeta(), {
-            decisionStatus: decision.decisionStatus ?? (isRanked ? DECISION_STATUS.MATCHED : DECISION_STATUS.UNRANKED),
-            confidence: decision.venueMatchConfidence ?? null,
-            matchedKey: decision.matchedKey ?? decision.matchedVenue ?? null,
-            matchedSourceId: decision.matchedSourceId ?? null,
-            sourceYearFallback: decision.sourceYearFallback === true,
-            decisionEvidence: decision.decisionEvidence ?? null
-        });
-        return {
-            rank: decision.rank,
-            system: decision.system,
-            reason: decision.rank === 'N/A' ? decision.naReason : null,
-            rowElement: pubInfo.rowElement,
-            paperTitle: pubInfo.paperTitle,
-            titleText: pubInfo.titleText,
-            publicationYear,
-            authorCount: pubInfo.authorCount ?? null,
-            url: pubInfo.url,
-            shouldPersist: decision.shouldPersist !== false,
-            matchConfidence: null,
-            matchedVenue: decision.matchedVenue ?? null,
-            venueMatchConfidence: decision.venueMatchConfidence ?? null,
-            dblpVenue: null,
-            sourceYear: decision.sourceYear ?? null,
-            dblpKey: null,
-            topCandidates: decision.topCandidates ?? null,
-            ...decisionMeta
-        };
+        return result;
     };
     // Decide which rows need a fresh decision (rows whose cached rank cannot be
     // reused, with a non-empty venue), then compute all of them in one batched
@@ -10730,6 +11100,8 @@ function installProductionMatcherDebugApi() {
         getCurrentRankDebugSnapshot,
         clearCurrentProfileCacheAndRescanDebug,
         extractVenueFromProfileLine,
+        parseScholarSearchResultMeta,
+        applySearchVenueTruncationGuard,
         normalizeDblpVenueAlias,
         pickVenueRanking,
         resolveDblpVenueCatalogMatch,
@@ -11121,7 +11493,17 @@ if (chrome?.storage?.onChanged && SETTINGS_API?.SETTINGS_KEY) {
             return;
         }
         await loadSettingsIntoState();
-        if (getScholarSurfaceMode() !== 'profile') {
+        const surfaceMode = getScholarSurfaceMode();
+        if (surfaceMode === 'search-results') {
+            // Badge popovers bake in the debug-detail setting at build time, so
+            // rebuild them rather than only re-syncing the CSS classes.
+            removeSearchResultBadges();
+            if (currentSettings.autoRun !== false) {
+                scheduleSearchResultsRanking();
+            }
+            return;
+        }
+        if (surfaceMode !== 'profile') {
             teardownOffProfileSurfaceUi();
             return;
         }
@@ -11154,6 +11536,22 @@ if (chrome?.runtime?.onMessage) {
         }
         if (message.type === 'GSVR_POPUP_STATUS') {
             const surfaceMode = getScholarSurfaceMode();
+            if (surfaceMode === 'search-results') {
+                sendResponse({
+                    ok: true,
+                    surfaceMode,
+                    isScanning: searchResultsRankingInFlight,
+                    authorName: null,
+                    hasResults: lastSearchResultBadgedCount > 0,
+                    publicationCount: lastSearchResultBadgedCount,
+                    rankedCount: lastSearchResultRankedCount,
+                    gsvrScore: null,
+                    updatedAt: null,
+                    dblpAuthorPid: null,
+                    dblpPidSource: null
+                });
+                return false;
+            }
             const summary = currentSummaryState;
             const publicationCount = Array.isArray(summary?.publicationRanks) ? summary.publicationRanks.length : 0;
             const totalScore = Number(summary?.venueProfileIndex?.totalScore);
@@ -11172,7 +11570,18 @@ if (chrome?.runtime?.onMessage) {
             return false;
         }
         if (message.type === 'GSVR_POPUP_RESCAN') {
-            if (getScholarSurfaceMode() !== 'profile') {
+            const rescanSurfaceMode = getScholarSurfaceMode();
+            if (rescanSurfaceMode === 'search-results') {
+                if (searchResultsRankingInFlight) {
+                    sendResponse({ ok: false, reason: 'busy' });
+                    return false;
+                }
+                removeSearchResultBadges();
+                scheduleSearchResultsRanking();
+                sendResponse({ ok: true });
+                return false;
+            }
+            if (rescanSurfaceMode !== 'profile') {
                 sendResponse({ ok: false, reason: 'not-profile' });
                 return false;
             }
@@ -11202,8 +11611,23 @@ function clearStaleInitializationMarkers() {
     removeCitationGraphRankChips();
     currentSummaryState = null;
 }
+function disconnectPageInitializationObserver() {
+    if (pageInitializationObserver) {
+        pageInitializationObserver.disconnect();
+        pageInitializationObserver = null;
+    }
+}
 function attemptPageInitialization() {
-    if (getScholarSurfaceMode() !== 'profile') {
+    const surfaceMode = getScholarSurfaceMode();
+    if (surfaceMode === 'search-results') {
+        teardownOffProfileSurfaceUi();
+        if (!initializeSearchResultsSurface()) {
+            return false;
+        }
+        disconnectPageInitializationObserver();
+        return true;
+    }
+    if (surfaceMode !== 'profile') {
         teardownOffProfileSurfaceUi();
         return false;
     }

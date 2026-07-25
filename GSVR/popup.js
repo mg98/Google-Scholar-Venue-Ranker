@@ -84,8 +84,17 @@
     if (!state?.ok) {
       return "Open a Scholar profile page to see its scan state here.";
     }
+    if (state.surfaceMode === "search-results") {
+      if (state.isScanning) {
+        return "Search results: ranking in progress…";
+      }
+      if (!state.publicationCount) {
+        return "Search results: nothing ranked yet. Use Rescan to start.";
+      }
+      return `Search results: ${state.rankedCount ?? 0} of ${state.publicationCount} hits matched to a CORE/SJR rank`;
+    }
     if (state.surfaceMode !== "profile") {
-      return "This Scholar page is not an author profile; GSVR runs on profile pages.";
+      return "This Scholar page is not an author profile or search result list.";
     }
     const who = state.authorName ? `${state.authorName}: ` : "";
     if (state.isScanning) {
@@ -111,7 +120,9 @@
     const state = await sendTabMessage(tab.id, { type: "GSVR_POPUP_STATUS" });
     if (tabStateEl) tabStateEl.textContent = describeTabState(state);
     if (rescanButton) {
-      rescanButton.disabled = !(state?.ok && state.surfaceMode === "profile" && !state.isScanning);
+      const rescannable = state?.surfaceMode === "profile" || state?.surfaceMode === "search-results";
+      rescanButton.disabled = !(state?.ok && rescannable && !state.isScanning);
+      rescanButton.textContent = state?.surfaceMode === "search-results" ? "Rescan These Results" : "Rescan This Profile";
     }
   }
 
@@ -121,9 +132,9 @@
     rescanButton.disabled = true;
     const response = await sendTabMessage(tab.id, { type: "GSVR_POPUP_RESCAN" });
     if (response?.ok) {
-      setStatus("Rescan started. The sidebar updates as results come in.");
+      setStatus("Rescan started. Ranks appear on the page as results come in.");
     } else if (response?.reason === "busy") {
-      setStatus("A scan is already running on this profile.");
+      setStatus("A scan is already running on this page.");
     } else {
       setStatus("Could not start a rescan on this tab.");
     }

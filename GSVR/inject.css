@@ -2094,6 +2094,24 @@
   display: none;
 }
 
+/* Keyword search results: the chip sits inside Scholar's h3 result heading,
+   which is larger and lighter than a profile row, so pin the chip metrics
+   instead of inheriting them and nudge it onto the title's optical baseline. */
+h3.gs_rt .gsr-search-rank-badge {
+  position: relative;
+  top: -2px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 20px;
+  letter-spacing: normal;
+  text-transform: none;
+  cursor: pointer;
+}
+
+h3.gs_rt .gsr-search-rank-badge:hover {
+  filter: brightness(1.05);
+}
+
 .gsr-badge-popover {
   position: fixed;
   z-index: 2147483647;
