@@ -13,6 +13,14 @@ const VALID_RANKS = ['A*', 'A', 'B', 'C'];
 
 let bundledRankingsIndex = null;
 
+let contentMatcher = null;
+function getContentMatcher() {
+  if (!contentMatcher) {
+    contentMatcher = require('../match_cli.js').getProductionMatcher({ quiet: true });
+  }
+  return contentMatcher;
+}
+
 function loadBundledRankingsIndex() {
   if (!bundledRankingsIndex) {
     const indexPath = path.join(__dirname, '..', 'data', 'rankings-index.json');
@@ -1263,6 +1271,146 @@ function testHistoricalCoreSnapshots() {
   assert.strictEqual(sigcomm2008.rank, 'A*');
 }
 
+function testScholarSearchResultMetaParsing() {
+  // content.js runs in a vm realm, so copy results into this realm before
+  // deepStrictEqual compares prototypes.
+  const parse = (line) => ({ ...getContentMatcher().parseScholarSearchResultMeta(line) });
+
+  // Scholar renders "AUTHORS - VENUE, YEAR - SOURCE" on one .gs_a line.
+  assert.deepStrictEqual(
+    parse('A Vaswani, N Shazeer, N Parmar… - Advances in neural …, 2017 - proceedings.neurips.cc'),
+    {
+      authorText: 'A Vaswani, N Shazeer, N Parmar…',
+      venueText: 'Advances in neural …',
+      year: 2017,
+      sourceText: 'proceedings.neurips.cc',
+    }
+  );
+
+  // Bibliographic noise is stripped from the venue exactly like a profile line.
+  assert.deepStrictEqual(
+    parse('X Y - ACM SIGMOD Record 30 (2), 100-110, 2017 - dl.acm.org'),
+    { authorText: 'X Y', venueText: 'ACM SIGMOD Record', year: 2017, sourceText: 'dl.acm.org' }
+  );
+
+  // Citation-only records drop the source; books drop the venue.
+  assert.deepStrictEqual(
+    parse('M Author - IEEE Trans. Mob. Comput., 2020'),
+    { authorText: 'M Author', venueText: 'IEEE Trans. Mob. Comput.', year: 2020, sourceText: null }
+  );
+  assert.deepStrictEqual(
+    parse('I Goodfellow, Y Bengio, A Courville - 2016 - books.google.com'),
+    { authorText: 'I Goodfellow, Y Bengio, A Courville', venueText: null, year: 2016, sourceText: 'books.google.com' }
+  );
+
+  // A lone trailing segment is the source when it looks like a host, and the
+  // venue otherwise -- never both.
+  assert.deepStrictEqual(
+    parse('A Author - example.com'),
+    { authorText: 'A Author', venueText: null, year: null, sourceText: 'example.com' }
+  );
+  assert.deepStrictEqual(
+    parse('A Author - Journal of Nothing'),
+    { authorText: 'A Author', venueText: 'Journal of Nothing', year: null, sourceText: null }
+  );
+
+  // Hyphenated venue names must not be split on their own hyphen.
+  assert.strictEqual(
+    parse('S Author - Human-Computer Interaction, 2011 - taylorfrancis.com').venueText,
+    'Human-Computer Interaction'
+  );
+
+  assert.deepStrictEqual(
+    parse(''),
+    { authorText: null, venueText: null, year: null, sourceText: null }
+  );
+}
+
+function testSearchVenueTruncationGuard() {
+  const { applySearchVenueTruncationGuard } = getContentMatcher();
+  const ranked = (extra) => ({ rank: 'A', system: 'CORE', matchedVenue: 'Some Venue', matchedKey: null, decisionEvidence: ['dblp_venue_match'], ...extra });
+
+  // Venue text that Scholar did not clip is never second-guessed.
+  const untouched = applySearchVenueTruncationGuard(ranked(), 'ACM SIGMOD Record');
+  assert.strictEqual(untouched.rank, 'A');
+
+  // A clipped prefix made only of boilerplate cannot identify a venue, so the
+  // rank is withdrawn rather than shown wrong.
+  const generic = applySearchVenueTruncationGuard(
+    ranked({ matchedVenue: 'ACM/IEEE International Conference on Modelling, Analysis and Simulation of Wireless and Mobile Systems' }),
+    'ACM International Conference on …'
+  );
+  assert.strictEqual(generic.rank, 'N/A');
+  assert.strictEqual(generic.naReason, 'Truncated Venue');
+  assert.ok(generic.decisionEvidence.includes('venue_text_truncated'));
+
+  // A clipped prefix whose identifying words all appear in the matched venue
+  // keeps its rank.
+  const safe = applySearchVenueTruncationGuard(
+    ranked({ rank: 'Q1', system: 'SJR', matchedVenue: 'IEEE Transactions on Pattern Analysis and Machine Intelligence' }),
+    'IEEE Transactions on Pattern Analysis and Machine …'
+  );
+  assert.strictEqual(safe.rank, 'Q1');
+
+  // A clipped prefix with identifying words the matched venue does not have is
+  // a mismatch, so it abstains.
+  const mismatch = applySearchVenueTruncationGuard(
+    ranked({ matchedVenue: 'ACM Symposium on Cloud Computing' }),
+    'ACM Conference on Embedded Networked Sensor …'
+  );
+  assert.strictEqual(mismatch.rank, 'N/A');
+  assert.strictEqual(mismatch.naReason, 'Truncated Venue');
+
+  // Abstentions pass through untouched -- there is no rank to withdraw.
+  const alreadyAbstained = applySearchVenueTruncationGuard(
+    { rank: 'N/A', system: 'CORE', naReason: 'Preprint', matchedVenue: null },
+    'arXiv preprint arXiv …'
+  );
+  assert.strictEqual(alreadyAbstained.naReason, 'Preprint');
+}
+
+function testSearchResultsSurfaceWiring() {
+  const contentPath = path.join(__dirname, '..', 'content.js');
+  const contentSource = fs.readFileSync(contentPath, 'utf8');
+  const cssSource = fs.readFileSync(path.join(__dirname, '..', 'inject.css'), 'utf8');
+
+  // /scholar result lists (keyword search, "Cited by", version clusters) are
+  // their own surface, distinct from an author profile.
+  assert.ok(
+    contentSource.includes("/^\\/scholar\\b/.test(window.location.pathname)") &&
+    contentSource.includes("return 'search-results'"),
+    'Scholar /scholar result lists should resolve to the search-results surface'
+  );
+  assert.ok(
+    contentSource.includes("if (surfaceMode === 'search-results') {") &&
+    contentSource.includes('initializeSearchResultsSurface()'),
+    'Page bootstrap should initialize the search-results surface'
+  );
+  // Results are read straight from the .gs_a line; no extra Scholar fetches.
+  assert.ok(
+    contentSource.includes("body.querySelector('h3.gs_rt')") &&
+    contentSource.includes("body.querySelector('div.gs_a')"),
+    'Search results should be read from the Scholar result heading and meta line'
+  );
+  assert.ok(
+    contentSource.includes('SEARCH_RESULT_BADGE_CLASS') &&
+    contentSource.includes("badge.classList.add('gsr-rank-badge-inline', SEARCH_RESULT_BADGE_CLASS)"),
+    'Search-result badges should reuse the inline rank badge styling'
+  );
+  assert.ok(
+    contentSource.includes('applySearchVenueTruncationGuard(decisions[computeIndex]'),
+    'Search-result decisions must pass through the truncated-venue guard'
+  );
+  assert.ok(
+    contentSource.includes('observeSearchResultList'),
+    'Dynamically inserted results should be picked up by an observer'
+  );
+  assert.ok(
+    cssSource.includes('h3.gs_rt .gsr-search-rank-badge'),
+    'Search-result badges need heading-scoped styling'
+  );
+}
+
 async function run() {
   testDeterministicDblpMatch();
   testWorkshopClassification();
@@ -1309,6 +1457,9 @@ async function run() {
   testAccuracyFixtureLoaderSmoke();
   testShortPaperByPages();
   testVenueNormalization();
+  testScholarSearchResultMetaParsing();
+  testSearchVenueTruncationGuard();
+  testSearchResultsSurfaceWiring();
   runScoreTests();
   await runDblpVenueCatalogTests();
 

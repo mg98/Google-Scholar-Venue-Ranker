@@ -154,6 +154,7 @@ GSVR brings that context directly into Scholar with:
 ## What the extension does
 
 - Adds historical CORE conference ranks (`A*`, `A`, `B`, `C`) to conference papers.
+- Adds the same rank chips to Google Scholar keyword search results, "Cited by" lists, and version clusters.
 - Adds SJR quartiles (`Q1`, `Q2`, `Q3`, `Q4`) to journal papers.
 - Uses DBLP metadata as the authoritative source for venue extraction and disambiguation.
 - Chooses the most appropriate CORE snapshot by publication year.
@@ -239,7 +240,16 @@ On supported Google Scholar profile pages, GSVR injects:
 - row highlighting for selected categories
 - links for `DBLP Profile`, `Explore Venues`, `Download Report`, `Report Issue`, and `About`
 
-GSVR intentionally does not inject UI on individual paper detail pages or Scholar search-results pages.
+GSVR intentionally does not inject UI on individual paper detail pages.
+
+### Search results overlay
+
+On `/scholar` result lists -- keyword search, `Cited by` lists, and version clusters -- GSVR adds the same inline rank chip next to each result title, with the same hover popover and evidence drawer as a profile row. Ranks are read from the venue text Scholar already prints on the result line, so the overlay costs no extra requests to Scholar and cannot trip its rate limiting.
+
+Two things differ from the profile overlay by design:
+
+- There is no sidebar, `GSVR Score`, or report flow. A result list is not a body of work, so aggregating it would invite a meaningless number.
+- Scholar clips long venue names on a result line (`ACM International Conference on ...`). A clipped prefix is a genuine hazard: measured against the full venue titles, roughly a third of the ranks the matcher returns for a clipped prefix contradict the rank for the full name, and match confidence does not separate the good matches from the bad. So a clipped venue keeps its rank only when the surviving prefix carries at least two identifying words that all appear in the venue that was matched. Otherwise the result shows a `Clipped venue` abstention instead of a rank that may be wrong.
 
 ### Popup
 
@@ -430,7 +440,8 @@ As of May 2026, this repository does not bundle an official `2025` SJR CSV.
 - Papers missing from DBLP may remain unranked or appear as `DBLP Missing`.
 - Some venues are genuinely ambiguous and are intentionally left unresolved.
 - Ranking policies in research are field-specific; GSVR focuses on DBLP plus CORE plus SJR rather than trying to aggregate every ranking system.
-- The extension is designed for Google Scholar profile pages, not as a general-purpose citation-site rank overlay.
+- On search-results pages, Scholar clips long venue names, so results whose venue cannot be identified from the surviving prefix abstain with `Clipped venue` rather than show a rank. Profile pages, which print more of the venue, are unaffected.
+- The extension is designed for Google Scholar, not as a general-purpose citation-site rank overlay.
 
 ## Contributing and bug reports
 
