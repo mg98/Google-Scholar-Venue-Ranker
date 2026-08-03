@@ -3,7 +3,18 @@
 
 # Scholar with Ranks
 
-Scholar with Ranks is an open-source Chrome extension developed by [Naveed Bhatti](https://naveedanwarbhatti.github.io/). Its purpose is to make Google Scholar author profiles easier to audit by adding DBLP-verified CORE/SJR venue ranks, a raw fractional GSVR Score, scoring-completeness diagnostics, and downloadable evidence reports. When a paper can be verified, GSVR uses a DBLP-backed ranking pipeline instead of trusting editable Google Scholar venue text alone.
+Scholar with Ranks is an open-source Chrome extension that adds CORE/SJR venue ranks to Google Scholar author profiles. It is a fork of [Google Scholar Venue Ranker (GSVR)](https://github.com/naveedanwarbhatti/Google-Scholar-Venue-Ranker) by [Naveed Bhatti](https://naveedanwarbhatti.github.io/) — credit for the original idea, ranking data, and much of the underlying pipeline goes to him.
+
+## How this differs from GSVR
+
+Upstream GSVR is built as an *auditing* tool: before assigning a rank, it verifies each publication against live DBLP records, trading speed for a stronger correctness guarantee. That reasoning is spelled out in [naveedanwarbhatti/Google-Scholar-Venue-Ranker#28](https://github.com/naveedanwarbhatti/Google-Scholar-Venue-Ranker/pull/28), where a similar offline-matching change was proposed and rejected — the maintainer's position is that matching venue text alone can't confirm "that the publication exists, that it belongs to the profile owner, or that it is the correct publication type."
+
+Scholar with Ranks takes the opposite trade-off. It matches venue text directly against a prebuilt local CORE/SJR index and makes **no network requests to DBLP, or anywhere else** — the extension's host permissions cover only `scholar.google.*`. That makes it:
+
+- **100% offline** — nothing is sent to third parties, and there's no dependency on DBLP's endpoint or its rate limits.
+- **Lightweight and fast** — ranks render immediately instead of waiting on a chain of live lookups per publication.
+
+The cost is exactly the gap GSVR's maintainer describes above: this extension can't verify that a paper actually exists, belongs to the profile owner, or is the publication type (workshop vs. main track, short vs. full) that its venue string implies. If you need that auditing guarantee, use upstream GSVR; if you want a fast, private, offline rank overlay, use Scholar with Ranks.
 
 ## Demo
 
